@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dice Game</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      margin: 0;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      color: white;
+    }
+    
+    h1 {
+      font-size: 2.5em;
+      margin-bottom: 10px;
+      text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+    }
+    
+    .dice {
+      width: 150px;
+      height: 150px;
+      background: white;
+      border-radius: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 80px;
+      color: #667eea;
+      margin: 30px 0;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+      transition: transform 0.2s;
+    }
+    
+    .dice.rolling {
+      animation: roll 0.5s ease-in-out;
+    }
+    
+    @keyframes roll {
+      0%, 100% { transform: rotate(0deg); }
+      25% { transform: rotate(90deg); }
+      50% { transform: rotate(180deg); }
+      75% { transform: rotate(270deg); }
+    }
+    
+    button {
+      background: white;
+      color: #667eea;
+      border: none;
+      padding: 15px 40px;
+      font-size: 18px;
+      font-weight: bold;
+      border-radius: 25px;
+      cursor: pointer;
+      box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+      transition: transform 0.2s;
+    }
+    
+    button:active {
+      transform: scale(0.95);
+    }
+    
+    .stats {
+      margin-top: 30px;
+      text-align: center;
+      background: rgba(255,255,255,0.1);
+      padding: 20px;
+      border-radius: 15px;
+      backdrop-filter: blur(10px);
+    }
+    
+    .stats-row {
+      display: flex;
+      justify-content: space-around;
+      margin-top: 10px;
+    }
+    
+    .stat {
+      margin: 0 15px;
+    }
+    
+    .stat-value {
+      font-size: 24px;
+      font-weight: bold;
+    }
+    
+    .stat-label {
+      font-size: 12px;
+      opacity: 0.8;
+    }
+  </style>
+</head>
+<body>
+  <h1>🎲 Dice Game</h1>
+  <div class="dice" id="dice">1</div>
+  <button id="rollBtn">Roll Dice</button>
+  
+  <div class="stats">
+    <h3>Statistics</h3>
+    <div class="stats-row">
+      <div class="stat">
+        <div class="stat-value" id="totalRolls">0</div>
+        <div class="stat-label">Total Rolls</div>
+      </div>
+      <div class="stat">
+        <div class="stat-value" id="highestRoll">-</div>
+        <div class="stat-label">Highest</div>
+      </div>
+      <div class="stat">
+        <div class="stat-value" id="lastRoll">-</div>
+        <div class="stat-label">Last Roll</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const diceEl = document.getElementById('dice');
+    const rollBtn = document.getElementById('rollBtn');
+    const totalRollsEl = document.getElementById('totalRolls');
+    const highestRollEl = document.getElementById('highestRoll');
+    const lastRollEl = document.getElementById('lastRoll');
+    
+    let stats = {
+      totalRolls: 0,
+      highestRoll: 0,
+      lastRoll: 0
+    };
+    
+    async function loadStats() {
+      try {
+        const stored = await window.EveryAppBridge.storage.get('dice_stats');
+        if (stored) {
+          stats = JSON.parse(stored);
+          updateStatsDisplay();
+        }
+      } catch (error) {
+        console.error('Failed to load stats:', error);
+      }
+    }
+    
+    async function saveStats() {
+      try {
+        await window.EveryAppBridge.storage.set('dice_stats', JSON.stringify(stats));
+      } catch (error) {
+        console.error('Failed to save stats:', error);
+      }
+    }
+    
+    function updateStatsDisplay() {
+      totalRollsEl.textContent = stats.totalRolls;
+      highestRollEl.textContent = stats.highestRoll || '-';
+      lastRollEl.textContent = stats.lastRoll || '-';
+    }
+    
+    async function rollDice() {
+      rollBtn.disabled = true;
+      diceEl.classList.add('rolling');
+      
+      try {
+        await window.EveryAppBridge.vibration.vibrate([50]);
+      } catch (error) {
+        console.error('Vibration failed:', error);
+      }
+      
+      setTimeout(async () => {
+        const result = Math.floor(Math.random() * 6) + 1;
+        diceEl.textContent = result;
+        diceEl.classList.remove('rolling');
+        
+        stats.totalRolls++;
+        stats.lastRoll = result;
+        if (result > stats.highestRoll) {
+          stats.highestRoll = result;
+          
+          try {
+            await window.EveryAppBridge.notifications.schedule(
+              'New Record!',
+              `You rolled a ${result}! 🎉`,
+              1
+            );
+          } catch (error) {
+            console.error('Notification failed:', error);
+          }
+        }
+        
+        updateStatsDisplay();
+        await saveStats();
+        rollBtn.disabled = false;
+      }, 500);
+    }
+    
+    rollBtn.addEventListener('click', rollDice);
+    
+    loadStats();
+  </script>
+</body>
+</html>

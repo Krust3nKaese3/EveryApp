@@ -1,0 +1,7 @@
+{
+  "name": "HTTP Demo",
+  "version": "1.0.0",
+  "description": "Demonstrates HTTP requests and data display",
+  "entrypoint": "index.html",
+  "permissions": ["http", "storage"]
+}
