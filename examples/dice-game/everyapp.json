@@ -1,0 +1,8 @@
+{
+  "name": "Dice Game",
+  "version": "1.0.0",
+  "description": "A simple dice rolling game with storage and vibration",
+  "icon": "icon.png",
+  "entrypoint": "index.html",
+  "permissions": ["storage", "vibration", "notifications"]
+}

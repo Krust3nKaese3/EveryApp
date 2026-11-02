@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HTTP Demo</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+      margin: 0;
+      padding: 20px;
+      color: white;
+    }
+    
+    h1 {
+      text-align: center;
+      margin-bottom: 20px;
+      text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+    }
+    
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+    }
+    
+    .card {
+      background: white;
+      border-radius: 15px;
+      padding: 20px;
+      margin-bottom: 20px;
+      color: #333;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+    }
+    
+    button {
+      width: 100%;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      padding: 15px;
+      font-size: 16px;
+      font-weight: bold;
+      border-radius: 10px;
+      cursor: pointer;
+      margin-bottom: 15px;
+      box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+      transition: transform 0.2s;
+    }
+    
+    button:active {
+      transform: scale(0.98);
+    }
+    
+    button:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+    
+    .result {
+      margin-top: 15px;
+      padding: 15px;
+      background: #f5f5f5;
+      border-radius: 10px;
+      font-size: 14px;
+      max-height: 300px;
+      overflow-y: auto;
+    }
+    
+    .loading {
+      text-align: center;
+      padding: 20px;
+      font-style: italic;
+      color: #666;
+    }
+    
+    .error {
+      color: #f5576c;
+      font-weight: bold;
+    }
+    
+    .fact {
+      font-size: 16px;
+      line-height: 1.6;
+      margin-bottom: 10px;
+    }
+    
+    .history {
+      margin-top: 10px;
+      padding-top: 10px;
+      border-top: 2px solid #eee;
+    }
+    
+    .history-title {
+      font-weight: bold;
+      margin-bottom: 10px;
+    }
+    
+    .history-item {
+      padding: 8px;
+      background: white;
+      border-radius: 5px;
+      margin-bottom: 5px;
+      font-size: 13px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🌐 HTTP Demo</h1>
+    
+    <div class="card">
+      <h3>Random Cat Fact</h3>
+      <button id="fetchCatBtn">Get Cat Fact</button>
+      <div id="catResult"></div>
+    </div>
+    
+    <div class="card">
+      <h3>Random Dog Fact</h3>
+      <button id="fetchDogBtn">Get Dog Fact</button>
+      <div id="dogResult"></div>
+    </div>
+    
+    <div class="card">
+      <h3>Request History</h3>
+      <div id="history"></div>
+      <button id="clearHistoryBtn">Clear History</button>
+    </div>
+  </div>
+
+  <script>
+    let history = [];
+    
+    const catBtn = document.getElementById('fetchCatBtn');
+    const dogBtn = document.getElementById('fetchDogBtn');
+    const clearHistoryBtn = document.getElementById('clearHistoryBtn');
+    const catResult = document.getElementById('catResult');
+    const dogResult = document.getElementById('dogResult');
+    const historyEl = document.getElementById('history');
+    
+    async function loadHistory() {
+      try {
+        const stored = await window.EveryAppBridge.storage.get('request_history');
+        if (stored) {
+          history = JSON.parse(stored);
+          displayHistory();
+        }
+      } catch (error) {
+        console.error('Failed to load history:', error);
+      }
+    }
+    
+    async function saveHistory() {
+      try {
+        await window.EveryAppBridge.storage.set('request_history', JSON.stringify(history));
+      } catch (error) {
+        console.error('Failed to save history:', error);
+      }
+    }
+    
+    function addToHistory(type, data) {
+      history.unshift({
+        type,
+        data,
+        timestamp: new Date().toLocaleString()
+      });
+      
+      if (history.length > 10) {
+        history = history.slice(0, 10);
+      }
+      
+      displayHistory();
+      saveHistory();
+    }
+    
+    function displayHistory() {
+      if (history.length === 0) {
+        historyEl.innerHTML = '<div class="loading">No requests yet</div>';
+        return;
+      }
+      
+      historyEl.innerHTML = history.map(item => `
+        <div class="history-item">
+          <strong>${item.type}</strong> - ${item.timestamp}
+        </div>
+      `).join('');
+    }
+    
+    async function fetchCatFact() {
+      catBtn.disabled = true;
+      catResult.innerHTML = '<div class="loading">Loading...</div>';
+      
+      try {
+        const response = await window.EveryAppBridge.http.fetch('https://catfact.ninja/fact');
+        const data = await response.json();
+        
+        catResult.innerHTML = `<div class="fact">${data.fact}</div>`;
+        addToHistory('Cat Fact', data.fact);
+      } catch (error) {
+        catResult.innerHTML = `<div class="error">Error: ${error.message}</div>`;
+      } finally {
+        catBtn.disabled = false;
+      }
+    }
+    
+    async function fetchDogFact() {
+      dogBtn.disabled = true;
+      dogResult.innerHTML = '<div class="loading">Loading...</div>';
+      
+      try {
+        const response = await window.EveryAppBridge.http.fetch('https://dog-api.kinduff.com/api/facts');
+        const data = await response.json();
+        
+        dogResult.innerHTML = `<div class="fact">${data.facts[0]}</div>`;
+        addToHistory('Dog Fact', data.facts[0]);
+      } catch (error) {
+        dogResult.innerHTML = `<div class="error">Error: ${error.message}</div>`;
+      } finally {
+        dogBtn.disabled = false;
+      }
+    }
+    
+    async function clearHistory() {
+      history = [];
+      displayHistory();
+      await saveHistory();
+    }
+    
+    catBtn.addEventListener('click', fetchCatFact);
+    dogBtn.addEventListener('click', fetchDogFact);
+    clearHistoryBtn.addEventListener('click', clearHistory);
+    
+    loadHistory();
+  </script>
+</body>
+</html>

@@ -1,0 +1,33 @@
+{
+  "name": "everyapp",
+  "version": "1.0.0",
+  "main": "index.ts",
+  "dependencies": {
+    "expo": "~58.0.22",
+    "expo-status-bar": "~58.0.4",
+    "expo-file-system": "~18.0.7",
+    "expo-camera": "~16.0.11",
+    "expo-notifications": "~0.30.0",
+    "expo-sensors": "~58.0.4",
+    "expo-haptics": "~14.0.0",
+    "expo-device": "~7.0.2",
+    "expo-screen-orientation": "~8.0.3",
+    "react": "19.3.0",
+    "react-native": "0.88.1",
+    "react-native-webview": "13.12.5",
+    "react-native-ble-manager": "^12.6.1",
+    "@react-native-async-storage/async-storage": "2.1.0"
+  },
+  "devDependencies": {
+    "@types/react": "~19.3.0",
+    "typescript": "~6.0.3"
+  },
+  "scripts": {
+    "start": "expo start",
+    "android": "expo start --android",
+    "ios": "expo start --ios",
+    "web": "expo start --web",
+    "build:android": "eas build --platform android --profile preview"
+  },
+  "private": true
+}
