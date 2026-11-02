@@ -1,23 +1,6 @@
-const { withAndroidManifest } = require('@expo/config-plugins');
-
+// react-native-ble-manager is a React Native module (autolinked), not an Android Service.
+// Registering it as <service> breaks lintVitalRelease, so this plugin intentionally adds nothing.
+// BLE permissions are declared in app.json.
 module.exports = function withBleManager(config) {
-  return withAndroidManifest(config, async (config) => {
-    const androidManifest = config.modResults;
-    const mainApplication = androidManifest.manifest.application[0];
-
-    if (!mainApplication.service) {
-      mainApplication.service = [];
-    }
-
-    const bleService = {
-      $: {
-        'android:name': 'it.innove.BleManager',
-        'android:enabled': 'true',
-      },
-    };
-
-    mainApplication.service.push(bleService);
-
-    return config;
-  });
+  return config;
 };
