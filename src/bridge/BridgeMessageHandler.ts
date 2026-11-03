@@ -62,12 +62,14 @@ export class BridgeMessageHandler {
     }
 
     // Clipboard write needs no permission (user-visible, harmless)
-    if (category === 'clipboard' || category === 'network' || category === 'media' || category === 'ble') {
+    if (category === 'clipboard' || category === 'network' || category === 'media') {
       return await this.executeCapabilityMethod(category, action, args);
     }
 
     if (!this.grantedPermissions.includes(category as Permission)) {
-      throw new Error(`Permission denied: ${category}`);
+      throw new Error(category === 'ble'
+        ? "BLE nicht erlaubt: Die Mini-App muss \"ble\" in den permissions ihres Manifests (everyapp.json) deklarieren und der Nutzer muss es erlauben"
+        : `Permission denied: ${category}`);
     }
 
     return await this.executeCapabilityMethod(category, action, args);

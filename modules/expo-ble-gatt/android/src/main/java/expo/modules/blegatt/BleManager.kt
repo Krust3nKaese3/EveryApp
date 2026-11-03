@@ -9,6 +9,10 @@ import android.content.Context
 import android.content.Intent
 import android.os.Build
 import android.util.Log
+import android.os.Handler
+import android.os.HandlerThread
+import org.json.JSONArray
+import org.json.JSONObject
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.CountDownLatch
@@ -37,6 +41,46 @@ object BleManager {
   }
 
   private val conns = ConcurrentHashMap<String, Conn>()
+  private val manualDisconnect = ConcurrentHashMap.newKeySet<String>()
+  private val backoff = ConcurrentHashMap<String, Long>()
+  private val worker: Handler by lazy { Handler(HandlerThread("EveryAppBle").apply { start() }.looper) }
+
+  // ---------- persisted notify subscriptions (auto re-subscribe) ----------
+  private const val PREFS = "everyapp_ble"
+  private fun subs(ctx: Context): MutableList<JSONObject> {
+    val a = try { JSONArray(ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getString("subs", "[]")) } catch (e: Exception) { JSONArray() }
+    return (0 until a.length()).mapNotNull { a.optJSONObject(it) }.toMutableList()
+  }
+  private fun saveSubs(ctx: Context, l: List<JSONObject>) {
+    ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putString("subs", JSONArray(l).toString()).apply()
+  }
+  private fun setSub(ctx: Context, address: String, svc: String, chr: String, on: Boolean) {
+    val l = subs(ctx).filterNot { it.optString("address").equals(address, true) && it.optString("svc") == svc && it.optString("chr") == chr }.toMutableList()
+    if (on) l.add(JSONObject().put("address", address.uppercase()).put("svc", svc).put("chr", chr))
+    saveSubs(ctx, l)
+  }
+  fun subscriptions(ctx: Context): List<Map<String, String>> = subs(ctx).map { mapOf("address" to it.optString("address"), "svc" to it.optString("svc"), "chr" to it.optString("chr")) }
+
+  /** Re-establish all persisted subscriptions (called on service start and after a connection drop, with backoff). */
+  fun restoreSubscriptions(ctx: Context, onlyAddress: String? = null) {
+    if (!::app.isInitialized) app = ctx.applicationContext
+    val byAddr = subs(ctx).groupBy { it.optString("address") }.filterKeys { onlyAddress == null || it.equals(onlyAddress, true) }
+    for ((addr, l) in byAddr) {
+      if (manualDisconnect.contains(addr)) continue
+      worker.post {
+        try {
+          for (x in l) notify(ctx, addr, x.optString("svc"), x.optString("chr"), true, 10000, persist = false)
+          backoff.remove(addr)
+          Log.i(TAG, "[EveryApp] BLE re-subscribe $addr ok (${l.size})")
+        } catch (e: Exception) {
+          val d = ((backoff[addr] ?: 2000L) * 2).coerceAtMost(300_000L)
+          backoff[addr] = d
+          Log.w(TAG, "[EveryApp] FEHLER BLE re-subscribe $addr: ${e.message} – neuer Versuch in ${d / 1000}s")
+          worker.postDelayed({ restoreSubscriptions(ctx, addr) }, d)
+        }
+      }
+    }
+  }
   private lateinit var app: Context
 
   private fun adapter(ctx: Context): BluetoothAdapter {
@@ -87,6 +131,11 @@ object BleManager {
         c.gatt = null
         c.latch?.countDown()
         listener?.invoke(mapOf("event" to "bleDisconnected", "address" to g.device.address, "status" to status))
+        val addr = g.device.address
+        if (!manualDisconnect.contains(addr) && subs(app).any { it.optString("address").equals(addr, true) }) {
+          val d = backoff[addr] ?: 2000L
+          worker.postDelayed({ restoreSubscriptions(app, addr) }, d)
+        }
       }
     }
     override fun onServicesDiscovered(g: BluetoothGatt, status: Int) {
@@ -141,6 +190,7 @@ object BleManager {
   // ---------- public api ----------
   fun connect(ctx: Context, address: String, timeoutMs: Long): Map<String, Any?> {
     val a = adapter(ctx)
+    manualDisconnect.remove(address.uppercase())
     val c = conns.getOrPut(address.uppercase()) { Conn(address.uppercase()) }
     c.lock.lock()
     try {
@@ -180,6 +230,7 @@ object BleManager {
     })
 
   fun disconnect(address: String) {
+    manualDisconnect.add(address.uppercase())
     conns.remove(address.uppercase())?.let { c -> try { c.gatt?.disconnect(); c.gatt?.close() } catch (_: Exception) {}; c.gatt = null }
   }
 
@@ -213,7 +264,9 @@ object BleManager {
   }
 
   @Suppress("DEPRECATION")
-  fun notify(ctx: Context, address: String, svc: String, ch: String, enable: Boolean, timeoutMs: Long): Boolean {
+  fun notify(ctx: Context, address: String, svc: String, ch: String, enable: Boolean, timeoutMs: Long, persist: Boolean = true): Boolean {
+    if (persist) setSub(ctx.applicationContext, address, svc, ch, enable)
+    if (!enable && conns[address.uppercase()]?.connected != true) return true
     val (c, x) = chr(ctx, address, svc, ch, timeoutMs)
     c.gatt!!.setCharacteristicNotification(x, enable)
     val d = x.getDescriptor(CCCD) ?: return true

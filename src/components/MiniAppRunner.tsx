@@ -61,7 +61,9 @@ export const MiniAppRunner: React.FC<MiniAppRunnerProps> = ({ app, onClose }) =>
   const initApp = async () => {
     const existingPermissions = await StorageService.getAppPermissions(app.id);
     
-    if (existingPermissions.length === 0 && app.manifest.permissions.length > 0) {
+    // Ask again when the manifest declares permissions that were not granted yet (e.g. new 'ble')
+    const missing = app.manifest.permissions.filter((p) => !existingPermissions.includes(p));
+    if (missing.length > 0) {
       setShowPermissionModal(true);
     } else {
       setGrantedPermissions(existingPermissions);

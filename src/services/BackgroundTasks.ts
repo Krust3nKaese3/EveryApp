@@ -13,6 +13,7 @@ import { requireOptionalNativeModule } from 'expo-modules-core';
 import * as ClassicBluetooth from '../../modules/expo-classic-bluetooth';
 import * as NetworkInfo from '../../modules/expo-network-info';
 import * as Ble from '../../modules/expo-ble-gatt';
+import { StorageService } from './StorageService';
 
 export type Trigger =
   | { type: 'bluetoothConnected'; nameOrAddress?: string | null }
@@ -147,7 +148,7 @@ function createCtx(appId: string, task: BackgroundTask) {
       next: () => sendMediaKey('next'), previous: () => sendMediaKey('previous'), stop: () => sendMediaKey('stop'),
     },
     wifi: { info: () => wifiInfo() },
-    ble: Ble.makeApi(false),
+    ble: guardBle(appId, Ble.makeApi(false)),
     tile: tileApi,
     widget: widgetApi,
     bluetooth: {
@@ -427,4 +428,19 @@ export const widgetApi = { update: (id: string, patch: any) => updateWidget(id, 
 export async function wifiInfo(): Promise<any> {
   try { return await NetworkInfo.getWifiAsync(); }
   catch (e: any) { return { ssid: null, bssid: null, rssi: null, frequency: null, ip: null, error: e?.message || String(e) }; }
+}
+
+/** Background ctx.ble: only for apps whose manifest declares (and user granted) 'ble'. */
+function guardBle(appId: string, api: any) {
+  const check = async () => {
+    const granted = await StorageService.getAppPermissions(appId).catch(() => [] as string[]);
+    if (!(granted as string[]).includes('ble'))
+      throw new Error(`BLE nicht erlaubt für "${appId}": "ble" muss in den permissions des Manifests (everyapp.json) stehen und erlaubt sein`);
+  };
+  const out: any = {};
+  for (const [k, f] of Object.entries(api)) {
+    out[k] = typeof f === 'function' && !['toHex', 'hexToBytes', 'isAvailable'].includes(k)
+      ? async (...a: any[]) => { await check(); return (f as any)(...a); } : f;
+  }
+  return out;
 }

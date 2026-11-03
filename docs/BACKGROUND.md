@@ -123,3 +123,14 @@ Host API (bridge `background.*`; guarded, saved but not shown on the current APK
 - Limits:
   - A notify subscription lives only as long as the process and connection. After a process kill or a disconnect, the macro has to call `notify` again, for example on `appStart` or an interval.
   - `onCharacteristicChanged` can fire while the app is in the background. Starting the headless service from there may then be blocked by Android's background-start rules. The foreground service makes this unlikely.
+
+### BLE permission and auto re-subscribe
+- Mini-apps must declare `"ble"` in `permissions` in their `everyapp.json`, and the user must grant it.
+  - It is enforced in the WebView bridge (`ble.*`) and in background tasks (`ctx.ble.*`).
+  - The error is `BLE nicht erlaubt: … "ble" muss in den permissions des Manifests stehen`.
+  - When a manifest adds new permissions, EveryApp shows the permission dialog again.
+- `ctx.ble.notify(addr, svc, chr, true)` persists the subscription natively (SharedPreferences `everyapp_ble/subs`).
+  - After a connection drop, it reconnects and re-enables the subscription with backoff (2 s, doubling, max 5 min).
+  - On a (re)start of the foreground service, all subscriptions are re-established.
+  - `notify(..., false)` removes the subscription.
+  - `disconnect(addr)` pauses auto-reconnect for that device until the next `connect`/`notify` or a service restart.

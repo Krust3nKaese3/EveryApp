@@ -23,6 +23,7 @@ class ExpoBleGattModule : Module() {
     AsyncFunction("connect") { address: String, timeoutMs: Double -> BleManager.connect(ctx(), address, timeoutMs.toLong()) }
     AsyncFunction("disconnect") { address: String -> BleManager.disconnect(address); true }
     Function("connected") { BleManager.connectedAddresses() }
+    Function("subscriptions") { BleManager.subscriptions(ctx()) }
     // data as hex string (JS converts arrays)
     AsyncFunction("write") { address: String, svc: String, chr: String, hex: String, withResponse: Boolean?, timeoutMs: Double ->
       BleManager.write(ctx(), address, svc, chr, bytes(hex), withResponse, timeoutMs.toLong())

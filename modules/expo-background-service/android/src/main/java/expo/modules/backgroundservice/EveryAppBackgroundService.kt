@@ -28,6 +28,11 @@ class EveryAppBackgroundService : Service() {
       stopSelf()
       return START_NOT_STICKY
     }
+    // BLE notify subscriptions (expo-ble-gatt, optional module) – via reflection to avoid a hard module dependency
+    try {
+      val k = Class.forName("expo.modules.blegatt.BleManager")
+      k.getMethod("restoreSubscriptions", Context::class.java, String::class.java).invoke(k.getField("INSTANCE").get(null), this, null)
+    } catch (e: ClassNotFoundException) {} catch (e: Exception) { Log.e(TAG, "[EveryApp] FEHLER BLE-Restore: ${e.message}") }
     try { WifiWatcher.start(this) } catch (e: Exception) { Log.e(TAG, "[EveryApp] FEHLER WifiWatcher: ${e.message}") }
     return START_STICKY
   }
