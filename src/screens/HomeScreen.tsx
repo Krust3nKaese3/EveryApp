@@ -13,6 +13,7 @@ import { MiniApp, Folder } from '../types';
 import { StorageService } from '../services/StorageService';
 import { GitRepoService } from '../services/GitRepoService';
 import { MiniAppRunner } from '../components/MiniAppRunner';
+import * as Clipboard from 'expo-clipboard';
 
 export const HomeScreen: React.FC = () => {
   const [apps, setApps] = useState<MiniApp[]>([]);
@@ -150,8 +151,15 @@ export const HomeScreen: React.FC = () => {
       style={styles.appItem}
       onPress={() => setSelectedApp(app)}
       onLongPress={() =>
-        Alert.alert('App Actions', `Actions for ${app.manifest.name}`, [
+        Alert.alert('App Actions', `${app.manifest.name}\n\n${app.repoUrl}`, [
           { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Copy GitHub Link',
+            onPress: async () => {
+              await Clipboard.setStringAsync(app.repoUrl);
+              Alert.alert('Copied', app.repoUrl);
+            },
+          },
           { text: 'Move to Root', onPress: () => handleMoveApp(app, null) },
           ...folders.map((f) => ({
             text: `Move to ${f.name}`,
