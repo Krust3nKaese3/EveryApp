@@ -7,6 +7,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Vibration } from 'react-native';
 import * as Notifications from 'expo-notifications';
 import * as Clipboard from 'expo-clipboard';
+import { sendMediaKey } from '../../modules/expo-media-control';
 import { BackgroundService } from './BackgroundService';
 
 export type Trigger =
@@ -130,6 +131,10 @@ function createCtx(appId: string, task: BackgroundTask) {
     },
     notify: async (title: string, body: string) => {
       await Notifications.scheduleNotificationAsync({ content: { title, body }, trigger: null });
+    },
+    media: {
+      play: () => sendMediaKey('play'), pause: () => sendMediaKey('pause'), toggle: () => sendMediaKey('toggle'),
+      next: () => sendMediaKey('next'), previous: () => sendMediaKey('previous'), stop: () => sendMediaKey('stop'),
     },
     copy: async (text: string) => { await Clipboard.setStringAsync(String(text ?? '')); },
     vibrate: (pattern?: number[]) => {

@@ -62,7 +62,7 @@ export class BridgeMessageHandler {
     }
 
     // Clipboard write needs no permission (user-visible, harmless)
-    if (category === 'clipboard') {
+    if (category === 'clipboard' || category === 'network' || category === 'media') {
       return await this.executeCapabilityMethod(category, action, args);
     }
 
@@ -148,6 +148,18 @@ export class BridgeMessageHandler {
             unregisterTask: (id) => sendMessage('background.unregisterTask', [id]),
             unregisterAll: () => sendMessage('background.unregisterAll', []),
             listTasks: () => sendMessage('background.listTasks', []),
+          },
+          media: {
+            play: () => sendMessage('media.play', []),
+            pause: () => sendMessage('media.pause', []),
+            toggle: () => sendMessage('media.toggle', []),
+            next: () => sendMessage('media.next', []),
+            previous: () => sendMessage('media.previous', []),
+            stop: () => sendMessage('media.stop', []),
+          },
+          network: {
+            isAvailable: () => sendMessage('network.isAvailable', []),
+            getInfo: () => sendMessage('network.getInfo', []),
           },
           clipboard: {
             setString: (text) => sendMessage('clipboard.setString', [text]),

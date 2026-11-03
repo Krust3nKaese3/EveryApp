@@ -11,6 +11,8 @@ import { BackgroundService } from '../services/BackgroundService';
 import { BackgroundTasks, restartTimers } from '../services/BackgroundTasks';
 import { PermissionsAndroid, Platform } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
+import * as NetworkInfo from '../../modules/expo-network-info';
+import { sendMediaKey } from '../../modules/expo-media-control';
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -249,6 +251,27 @@ export class NativeCapabilities {
     listTasks: async (): Promise<any[]> => BackgroundTasks.list(this.appId),
     getLog: async (): Promise<string> => BackgroundTasks.getLog(this.appId),
     clearLog: async (): Promise<void> => BackgroundTasks.clearLog(this.appId),
+  };
+
+  // Pending native module (next build). Guarded: throws readable error on the current APK.
+  network = {
+    isAvailable: async (): Promise<boolean> => NetworkInfo.isAvailable(),
+    getInfo: async (): Promise<any> => {
+      if (!NetworkInfo.isAvailable()) throw new Error('Netzwerk-Info nicht verfügbar (braucht nächsten Build)');
+      if (Platform.OS === 'android') {
+        try { await PermissionsAndroid.request(PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION); } catch {}
+      }
+      return await NetworkInfo.getInfoAsync();
+    },
+  };
+
+  media = {
+    play: () => sendMediaKey('play'),
+    pause: () => sendMediaKey('pause'),
+    toggle: () => sendMediaKey('toggle'),
+    next: () => sendMediaKey('next'),
+    previous: () => sendMediaKey('previous'),
+    stop: () => sendMediaKey('stop'),
   };
 
   clipboard = {

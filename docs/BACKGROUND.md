@@ -56,6 +56,7 @@ The code runs outside the WebView: **no DOM, no `window`, no access to variables
 | `ctx.wait(ms)` | Promise-based delay |
 | `ctx.http.get(url)` / `ctx.http.request({url, method, headers, body, timeoutMs})` | → `{status, ok, headers, body}`; default timeout 15 s |
 | `ctx.notify(title, body)` | Shows a notification immediately |
+| `ctx.media.play/pause/toggle/next/previous/stop()` | **From the next build on:** media keys for the currently active player (like headset buttons). Before that it throws "Media-Steuerung braucht nächsten Build". |
 | `ctx.copy(text)` | Copies text to the clipboard |
 | `ctx.vibrate(pattern?)` | Vibration, e.g. `[200,100,200]` (on, pause, on in ms) |
 | `ctx.storage.get/set/remove(key)` | String storage scoped to this app – **the same keys as `EveryAppBridge.storage`**, so it is shared with the UI |
@@ -76,3 +77,5 @@ Errors thrown by the handler are caught and logged as `FEHLER: Task "<id>" fehlg
 ## Other bridge APIs used in this context
 - `EveryAppBridge.bluetooth.getConnectedDevices(includePaired?)` → array of device objects (same fields as above). Covers A2DP/HEADSET/HID/LE-Audio/GATT and bonded devices, including devices that were connected before the app started. With `includePaired=true`, paired but disconnected devices are included too (`connected:false`). Throws an error with a readable message, e.g. when the permission is missing.
 - `EveryAppBridge.clipboard.setString(text)` – no permission needed.
+- `EveryAppBridge.network.isAvailable()` / `getInfo()` → `{transport, ssid, ssidError, ip, prefixLength, gateway, dns, interfaceName}`. No permission needed (asks for location for the SSID). Only from the next build on; before that `getInfo` throws "nicht verfügbar".
+- `EveryAppBridge.media.play/pause/toggle/next/previous/stop()` – **from the next build on**, no permission needed. There is no way to find out which app is currently playing.
