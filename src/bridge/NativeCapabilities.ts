@@ -10,6 +10,7 @@ import { EventEmitter } from './EventEmitter';
 import { BackgroundService } from '../services/BackgroundService';
 import { BackgroundTasks, restartTimers } from '../services/BackgroundTasks';
 import { PermissionsAndroid, Platform } from 'react-native';
+import * as Clipboard from 'expo-clipboard';
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -142,12 +143,13 @@ export class NativeCapabilities {
       await BleManager.disconnect(deviceId);
     },
 
-    getConnectedDevices: async (): Promise<BluetoothDevice[]> => {
+    // Throws (copyable message) instead of silently returning [] so mini-apps can show the error
+    getConnectedDevices: async (includePaired?: boolean): Promise<any[]> => {
       try {
-        return await ClassicBluetooth.getConnectedDevicesAsync();
-      } catch (error) {
-        console.error('Get connected devices error:', error);
-        return [];
+        return await ClassicBluetooth.getConnectedDevicesAsync(!!includePaired);
+      } catch (error: any) {
+        console.error('[EveryApp] getConnectedDevices error:', error?.message);
+        throw new Error(`Bluetooth-Geräte konnten nicht gelesen werden: ${error?.message || error}`);
       }
     },
   };
@@ -245,6 +247,10 @@ export class NativeCapabilities {
     listTasks: async (): Promise<any[]> => BackgroundTasks.list(this.appId),
     getLog: async (): Promise<string> => BackgroundTasks.getLog(this.appId),
     clearLog: async (): Promise<void> => BackgroundTasks.clearLog(this.appId),
+  };
+
+  clipboard = {
+    setString: async (text: string): Promise<void> => { await Clipboard.setStringAsync(String(text ?? '')); },
   };
 
   events = {

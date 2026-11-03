@@ -61,6 +61,11 @@ export class BridgeMessageHandler {
       return this.handleEventsMethod(action, args);
     }
 
+    // Clipboard write needs no permission (user-visible, harmless)
+    if (category === 'clipboard') {
+      return await this.executeCapabilityMethod(category, action, args);
+    }
+
     if (!this.grantedPermissions.includes(category as Permission)) {
       throw new Error(`Permission denied: ${category}`);
     }
@@ -117,7 +122,7 @@ export class BridgeMessageHandler {
             scan: () => sendMessage('bluetooth.scan', []),
             connect: (deviceId) => sendMessage('bluetooth.connect', [deviceId]),
             disconnect: (deviceId) => sendMessage('bluetooth.disconnect', [deviceId]),
-            getConnectedDevices: () => sendMessage('bluetooth.getConnectedDevices', []),
+            getConnectedDevices: (includePaired) => sendMessage('bluetooth.getConnectedDevices', [!!includePaired]),
           },
           notifications: {
             schedule: (title, body, seconds) => sendMessage('notifications.schedule', [title, body, seconds]),
@@ -143,6 +148,9 @@ export class BridgeMessageHandler {
             unregisterTask: (id) => sendMessage('background.unregisterTask', [id]),
             unregisterAll: () => sendMessage('background.unregisterAll', []),
             listTasks: () => sendMessage('background.listTasks', []),
+          },
+          clipboard: {
+            setString: (text) => sendMessage('clipboard.setString', [text]),
           },
           events: {
             on: (event, callback) => {

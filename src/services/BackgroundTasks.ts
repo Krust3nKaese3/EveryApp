@@ -6,6 +6,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Vibration } from 'react-native';
 import * as Notifications from 'expo-notifications';
+import * as Clipboard from 'expo-clipboard';
 import { BackgroundService } from './BackgroundService';
 
 export type Trigger =
@@ -24,7 +25,7 @@ export interface BackgroundTask {
   registeredAt?: number;
 }
 
-export interface TriggerEvent { type: string; device?: { name?: string; address?: string }; time: number }
+export interface TriggerEvent { type: string; device?: { name?: string; alias?: string; address?: string; [k: string]: any }; time: number }
 
 const TASKS_KEY = '@everyapp_bg_tasks';
 const MIN_INTERVAL = 10_000;
@@ -130,6 +131,7 @@ function createCtx(appId: string, task: BackgroundTask) {
     notify: async (title: string, body: string) => {
       await Notifications.scheduleNotificationAsync({ content: { title, body }, trigger: null });
     },
+    copy: async (text: string) => { await Clipboard.setStringAsync(String(text ?? '')); },
     vibrate: (pattern?: number[]) => {
       if (pattern && pattern.length) Vibration.vibrate([0, ...pattern]); else Vibration.vibrate(200);
     },
@@ -142,16 +144,23 @@ function createCtx(appId: string, task: BackgroundTask) {
   };
 }
 
+/** x matches if it equals name OR alias OR address (case-insensitive, trimmed). */
+export function deviceMatches(x: string, d?: { name?: string; alias?: string; address?: string }) {
+  const n = (v: any) => String(v ?? '').trim().toLowerCase();
+  const want = n(x);
+  return !!d && want !== '' && [d.name, d.alias, d.address].some((v) => n(v) === want);
+}
+
 function matches(t: Trigger, ev: TriggerEvent) {
   if (t.type !== ev.type) return false;
   if ((t.type === 'bluetoothConnected' || t.type === 'bluetoothDisconnected') && t.nameOrAddress) {
-    return t.nameOrAddress === ev.device?.name || t.nameOrAddress === ev.device?.address;
+    return deviceMatches(t.nameOrAddress, ev.device);
   }
   return true;
 }
 
 async function runTask(appId: string, task: BackgroundTask, ev: TriggerEvent) {
-  await bgLog(appId, `▶ Task "${task.id}" läuft (Trigger: ${ev.type}${ev.device ? ` ${ev.device.name} ${ev.device.address}` : ''})`);
+  await bgLog(appId, `▶ Task "${task.id}" läuft (Trigger: ${ev.type}${ev.device ? ` ${ev.device.name} / ${ev.device.alias} ${ev.device.address}` : ''})`);
   try {
     await compile(task.code)(createCtx(appId, task), ev);
     await bgLog(appId, `✔ Task "${task.id}" fertig`);
@@ -201,7 +210,9 @@ export async function headlessEntry(data: any) {
   const map: Record<string, string> = { 'bluetooth.connected': 'bluetoothConnected', 'bluetooth.disconnected': 'bluetoothDisconnected', boot: 'boot' };
   const type = map[data?.event];
   if (!type) { console.warn('[EveryApp][BG] unknown headless event', JSON.stringify(data)); return; }
-  await dispatchEvent({ type, device: data.address ? { name: data.name, address: data.address } : undefined, time: data.time || Date.now() });
+  let device: any = data.address ? { name: data.name, alias: data.name, address: data.address } : undefined;
+  if (data.device) { try { device = JSON.parse(data.device); } catch (e: any) { console.warn('[EveryApp][BG] bad device json', e?.message); } }
+  await dispatchEvent({ type, device, time: data.time || Date.now() });
 }
 
 let initialized = false;

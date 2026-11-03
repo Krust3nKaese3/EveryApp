@@ -3,6 +3,8 @@ package expo.modules.classicbluetooth
 import android.Manifest
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothDevice
+import android.bluetooth.BluetoothManager
+import android.bluetooth.BluetoothProfile
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
@@ -31,29 +33,44 @@ class ExpoClassicBluetoothModule : Module() {
       teardownBluetoothReceiver()
     }
 
-    AsyncFunction("getConnectedDevices") { promise: Promise ->
+    AsyncFunction("getConnectedDevices") { includePaired: Boolean?, promise: Promise ->
       try {
         if (!hasBluetoothPermission()) {
-          promise.reject("PERMISSION_DENIED", "Bluetooth permission not granted", null)
+          promise.reject("PERMISSION_DENIED", "Bluetooth-Berechtigung (Geräte in der Nähe) fehlt", null)
           return@AsyncFunction
         }
-
-        val connectedDevices = mutableListOf<Map<String, String>>()
-        
-        bluetoothAdapter?.bondedDevices?.forEach { device ->
-          if (isDeviceConnected(device)) {
-            connectedDevices.add(
-              mapOf(
-                "name" to (device.name ?: "Unknown"),
-                "address" to device.address
-              )
-            )
-          }
+        val context = appContext.reactContext ?: run { promise.reject("NO_CONTEXT", "no context", null); return@AsyncFunction }
+        val adapter = bluetoothAdapter ?: run { promise.resolve(emptyList<Any>()); return@AsyncFunction }
+        val connected = java.util.concurrent.ConcurrentHashMap<String, BluetoothDevice>()
+        val profiles = listOf(BluetoothProfile.A2DP, BluetoothProfile.HEADSET, 4 /*HID_HOST*/, 22 /*LE_AUDIO*/, 21 /*HEARING_AID*/)
+        val latch = java.util.concurrent.CountDownLatch(profiles.size)
+        for (p in profiles) {
+          val ok = try {
+            adapter.getProfileProxy(context, object : BluetoothProfile.ServiceListener {
+              override fun onServiceConnected(profile: Int, proxy: BluetoothProfile) {
+                try { proxy.connectedDevices.forEach { connected[it.address] = it } } catch (e: Exception) {}
+                try { adapter.closeProfileProxy(profile, proxy) } catch (e: Exception) {}
+                latch.countDown()
+              }
+              override fun onServiceDisconnected(profile: Int) {}
+            }, p)
+          } catch (e: Exception) { false }
+          if (!ok) latch.countDown()
         }
-
-        promise.resolve(connectedDevices)
+        latch.await(2, java.util.concurrent.TimeUnit.SECONDS)
+        try {
+          val bm = context.getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager
+          bm.getConnectedDevices(BluetoothProfile.GATT).forEach { connected[it.address] = it }
+        } catch (e: Exception) {}
+        val bonded = try { adapter.bondedDevices ?: emptySet() } catch (e: Exception) { emptySet<BluetoothDevice>() }
+        bonded.forEach { if (isDeviceConnected(it)) connected[it.address] = it }
+        val result = connected.values.map { BtDeviceInfo.toMap(it, true) }.toMutableList()
+        if (includePaired == true) {
+          bonded.filter { !connected.containsKey(it.address) }.forEach { result.add(BtDeviceInfo.toMap(it, false)) }
+        }
+        promise.resolve(result)
       } catch (e: Exception) {
-        promise.reject("GET_DEVICES_FAILED", e.message, e)
+        promise.reject("GET_DEVICES_FAILED", "${e.javaClass.simpleName}: ${e.message}", e)
       }
     }
   }
@@ -76,10 +93,7 @@ class ExpoClassicBluetoothModule : Module() {
         }
 
         device?.let {
-          val deviceInfo = mapOf(
-            "name" to (it.name ?: "Unknown"),
-            "address" to it.address
-          )
+          val deviceInfo = BtDeviceInfo.toMap(it, intent.action == BluetoothDevice.ACTION_ACL_CONNECTED)
 
           when (intent.action) {
             BluetoothDevice.ACTION_ACL_CONNECTED -> {

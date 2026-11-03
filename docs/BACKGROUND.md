@@ -42,7 +42,11 @@ await EveryAppBridge.background.registerTask({
 The code runs outside the WebView: **no DOM, no `window`, no access to variables of your page**. Put everything it needs into the string.
 
 ### `event`
-`{ type, time, device?: { name, address } }` (`device` only for Bluetooth triggers).
+`{ type, time, device? }` (`device` only for Bluetooth triggers):
+`{ name, alias, address, type: "classic"|"le"|"dual"|"unknown", bondState, majorClass: "AUDIO_VIDEO"…, deviceClass, uuids: [], connected }`.
+`name` = original device name, `alias` = name set by the user in Android (Android 11+, otherwise = name).
+
+**Matching:** `nameOrAddress` matches when it equals `name` **or** `alias` **or** `address` (case-insensitive, trimmed). The MAC address is recommended, since it doesn't change.
 
 ### `ctx`
 | Member | Description |
@@ -52,6 +56,7 @@ The code runs outside the WebView: **no DOM, no `window`, no access to variables
 | `ctx.wait(ms)` | Promise-based delay |
 | `ctx.http.get(url)` / `ctx.http.request({url, method, headers, body, timeoutMs})` | → `{status, ok, headers, body}`; default timeout 15 s |
 | `ctx.notify(title, body)` | Shows a notification immediately |
+| `ctx.copy(text)` | Copies text to the clipboard |
 | `ctx.vibrate(pattern?)` | Vibration, e.g. `[200,100,200]` (on, pause, on in ms) |
 | `ctx.storage.get/set/remove(key)` | String storage scoped to this app – **the same keys as `EveryAppBridge.storage`**, so it is shared with the UI |
 
@@ -67,3 +72,7 @@ Errors thrown by the handler are caught and logged as `FEHLER: Task "<id>" fehlg
 ## Adding new triggers (for EveryApp developers)
 1. Native: have a receiver/source start `MacroHeadlessTaskService` with extra `event=<name>` (see `MacroTriggerReceiver.kt`).
 2. JS: map the event in `headlessEntry` and add the type to `Trigger` and to `validate` (`src/services/BackgroundTasks.ts`).
+
+## Other bridge APIs used in this context
+- `EveryAppBridge.bluetooth.getConnectedDevices(includePaired?)` → array of device objects (same fields as above). Covers A2DP/HEADSET/HID/LE-Audio/GATT and bonded devices, including devices that were connected before the app started. With `includePaired=true`, paired but disconnected devices are included too (`connected:false`). Throws an error with a readable message, e.g. when the permission is missing.
+- `EveryAppBridge.clipboard.setString(text)` – no permission needed.

@@ -24,17 +24,16 @@ class MacroTriggerReceiver : BroadcastReceiver() {
     } else {
       @Suppress("DEPRECATION") intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE)
     }
-    var name = "Unknown"
-    try { name = device?.name ?: "Unknown" } catch (e: SecurityException) {
-      Log.w(EveryAppBackgroundService.TAG, "[EveryApp] no BLUETOOTH_CONNECT permission for device name")
-    }
-    val address = device?.address ?: ""
-    Log.i(EveryAppBackgroundService.TAG, "[EveryApp] $event $name $address -> starting background task")
+    if (device == null) return
+    val info = BtDeviceInfo.toMap(device, event == "bluetooth.connected")
+    val name = info["name"]; val address = info["address"]
+    Log.i(EveryAppBackgroundService.TAG, "[EveryApp] $event $name (${info["alias"]}) $address -> starting background task")
 
     val service = Intent(context, MacroHeadlessTaskService::class.java).apply {
       putExtra("event", event)
-      putExtra("name", name)
-      putExtra("address", address)
+      putExtra("name", info["name"] as String?)
+      putExtra("address", info["address"] as String?)
+      putExtra("device", org.json.JSONObject(info).toString())
       putExtra("time", System.currentTimeMillis().toDouble())
     }
     try {

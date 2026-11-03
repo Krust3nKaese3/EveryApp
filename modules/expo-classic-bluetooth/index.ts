@@ -4,14 +4,18 @@ type EmitterSubscription = { remove: () => void };
 const ExpoClassicBluetooth: any = requireOptionalNativeModule('ExpoClassicBluetooth');
 
 export interface BluetoothDevice {
-  name: string;
-  address: string;
+  name: string;        // original device name
+  alias: string;       // user-set name (Android 11+), falls back to name
+  address: string;     // MAC
+  type: 'classic' | 'le' | 'dual' | 'unknown';
+  bondState: 'bonded' | 'bonding' | 'none';
+  majorClass: string;  // e.g. AUDIO_VIDEO
+  deviceClass: number;
+  uuids: string[];
+  connected: boolean;
 }
 
-export interface BluetoothEventPayload {
-  name: string;
-  address: string;
-}
+export type BluetoothEventPayload = BluetoothDevice;
 
 const noopEmitter = { addListener: () => ({ remove: () => {} }) };
 function getEventEmitter(): any {
@@ -22,11 +26,11 @@ function getEventEmitter(): any {
   return ExpoClassicBluetooth;
 }
 
-export async function getConnectedDevicesAsync(): Promise<BluetoothDevice[]> {
+export async function getConnectedDevicesAsync(includePaired = false): Promise<BluetoothDevice[]> {
   if (!ExpoClassicBluetooth) {
     throw new Error('ExpoClassicBluetooth module not available');
   }
-  return await ExpoClassicBluetooth.getConnectedDevices();
+  return await ExpoClassicBluetooth.getConnectedDevices(includePaired);
 }
 
 export function addBluetoothConnectedListener(
