@@ -1,5 +1,5 @@
 /** Pure bridge permission check (unit tested). Throws a readable error when the category is not allowed. */
-export const FREE_CATEGORIES = ['clipboard', 'network', 'media'];
+export const FREE_CATEGORIES = ['clipboard', 'network', 'media', 'secrets'];
 export function checkBridgePermission(category: string, granted: string[]): void {
   if (category === 'events' || FREE_CATEGORIES.includes(category)) return;
   if (granted.includes(category)) return;

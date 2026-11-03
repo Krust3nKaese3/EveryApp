@@ -39,3 +39,9 @@ test('bridge permissions', () => {
   assert.throws(() => checkBridgePermission('ble', ['bluetooth']), /BLE nicht erlaubt/);
   assert.throws(() => checkBridgePermission('http', []), /Permission denied: http/);
 });
+test('secret masking', () => {
+  const { maskWith } = require('../src/services/secretMask.ts');
+  assert.strictEqual(maskWith(['abc123', 'abc'], 'x abc123 y abc z'), 'x ••• y ••• z');
+  assert.strictEqual(maskWith(['', 'ab'], 'ab'), 'ab');
+  assert.ok(require('../src/bridge/permissions.ts').FREE_CATEGORIES.includes('secrets'));
+});

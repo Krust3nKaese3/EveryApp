@@ -98,6 +98,13 @@ export class BridgeMessageHandler {
             set: (key, value) => sendMessage('storage.set', [key, value]),
             remove: (key) => sendMessage('storage.remove', [key]),
           },
+          secrets: {
+            get: (key) => sendMessage('secrets.get', [key]),
+            set: (key, value) => sendMessage('secrets.set', [key, value]),
+            delete: (key) => sendMessage('secrets.delete', [key]),
+            list: () => sendMessage('secrets.list', []),
+            info: () => sendMessage('secrets.info', []),
+          },
           http: {
             request: async (req) => {
               return await sendMessage('http.request', [req]);
@@ -173,6 +180,7 @@ export class BridgeMessageHandler {
           },
           clipboard: {
             setString: (text) => sendMessage('clipboard.setString', [text]),
+            getString: () => sendMessage('clipboard.getString', []),
           },
           events: {
             on: (event, callback) => {

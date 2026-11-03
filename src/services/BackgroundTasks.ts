@@ -4,6 +4,7 @@
  * which is started headlessly by native receivers (Bluetooth ACL, boot) even if the UI is closed.
  */
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { maskSecrets, secretsProxy } from './SecretStore';
 import { Vibration } from 'react-native';
 import * as Notifications from 'expo-notifications';
 import * as Clipboard from 'expo-clipboard';
@@ -53,6 +54,7 @@ async function readRegistry(): Promise<Registry> {
 async function writeRegistry(r: Registry) { await AsyncStorage.setItem(TASKS_KEY, JSON.stringify(r)); }
 
 export async function bgLog(appId: string, message: string, level: 'info' | 'error' = 'info') {
+  message = maskSecrets(appId, message);
   const line = `[EveryApp][BG][${appId}] ${message}`;
   if (level === 'error') console.error(line); else console.log(line);
   try {
@@ -178,6 +180,7 @@ async function runTask(appId: string, task: BackgroundTask, ev: TriggerEvent) {
     ctx.trigger = { type: ev.type, device: ev.device, tile: ev.tile, id: ev.id, value: ev.value, widgetId: ev.widgetId,
       slot: ev.tile?.index, ...(ev.wifi || {}), ...(ev.ble || {}) };
     ctx.device = ev.device;
+    ctx.secrets = await secretsProxy(appId);
     await compile(task.code)(ctx, ev);
     await bgLog(appId, `✔ Task "${task.id}" fertig`);
   } catch (e: any) {

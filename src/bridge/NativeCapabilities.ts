@@ -14,6 +14,7 @@ import * as Clipboard from 'expo-clipboard';
 import * as NetworkInfo from '../../modules/expo-network-info';
 import * as Ble from '../../modules/expo-ble-gatt';
 import { sendMediaKey } from '../../modules/expo-media-control';
+import { SecretStore } from '../services/SecretStore';
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -73,6 +74,15 @@ export class NativeCapabilities {
     remove: async (key: string): Promise<void> => {
       await AsyncStorage.removeItem(this.getStorageKey(key));
     },
+  };
+
+  // Secrets: keyed by secret key per app. Lite = AsyncStorage, next build = expo-secure-store (+auto migration)
+  secrets = {
+    get: async (key: string) => SecretStore.get(this.appId, key),
+    set: async (key: string, value: string) => SecretStore.set(this.appId, key, value),
+    delete: async (key: string) => SecretStore.delete(this.appId, key),
+    list: async () => SecretStore.list(this.appId),
+    info: async () => SecretStore.info(),
   };
 
   http = {
@@ -308,6 +318,7 @@ export class NativeCapabilities {
   };
 
   clipboard = {
+    getString: async (): Promise<string> => await Clipboard.getStringAsync(),
     setString: async (text: string): Promise<boolean> => {
       try {
         await Clipboard.setStringAsync(String(text ?? ''));

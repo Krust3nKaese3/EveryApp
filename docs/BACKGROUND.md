@@ -140,3 +140,11 @@ Host API (bridge `background.*`; guarded, saved but not shown on the current APK
 - Native compile check without EAS:
   1. Copy the repo without `android/`, then run `CI=1 npx expo prebuild --platform android --clean --no-install`.
   2. Run `./gradlew :expo-background-service:compileDebugKotlin :expo-ble-gatt:compileDebugKotlin :expo-classic-bluetooth:compileDebugKotlin :expo-media-control:compileDebugKotlin :expo-network-info:compileDebugKotlin :app:processDebugResources :app:compileDebugKotlin` with JDK 17 (`/workspace/jdk17`) and `ANDROID_HOME=/workspace/android-sdk`.
+
+## Secrets (`EveryAppBridge.secrets`, `ctx.secrets`)
+
+- Bridge (frei, pro Mini-App getrennt): `secrets.get(key)`, `secrets.set(key, value)` (leer = löschen), `secrets.delete(key)`, `secrets.list()` (nur Keys), `secrets.info()` → `{ encrypted, backend }`.
+- Hintergrund-Tasks: `ctx.secrets.KEY` (vorab geladen, schreibgeschützt; fehlt der Key → `Secret KEY fehlt …`).
+- Hintergrund-Log: alle bekannten Secret-Werte der App werden durch `•••` ersetzt.
+- Speicher (`src/services/SecretStore.ts`): **LITE** = AsyncStorage `@secret_<appId>_<KEY>` (unverschlüsselt, app-intern). Ist das native Modul `ExpoSecureStore` vorhanden (nächster Build, `expo-secure-store` ist bereits in package.json), wird SecureStore (Android Keystore) genutzt und Lite-Einträge werden beim ersten Zugriff automatisch migriert und gelöscht.
+- Neu dafür auch: `clipboard.getString()` (Einfügen-Button).
