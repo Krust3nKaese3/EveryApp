@@ -219,6 +219,10 @@ export class NativeCapabilities {
 
   background = {
     enable: async (): Promise<void> => {
+      if (Platform.OS === 'android' && Platform.Version >= 33) {
+        const r = await PermissionsAndroid.request('android.permission.POST_NOTIFICATIONS' as any);
+        console.log('[EveryApp] POST_NOTIFICATIONS:', r);
+      }
       await BackgroundService.start(this.appId);
     },
 
@@ -228,6 +232,13 @@ export class NativeCapabilities {
 
     isEnabled: async (): Promise<boolean> => {
       return await BackgroundService.isRunning(this.appId);
+    },
+
+    // true = the host runs the app's stored "macros" (bluetooth triggers) itself while background mode is on
+    handlesTriggers: async (): Promise<boolean> => true,
+
+    getLog: async (): Promise<string> => {
+      return (await AsyncStorage.getItem(this.getStorageKey('background_log'))) || '[]';
     },
   };
 

@@ -16,7 +16,7 @@ module.exports = function withEveryAppConfig(config) {
         'android:name': 'expo.modules.backgroundservice.EveryAppBackgroundService',
         'android:enabled': 'true',
         'android:exported': 'false',
-        'android:foregroundServiceType': 'dataSync',
+        'android:foregroundServiceType': 'connectedDevice',
       },
     };
 

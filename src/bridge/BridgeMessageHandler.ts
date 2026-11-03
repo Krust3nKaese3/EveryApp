@@ -136,6 +136,8 @@ export class BridgeMessageHandler {
             enable: () => sendMessage('background.enable', []),
             disable: () => sendMessage('background.disable', []),
             isEnabled: () => sendMessage('background.isEnabled', []),
+            handlesTriggers: () => sendMessage('background.handlesTriggers', []),
+            getLog: () => sendMessage('background.getLog', []),
           },
           events: {
             on: (event, callback) => {
