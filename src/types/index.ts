@@ -16,7 +16,8 @@ export type Permission =
   | 'sensors'
   | 'vibration'
   | 'background'
-  | 'ble';
+  | 'ble'
+  | 'net';
 
 export interface MiniApp {
   id: string;

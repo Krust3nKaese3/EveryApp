@@ -169,6 +169,28 @@ export class BridgeMessageHandler {
             getWifi: () => sendMessage('network.getWifi', []),
             requestLocation: (bg) => sendMessage('network.requestLocation', [!!bg]),
           },
+          net: {
+            isAvailable: () => sendMessage('net.isAvailable', []),
+            tcp: async (host, port, o) => {
+              const id = await sendMessage('net.tcpOpen', [host, port, o || {}]);
+              return { id, send: (d) => sendMessage('net.tcpSend', [id, d]), receive: (r) => sendMessage('net.tcpReceive', [id, r || {}]),
+                close: () => sendMessage('net.tcpClose', [id]) };
+            },
+            udpSend: (h, p, d, o) => sendMessage('net.udpSend', [h, p, d, o || {}]),
+            udpListen: (ports, ms) => sendMessage('net.udpListen', [ports, ms]),
+            tuyaStatus: (cfg) => sendMessage('net.tuyaStatus', [cfg]),
+            tuyaSet: (cfg, dps) => sendMessage('net.tuyaSet', [cfg, dps]),
+            tuyaDiscover: (ms) => sendMessage('net.tuyaDiscover', [ms]),
+          },
+          crypto: {
+            isAvailable: () => sendMessage('crypto.isAvailable', []),
+            aesEcb: (e, k, d) => sendMessage('crypto.aesEcb', [e, k, d]),
+            aesGcm: (e, k, iv, aad, d) => sendMessage('crypto.aesGcm', [e, k, iv, aad || '', d]),
+            hmacSha256: (k, d) => sendMessage('crypto.hmacSha256', [k, d]),
+            md5: (d) => sendMessage('crypto.md5', [d]),
+            crc32: (d) => sendMessage('crypto.crc32', [d]),
+            randomHex: (n) => sendMessage('crypto.randomHex', [n]),
+          },
           ble: {
             isAvailable: () => sendMessage('ble.isAvailable', []),
             scan: (o) => sendMessage('ble.scan', [o || {}]),

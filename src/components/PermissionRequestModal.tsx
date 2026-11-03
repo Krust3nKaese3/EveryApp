@@ -14,6 +14,7 @@ const PERMISSION_DESCRIPTIONS: Record<Permission, string> = {
   storage: 'Store data locally on your device',
   http: 'Make network requests to external servers',
   bluetooth: 'Scan and connect to Bluetooth devices',
+  net: 'Raw local network (TCP/UDP sockets, e.g. Tuya lamps on port 6668)',
   ble: 'Bluetooth Low Energy (GATT): scan, connect, read/write devices like LED strips',
   notifications: 'Send you notifications',
   camera: 'Access your camera',

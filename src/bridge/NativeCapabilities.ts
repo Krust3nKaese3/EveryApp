@@ -13,6 +13,8 @@ import { PermissionsAndroid, Platform } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import * as NetworkInfo from '../../modules/expo-network-info';
 import * as Ble from '../../modules/expo-ble-gatt';
+import * as RawNet from '../../modules/expo-raw-net';
+import { makeTuyaLocal, discover as tuyaDiscover } from '../services/TuyaLocal';
 import { sendMediaKey } from '../../modules/expo-media-control';
 import { SecretStore } from '../services/SecretStore';
 
@@ -306,6 +308,35 @@ export class NativeCapabilities {
     write: async (a: string, s: string, c: string, d: any, o: any) => Ble.write(a, s, c, d, o),
     read: async (a: string, s: string, c: string, o: any) => Ble.read(a, s, c, o),
     notify: async (a: string, s: string, c: string, e: boolean, o: any) => Ble.notify(a, s, c, e, o),
+  };
+
+  // Raw TCP/UDP + Tuya LAN (permission 'net'); crypto is free. Native module: next build.
+  private tcpConns = new Map<number, RawNet.TcpConn>();
+  private tcpSeq = 1;
+  net = {
+    isAvailable: async () => RawNet.isAvailable(),
+    tcpOpen: async (host: string, port: number, o: any) => {
+      const c = await RawNet.nativeNet.tcp(host, port, o || {}); const id = this.tcpSeq++; this.tcpConns.set(id, c); return id;
+    },
+    tcpSend: async (id: number, data: any) => { await this.tcp(id).send(RawNet.toHex(data)); },
+    tcpReceive: async (id: number, o: any) => this.tcp(id).receive(o || {}),
+    tcpClose: async (id: number) => { const c = this.tcpConns.get(id); this.tcpConns.delete(id); await c?.close(); },
+    udpSend: async (host: string, port: number, data: any, o: any) => RawNet.nativeNet.udpSend(host, port, RawNet.toHex(data), o || {}),
+    udpListen: async (ports: number[], durationMs: number) => RawNet.nativeNet.udpListen(ports, durationMs),
+    tuyaStatus: async (cfg: any) => makeTuyaLocal(RawNet.nativeCrypto, RawNet.nativeNet, cfg).status(),
+    tuyaSet: async (cfg: any, dps: any) => makeTuyaLocal(RawNet.nativeCrypto, RawNet.nativeNet, cfg).set(dps),
+    tuyaDiscover: async (ms?: number) => tuyaDiscover(RawNet.nativeCrypto, RawNet.nativeNet, ms || 6000),
+  };
+  private tcp(id: number) { const c = this.tcpConns.get(id); if (!c) throw new Error(`TCP-Socket ${id} nicht offen`); return c; }
+
+  crypto = {
+    isAvailable: async () => RawNet.isAvailable(),
+    aesEcb: async (e: boolean, k: string, d: string) => RawNet.nativeCrypto.aesEcb(e, k, d),
+    aesGcm: async (e: boolean, k: string, iv: string, aad: string, d: string) => RawNet.nativeCrypto.aesGcm(e, k, iv, aad || '', d),
+    hmacSha256: async (k: string, d: string) => RawNet.nativeCrypto.hmacSha256(k, d),
+    md5: async (d: string) => RawNet.nativeCrypto.md5(d),
+    crc32: async (d: string) => RawNet.nativeCrypto.crc32(d),
+    randomHex: async (n: number) => RawNet.nativeCrypto.randomHex(n),
   };
 
   media = {

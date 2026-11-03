@@ -148,3 +148,12 @@ Host API (bridge `background.*`; guarded, saved but not shown on the current APK
 - Hintergrund-Log: alle bekannten Secret-Werte der App werden durch `•••` ersetzt.
 - Speicher (`src/services/SecretStore.ts`): **LITE** = AsyncStorage `@secret_<appId>_<KEY>` (unverschlüsselt, app-intern). Ist das native Modul `ExpoSecureStore` vorhanden (nächster Build, `expo-secure-store` ist bereits in package.json), wird SecureStore (Android Keystore) genutzt und Lite-Einträge werden beim ersten Zugriff automatisch migriert und gelöscht.
 - Neu dafür auch: `clipboard.getString()` (Einfügen-Button).
+
+## Raw-Netzwerk, Krypto & Tuya LAN (nächster nativer Build, Modul `expo-raw-net`)
+
+- `ctx.net` (Permission **`net`** im Manifest nötig, sonst Fehler `"net" nicht erlaubt …`):
+  `tcp(host, port, {timeoutMs})` → `{send(hex|bytes), receive({minBytes, timeoutMs}) → hex ('' bei Timeout), close()}`,
+  `udpSend(host, port, data, {broadcast})`, `udpListen([ports], ms)` → `[{from, port, localPort, hex}]`, `tuyaDiscover(ms)`.
+- `ctx.crypto` (frei, alles Hex): `aesEcb(enc,key,data)` (NoPadding), `aesGcm(enc,key,iv,aad,data)` (Tag angehängt), `hmacSha256`, `md5`, `crc32` (Zahl), `randomHex(n)`.
+- `ctx.tuyaLocal({ip?, id, localKey, version: '3.3'|'3.4'|'3.5'})` → `{status(), set({"20": true})}`; ohne `ip` per UDP-Discovery (6666/6667/7000). Protokoll: `src/services/TuyaLocal.ts` (nach tinytuya; Unit-Tests mit node:crypto, noch nicht gegen echtes Gerät getestet).
+- Alte APK: alle Aufrufe werfen `… braucht nächsten Build` (kein Crash).

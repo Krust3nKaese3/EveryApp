@@ -45,3 +45,8 @@ test('secret masking', () => {
   assert.strictEqual(maskWith(['', 'ab'], 'ab'), 'ab');
   assert.ok(require('../src/bridge/permissions.ts').FREE_CATEGORIES.includes('secrets'));
 });
+test('net permission + crypto free', () => {
+  assert.throws(() => checkBridgePermission('net', ['ble']), /Raw-Netzwerk nicht erlaubt/);
+  assert.doesNotThrow(() => checkBridgePermission('net', ['net']));
+  assert.doesNotThrow(() => checkBridgePermission('crypto', []));
+});

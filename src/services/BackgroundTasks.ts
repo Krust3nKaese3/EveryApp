@@ -14,6 +14,8 @@ import { requireOptionalNativeModule } from 'expo-modules-core';
 import * as ClassicBluetooth from '../../modules/expo-classic-bluetooth';
 import * as NetworkInfo from '../../modules/expo-network-info';
 import * as Ble from '../../modules/expo-ble-gatt';
+import * as RawNet from '../../modules/expo-raw-net';
+import { makeTuyaLocal, discover as tuyaDiscover } from './TuyaLocal';
 import { StorageService } from './StorageService';
 import { deviceMatches, matches } from './triggerMatching';
 
@@ -152,6 +154,17 @@ function createCtx(appId: string, task: BackgroundTask) {
     },
     wifi: { info: () => wifiInfo() },
     ble: guardBle(appId, Ble.makeApi(false)),
+    crypto: RawNet.nativeCrypto,
+    net: guardPerm(appId, 'net', {
+      tcp: (h: string, p: number, o?: any) => RawNet.nativeNet.tcp(h, p, o),
+      udpSend: (h: string, p: number, d: any, o?: any) => RawNet.nativeNet.udpSend(h, p, RawNet.toHex(d), o),
+      udpListen: (ports: number[], ms: number) => RawNet.nativeNet.udpListen(ports, ms),
+      tuyaDiscover: (ms?: number) => tuyaDiscover(RawNet.nativeCrypto, RawNet.nativeNet, ms || 6000),
+    }),
+    tuyaLocal: (cfg: any) => {
+      const t = makeTuyaLocal(RawNet.nativeCrypto, RawNet.nativeNet, { ...cfg, debug: cfg?.debug ? (m: string) => bgLog(appId, m) : undefined });
+      return guardPerm(appId, 'net', { status: () => t.status(), set: (d: any) => t.set(d) });
+    },
     tile: tileApi,
     widget: widgetApi,
     bluetooth: {
@@ -423,5 +436,16 @@ function guardBle(appId: string, api: any) {
     out[k] = typeof f === 'function' && !['toHex', 'hexToBytes', 'isAvailable'].includes(k)
       ? async (...a: any[]) => { await check(); return (f as any)(...a); } : f;
   }
+  return out;
+}
+
+/** Wraps async functions so they fail with a clear message unless the app's manifest declares/was granted `perm`. */
+function guardPerm(appId: string, perm: string, api: Record<string, any>) {
+  const out: any = {};
+  for (const [k, f] of Object.entries(api)) out[k] = async (...a: any[]) => {
+    const granted = (await StorageService.getAppPermissions(appId).catch(() => [])) as string[];
+    if (!granted.includes(perm)) throw new Error(`"${perm}" nicht erlaubt für "${appId}": "${perm}" muss in den permissions des Manifests (everyapp.json) stehen und erlaubt sein`);
+    return f(...a);
+  };
   return out;
 }
