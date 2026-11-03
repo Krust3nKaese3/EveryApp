@@ -8,6 +8,7 @@ import * as ClassicBluetooth from '../../modules/expo-classic-bluetooth';
 import { BluetoothDevice, HttpRequest, HttpResponse } from '../types';
 import { EventEmitter } from './EventEmitter';
 import { BackgroundService } from '../services/BackgroundService';
+import { PermissionsAndroid, Platform } from 'react-native';
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -31,6 +32,11 @@ export class NativeCapabilities {
   }
 
   private setupBluetoothListeners() {
+    if (Platform.OS === 'android' && Platform.Version >= 31) {
+      PermissionsAndroid.request('android.permission.BLUETOOTH_CONNECT' as any)
+        .then((r) => console.log('[EveryApp] BLUETOOTH_CONNECT:', r))
+        .catch((e) => console.warn('[EveryApp] BLUETOOTH_CONNECT request failed', e));
+    }
     this.bluetoothConnectedSub = ClassicBluetooth.addBluetoothConnectedListener((device) => {
       this.eventEmitter.emit('bluetooth.connected', device);
     });

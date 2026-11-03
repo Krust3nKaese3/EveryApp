@@ -5,8 +5,10 @@ export class BridgeMessageHandler {
   private appId: string;
   private grantedPermissions: Permission[];
   private capabilities: NativeCapabilities;
+  private inject?: (js: string) => void;
 
-  constructor(appId: string, grantedPermissions: Permission[], capabilities: NativeCapabilities) {
+  constructor(appId: string, grantedPermissions: Permission[], capabilities: NativeCapabilities, inject?: (js: string) => void) {
+    this.inject = inject;
     this.appId = appId;
     this.grantedPermissions = grantedPermissions;
     this.capabilities = capabilities;
@@ -31,16 +33,23 @@ export class BridgeMessageHandler {
   private handleEventSubscription(message: any) {
     const { event, action, callbackId } = message;
 
+    const caps: any = this.capabilities;
+    caps.__forwarded = caps.__forwarded || {};
     if (action === 'on') {
-      this.capabilities.eventEmitter.on(event, (data) => {
-        this.sendEventToWebView(event, data, callbackId);
-      });
+      // Forward each event only once; the WebView fans out to its own listeners
+      if (caps.__forwarded[event]) return;
+      const inject = this.inject;
+      const fn = (data: any) => {
+        console.log('[EveryApp] event -> webview', event, JSON.stringify(data));
+        inject?.(`window.dispatchBridgeEvent && window.dispatchBridgeEvent(${JSON.stringify(event)}, ${JSON.stringify(data ?? null)}); true;`);
+      };
+      caps.__forwarded[event] = fn;
+      this.capabilities.eventEmitter.on(event, fn);
     } else if (action === 'off') {
-      this.capabilities.eventEmitter.removeAllListeners(event);
+      const fn = caps.__forwarded[event];
+      if (fn) this.capabilities.eventEmitter.off(event, fn);
+      delete caps.__forwarded[event];
     }
-  }
-
-  private sendEventToWebView(event: string, data: any, callbackId: string) {
   }
 
   private async executeMethod(method: string, args: any[]): Promise<any> {

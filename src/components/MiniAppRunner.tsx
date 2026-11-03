@@ -130,7 +130,7 @@ export const MiniAppRunner: React.FC<MiniAppRunnerProps> = ({ app, onClose }) =>
         capabilitiesRef.current = new NativeCapabilities(app.id);
       }
 
-      const bridgeHandler = new BridgeMessageHandler(app.id, grantedPermissions, capabilitiesRef.current);
+      const bridgeHandler = new BridgeMessageHandler(app.id, grantedPermissions, capabilitiesRef.current, (js) => webViewRef.current?.injectJavaScript(js));
       const response = await bridgeHandler.handleMessage(message);
       
       if (response) {
