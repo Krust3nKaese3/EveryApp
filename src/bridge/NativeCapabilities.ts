@@ -4,6 +4,10 @@ import * as Haptics from 'expo-haptics';
 import { Accelerometer, Gyroscope } from 'expo-sensors';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import BleManager from 'react-native-ble-manager';
+import * as ClassicBluetooth from '../../modules/expo-classic-bluetooth';
+import { BluetoothDevice, HttpRequest, HttpResponse } from '../types';
+import { EventEmitter } from './EventEmitter';
+import { BackgroundService } from '../services/BackgroundService';
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -16,9 +20,30 @@ Notifications.setNotificationHandler({
 
 export class NativeCapabilities {
   private appId: string;
+  public eventEmitter: EventEmitter;
+  private bluetoothConnectedSub: any;
+  private bluetoothDisconnectedSub: any;
 
   constructor(appId: string) {
     this.appId = appId;
+    this.eventEmitter = new EventEmitter();
+    this.setupBluetoothListeners();
+  }
+
+  private setupBluetoothListeners() {
+    this.bluetoothConnectedSub = ClassicBluetooth.addBluetoothConnectedListener((device) => {
+      this.eventEmitter.emit('bluetooth.connected', device);
+    });
+
+    this.bluetoothDisconnectedSub = ClassicBluetooth.addBluetoothDisconnectedListener((device) => {
+      this.eventEmitter.emit('bluetooth.disconnected', device);
+    });
+  }
+
+  cleanup() {
+    this.bluetoothConnectedSub?.remove();
+    this.bluetoothDisconnectedSub?.remove();
+    this.eventEmitter.removeAllListeners();
   }
 
   getStorageKey(key: string): string {
@@ -40,6 +65,40 @@ export class NativeCapabilities {
   };
 
   http = {
+    request: async (req: HttpRequest): Promise<HttpResponse> => {
+      const controller = new AbortController();
+      const timeoutId = req.timeoutMs 
+        ? setTimeout(() => controller.abort(), req.timeoutMs)
+        : null;
+
+      try {
+        const response = await fetch(req.url, {
+          method: req.method || 'GET',
+          headers: req.headers,
+          body: req.body,
+          signal: controller.signal,
+        });
+
+        if (timeoutId) clearTimeout(timeoutId);
+
+        const body = await response.text();
+        const headers: Record<string, string> = {};
+        
+        response.headers.forEach((value, key) => {
+          headers[key] = value;
+        });
+
+        return {
+          status: response.status,
+          headers,
+          body,
+        };
+      } catch (error: any) {
+        if (timeoutId) clearTimeout(timeoutId);
+        throw new Error(error.message || 'HTTP request failed');
+      }
+    },
+
     fetch: async (url: string, options?: any): Promise<any> => {
       const response = await fetch(url, options);
       const body = await response.text();
@@ -74,6 +133,15 @@ export class NativeCapabilities {
 
     disconnect: async (deviceId: string): Promise<void> => {
       await BleManager.disconnect(deviceId);
+    },
+
+    getConnectedDevices: async (): Promise<BluetoothDevice[]> => {
+      try {
+        return await ClassicBluetooth.getConnectedDevicesAsync();
+      } catch (error) {
+        console.error('Get connected devices error:', error);
+        return [];
+      }
     },
   };
 
@@ -140,6 +208,30 @@ export class NativeCapabilities {
       } else {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
       }
+    },
+  };
+
+  background = {
+    enable: async (): Promise<void> => {
+      await BackgroundService.start(this.appId);
+    },
+
+    disable: async (): Promise<void> => {
+      await BackgroundService.stop(this.appId);
+    },
+
+    isEnabled: async (): Promise<boolean> => {
+      return await BackgroundService.isRunning(this.appId);
+    },
+  };
+
+  events = {
+    on: (event: string, callback: (data: any) => void): void => {
+      this.eventEmitter.on(event, callback);
+    },
+
+    off: (event: string, callback: (data: any) => void): void => {
+      this.eventEmitter.off(event, callback);
     },
   };
 }

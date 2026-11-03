@@ -18,6 +18,7 @@ const PERMISSION_DESCRIPTIONS: Record<Permission, string> = {
   camera: 'Access your camera',
   sensors: 'Access accelerometer and gyroscope',
   vibration: 'Use device vibration',
+  background: 'Run in the background when app is closed',
 };
 
 export const PermissionRequestModal: React.FC<PermissionRequestModalProps> = ({

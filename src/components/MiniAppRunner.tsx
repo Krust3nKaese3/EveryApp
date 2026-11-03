@@ -20,6 +20,7 @@ export const MiniAppRunner: React.FC<MiniAppRunnerProps> = ({ app, onClose }) =>
   const [html, setHtml] = useState<string>('');
   const [showPermissionModal, setShowPermissionModal] = useState(false);
   const [grantedPermissions, setGrantedPermissions] = useState<Permission[]>([]);
+  const capabilitiesRef = useRef<NativeCapabilities | null>(null);
 
   useEffect(() => {
     initApp();
@@ -27,6 +28,9 @@ export const MiniAppRunner: React.FC<MiniAppRunnerProps> = ({ app, onClose }) =>
     
     return () => {
       ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP);
+      if (capabilitiesRef.current) {
+        capabilitiesRef.current.cleanup();
+      }
     };
   }, []);
 
@@ -58,8 +62,11 @@ export const MiniAppRunner: React.FC<MiniAppRunnerProps> = ({ app, onClose }) =>
       const entrypointPath = `${app.localPath}${app.manifest.entrypoint}`;
       const htmlContent = await FileSystem.readAsStringAsync(entrypointPath);
 
-      const capabilities = new NativeCapabilities(app.id);
-      const bridgeHandler = new BridgeMessageHandler(app.id, permissions, capabilities);
+      if (!capabilitiesRef.current) {
+        capabilitiesRef.current = new NativeCapabilities(app.id);
+      }
+      
+      const bridgeHandler = new BridgeMessageHandler(app.id, permissions, capabilitiesRef.current);
       const bridgeScript = bridgeHandler.generateBridgeScript();
 
       const fullHtml = `
@@ -90,14 +97,19 @@ export const MiniAppRunner: React.FC<MiniAppRunnerProps> = ({ app, onClose }) =>
   const handleMessage = async (event: WebViewMessageEvent) => {
     try {
       const message = JSON.parse(event.nativeEvent.data);
-      const capabilities = new NativeCapabilities(app.id);
-      const bridgeHandler = new BridgeMessageHandler(app.id, grantedPermissions, capabilities);
       
+      if (!capabilitiesRef.current) {
+        capabilitiesRef.current = new NativeCapabilities(app.id);
+      }
+
+      const bridgeHandler = new BridgeMessageHandler(app.id, grantedPermissions, capabilitiesRef.current);
       const response = await bridgeHandler.handleMessage(message);
       
-      webViewRef.current?.injectJavaScript(
-        `window.handleBridgeResponse(${JSON.stringify(response)}); true;`
-      );
+      if (response) {
+        webViewRef.current?.injectJavaScript(
+          `window.handleBridgeResponse(${JSON.stringify(response)}); true;`
+        );
+      }
     } catch (error) {
       console.error('Bridge message error:', error);
     }
