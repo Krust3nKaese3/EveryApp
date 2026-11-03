@@ -157,3 +157,8 @@ Host API (bridge `background.*`; guarded, saved but not shown on the current APK
 - `ctx.crypto` (frei, alles Hex): `aesEcb(enc,key,data)` (NoPadding), `aesGcm(enc,key,iv,aad,data)` (Tag angehängt), `hmacSha256`, `md5`, `crc32` (Zahl), `randomHex(n)`.
 - `ctx.tuyaLocal({ip?, id, localKey, version: '3.3'|'3.4'|'3.5'})` → `{status(), set({"20": true})}`; ohne `ip` per UDP-Discovery (6666/6667/7000). Protokoll: `src/services/TuyaLocal.ts` (nach tinytuya; Unit-Tests mit node:crypto, noch nicht gegen echtes Gerät getestet).
 - Alte APK: alle Aufrufe werfen `… braucht nächsten Build` (kein Crash).
+
+## Deep-Links `everyapp://<miniapp>/<path>?query`
+Scheme `everyapp` in app.json (nativer Build nötig); Dev-Client-Builds haben zusätzlich `exp+everyapp`.
+HomeScreen öffnet die passende Mini-App (Manifest-Name/Repo-Name, Groß/Klein, Leerzeichen egal) und liefert den Link als
+`window.addEventListener('everyapp:deeplink', e => e.detail)` → `{miniapp, path, params, url}`; zusätzlich `window.EveryAppLaunch`.

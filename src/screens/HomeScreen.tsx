@@ -14,6 +14,8 @@ import { StorageService } from '../services/StorageService';
 import { GitRepoService } from '../services/GitRepoService';
 import { MiniAppRunner } from '../components/MiniAppRunner';
 import * as Clipboard from 'expo-clipboard';
+import { Linking } from 'react-native';
+import { parseDeepLink, matchesMiniApp, queueDeepLink } from '../services/deepLinks';
 
 export const HomeScreen: React.FC = () => {
   const [apps, setApps] = useState<MiniApp[]>([]);
@@ -24,6 +26,22 @@ export const HomeScreen: React.FC = () => {
   const [showFolderModal, setShowFolderModal] = useState(false);
   const [newFolderName, setNewFolderName] = useState('');
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set());
+
+  // Deep links everyapp://<miniapp>/<path>?query → open that mini-app and deliver the link as an event.
+  useEffect(() => {
+    const handle = async (url?: string | null) => {
+      const link = url ? parseDeepLink(url) : null;
+      if (!link) return;
+      const all = await StorageService.getApps();
+      const target = all.find((a) => matchesMiniApp(link, a));
+      if (!target) { Alert.alert('Deep-Link', `Mini-App "${link.miniapp}" ist nicht installiert.\n\n${url}`); return; }
+      queueDeepLink(target.id, link);
+      setSelectedApp((cur) => (cur && cur.id === target.id ? cur : target));
+    };
+    Linking.getInitialURL().then(handle).catch(() => {});
+    const sub = Linking.addEventListener('url', (e) => { handle(e.url); });
+    return () => sub.remove();
+  }, []);
 
   useEffect(() => {
     loadData();

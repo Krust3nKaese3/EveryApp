@@ -9,6 +9,7 @@ import { StorageService } from '../services/StorageService';
 import { PermissionRequestModal } from './PermissionRequestModal';
 import { BridgeMessageHandler } from '../bridge/BridgeMessageHandler';
 import { NativeCapabilities } from '../bridge/NativeCapabilities';
+import { takeDeepLink, onDeepLinkQueued, deepLinkInjection } from '../services/deepLinks';
 import { setupGlobalErrorHandler, removeGlobalErrorHandler } from '../utils/errorHandler';
 
 interface MiniAppRunnerProps {
@@ -24,6 +25,14 @@ export const MiniAppRunner: React.FC<MiniAppRunnerProps> = ({ app, onClose }) =>
   const [grantedPermissions, setGrantedPermissions] = useState<Permission[]>([]);
   const capabilitiesRef = useRef<NativeCapabilities | null>(null);
   const [error, setError] = useState<{ message: string; stack?: string } | null>(null);
+
+  const webLoadedRef = useRef(false);
+  const deliverDeepLink = () => {
+    if (!webLoadedRef.current) return;
+    const link = takeDeepLink(app.id);
+    if (link) webViewRef.current?.injectJavaScript(deepLinkInjection(link));
+  };
+  useEffect(() => onDeepLinkQueued((id) => { if (id === app.id) deliverDeepLink(); }), [app.id]);
 
   useEffect(() => {
     setupGlobalErrorHandler((error, isFatal) => {
@@ -221,6 +230,7 @@ export const MiniAppRunner: React.FC<MiniAppRunnerProps> = ({ app, onClose }) =>
           source={{ html }}
           style={styles.webview}
           onMessage={handleMessage}
+          onLoadEnd={() => { webLoadedRef.current = true; setTimeout(deliverDeepLink, 300); }}
           onError={handleWebViewError}
           onHttpError={handleHttpError}
           onRenderProcessGone={handleRenderProcessGone}
