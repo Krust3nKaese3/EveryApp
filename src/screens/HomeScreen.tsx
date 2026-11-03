@@ -119,6 +119,21 @@ export const HomeScreen: React.FC = () => {
     ]);
   };
 
+  const [refreshingId, setRefreshingId] = useState<string | null>(null);
+
+  const handleRefreshApp = async (app: MiniApp) => {
+    setRefreshingId(app.id);
+    try {
+      const fresh = await GitRepoService.fetchRepo(app.repoUrl);
+      await StorageService.saveApp({ ...fresh, addedAt: app.addedAt, folderId: app.folderId });
+      await loadData();
+    } catch (error: any) {
+      Alert.alert('Update failed', error.message);
+    } finally {
+      setRefreshingId(null);
+    }
+  };
+
   const toggleFolder = (folderId: string) => {
     const newExpanded = new Set(expandedFolders);
     if (newExpanded.has(folderId)) {
@@ -146,8 +161,19 @@ export const HomeScreen: React.FC = () => {
         ])
       }
     >
-      <Text style={styles.appName}>{app.manifest.name}</Text>
-      <Text style={styles.appDesc}>{app.manifest.description}</Text>
+      <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.appName}>{app.manifest.name}</Text>
+          <Text style={styles.appDesc}>{app.manifest.description}</Text>
+        </View>
+        <TouchableOpacity
+          onPress={() => handleRefreshApp(app)}
+          disabled={refreshingId === app.id}
+          style={{ padding: 10 }}
+        >
+          <Text style={{ fontSize: 22, opacity: refreshingId === app.id ? 0.3 : 1 }}>⟳</Text>
+        </TouchableOpacity>
+      </View>
     </TouchableOpacity>
   );
 
