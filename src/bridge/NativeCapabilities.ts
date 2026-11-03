@@ -161,7 +161,9 @@ export class NativeCapabilities {
           title,
           body,
         },
-        trigger: { seconds } as any,
+        trigger: seconds && seconds > 0
+          ? ({ type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL, seconds, repeats: false } as any)
+          : null,
       });
     },
   };
