@@ -1,47 +1,24 @@
 import { Permission } from '../types';
-
-export interface BridgeAPI {
-  storage: {
-    get: (key: string) => Promise<string | null>;
-    set: (key: string, value: string) => Promise<void>;
-    remove: (key: string) => Promise<void>;
-  };
-  http: {
-    fetch: (url: string, options?: RequestInit) => Promise<Response>;
-  };
-  bluetooth: {
-    scan: () => Promise<any[]>;
-    connect: (deviceId: string) => Promise<void>;
-    disconnect: (deviceId: string) => Promise<void>;
-  };
-  notifications: {
-    schedule: (title: string, body: string, seconds: number) => Promise<void>;
-  };
-  camera: {
-    takePicture: () => Promise<string>;
-  };
-  sensors: {
-    getAccelerometer: () => Promise<{ x: number; y: number; z: number }>;
-    getGyroscope: () => Promise<{ x: number; y: number; z: number }>;
-  };
-  vibration: {
-    vibrate: (pattern?: number[]) => void;
-  };
-}
+import { NativeCapabilities } from './NativeCapabilities';
 
 export class BridgeMessageHandler {
   private appId: string;
   private grantedPermissions: Permission[];
-  private handlers: any;
+  private capabilities: NativeCapabilities;
 
-  constructor(appId: string, grantedPermissions: Permission[], handlers: any) {
+  constructor(appId: string, grantedPermissions: Permission[], capabilities: NativeCapabilities) {
     this.appId = appId;
     this.grantedPermissions = grantedPermissions;
-    this.handlers = handlers;
+    this.capabilities = capabilities;
   }
 
   async handleMessage(message: any): Promise<any> {
-    const { id, method, args } = message;
+    const { id, method, args, type } = message;
+
+    if (type === 'event') {
+      this.handleEventSubscription(message);
+      return { id, success: true };
+    }
 
     try {
       const result = await this.executeMethod(method, args);
@@ -51,19 +28,53 @@ export class BridgeMessageHandler {
     }
   }
 
+  private handleEventSubscription(message: any) {
+    const { event, action, callbackId } = message;
+
+    if (action === 'on') {
+      this.capabilities.eventEmitter.on(event, (data) => {
+        this.sendEventToWebView(event, data, callbackId);
+      });
+    } else if (action === 'off') {
+      this.capabilities.eventEmitter.removeAllListeners(event);
+    }
+  }
+
+  private sendEventToWebView(event: string, data: any, callbackId: string) {
+  }
+
   private async executeMethod(method: string, args: any[]): Promise<any> {
-    const [category, action] = method.split('.');
+    const parts = method.split('.');
+    const category = parts[0];
+    const action = parts.slice(1).join('.');
+
+    if (category === 'events') {
+      return this.handleEventsMethod(action, args);
+    }
 
     if (!this.grantedPermissions.includes(category as Permission)) {
       throw new Error(`Permission denied: ${category}`);
     }
 
-    const handler = this.handlers[category];
-    if (!handler || !handler[action]) {
-      throw new Error(`Method not found: ${method}`);
+    return await this.executeCapabilityMethod(category, action, args);
+  }
+
+  private handleEventsMethod(action: string, args: any[]): any {
+    return null;
+  }
+
+  private async executeCapabilityMethod(category: string, action: string, args: any[]): Promise<any> {
+    const handler = (this.capabilities as any)[category];
+    if (!handler || typeof handler !== 'object') {
+      throw new Error(`Category not found: ${category}`);
     }
 
-    return await handler[action](...args);
+    const method = handler[action];
+    if (!method || typeof method !== 'function') {
+      throw new Error(`Method not found: ${category}.${action}`);
+    }
+
+    return await method.apply(handler, args);
   }
 
   generateBridgeScript(): string {
@@ -71,6 +82,7 @@ export class BridgeMessageHandler {
       (function() {
         let messageId = 0;
         const pendingMessages = {};
+        const eventListeners = {};
 
         window.EveryAppBridge = {
           storage: {
@@ -79,6 +91,9 @@ export class BridgeMessageHandler {
             remove: (key) => sendMessage('storage.remove', [key]),
           },
           http: {
+            request: async (req) => {
+              return await sendMessage('http.request', [req]);
+            },
             fetch: async (url, options) => {
               const response = await sendMessage('http.fetch', [url, options]);
               return {
@@ -93,6 +108,7 @@ export class BridgeMessageHandler {
             scan: () => sendMessage('bluetooth.scan', []),
             connect: (deviceId) => sendMessage('bluetooth.connect', [deviceId]),
             disconnect: (deviceId) => sendMessage('bluetooth.disconnect', [deviceId]),
+            getConnectedDevices: () => sendMessage('bluetooth.getConnectedDevices', []),
           },
           notifications: {
             schedule: (title, body, seconds) => sendMessage('notifications.schedule', [title, body, seconds]),
@@ -107,6 +123,47 @@ export class BridgeMessageHandler {
           vibration: {
             vibrate: (pattern) => sendMessage('vibration.vibrate', [pattern]),
           },
+          background: {
+            enable: () => sendMessage('background.enable', []),
+            disable: () => sendMessage('background.disable', []),
+            isEnabled: () => sendMessage('background.isEnabled', []),
+          },
+          events: {
+            on: (event, callback) => {
+              if (!eventListeners[event]) {
+                eventListeners[event] = [];
+              }
+              eventListeners[event].push(callback);
+              
+              const callbackId = messageId++;
+              sendEventSubscription(event, 'on', callbackId);
+            },
+            off: (event, callback) => {
+              if (eventListeners[event]) {
+                const index = eventListeners[event].indexOf(callback);
+                if (index > -1) {
+                  eventListeners[event].splice(index, 1);
+                }
+                if (eventListeners[event].length === 0) {
+                  delete eventListeners[event];
+                  sendEventSubscription(event, 'off');
+                }
+              }
+            },
+          },
+        };
+
+        window.dispatchBridgeEvent = function(event, data) {
+          const listeners = eventListeners[event];
+          if (listeners) {
+            listeners.forEach(callback => {
+              try {
+                callback(data);
+              } catch (error) {
+                console.error('Event callback error:', error);
+              }
+            });
+          }
         };
 
         function sendMessage(method, args) {
@@ -115,6 +172,15 @@ export class BridgeMessageHandler {
             pendingMessages[id] = { resolve, reject };
             window.ReactNativeWebView.postMessage(JSON.stringify({ id, method, args }));
           });
+        }
+
+        function sendEventSubscription(event, action, callbackId) {
+          window.ReactNativeWebView.postMessage(JSON.stringify({
+            type: 'event',
+            event,
+            action,
+            callbackId
+          }));
         }
 
         window.handleBridgeResponse = function(response) {
@@ -128,6 +194,10 @@ export class BridgeMessageHandler {
             }
           }
         };
+
+        setTimeout(() => {
+          window.dispatchBridgeEvent('app.start', { timestamp: Date.now() });
+        }, 100);
       })();
     `;
   }

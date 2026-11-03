@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { HomeScreen } from './src/screens/HomeScreen';
+import { ErrorBoundary } from './src/components/ErrorBoundary';
 import BleManager from 'react-native-ble-manager';
 import { NativeModules, NativeEventEmitter, Platform } from 'react-native';
 
@@ -14,9 +15,9 @@ export default function App() {
   }, []);
 
   return (
-    <>
+    <ErrorBoundary>
       <StatusBar style="light" />
       <HomeScreen />
-    </>
+    </ErrorBoundary>
   );
 }

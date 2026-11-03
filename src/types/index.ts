@@ -14,7 +14,8 @@ export type Permission =
   | 'notifications'
   | 'camera'
   | 'sensors'
-  | 'vibration';
+  | 'vibration'
+  | 'background';
 
 export interface MiniApp {
   id: string;
@@ -33,4 +34,23 @@ export interface Folder {
 
 export interface GrantedPermissions {
   [appId: string]: Permission[];
+}
+
+export interface BluetoothDevice {
+  name: string;
+  address: string;
+}
+
+export interface HttpRequest {
+  url: string;
+  method?: string;
+  headers?: Record<string, string>;
+  body?: string;
+  timeoutMs?: number;
+}
+
+export interface HttpResponse {
+  status: number;
+  headers: Record<string, string>;
+  body: string;
 }
