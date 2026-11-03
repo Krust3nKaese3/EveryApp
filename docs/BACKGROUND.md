@@ -134,3 +134,9 @@ Host API (bridge `background.*`; guarded, saved but not shown on the current APK
   - On a (re)start of the foreground service, all subscriptions are re-established.
   - `notify(..., false)` removes the subscription.
   - `disconnect(addr)` pauses auto-reconnect for that device until the next `connect`/`notify` or a service restart.
+
+## Quality gates (box, no EAS)
+- `npm run typecheck`, `npm run lint` (eslint flat config, bug-focused), `npm test` (node:test; pure logic in `src/services/triggerMatching.ts` and `src/bridge/permissions.ts`).
+- Native compile check without EAS:
+  1. Copy the repo without `android/`, then run `CI=1 npx expo prebuild --platform android --clean --no-install`.
+  2. Run `./gradlew :expo-background-service:compileDebugKotlin :expo-ble-gatt:compileDebugKotlin :expo-classic-bluetooth:compileDebugKotlin :expo-media-control:compileDebugKotlin :expo-network-info:compileDebugKotlin :app:processDebugResources :app:compileDebugKotlin` with JDK 17 (`/workspace/jdk17`) and `ANDROID_HOME=/workspace/android-sdk`.

@@ -14,6 +14,7 @@ import * as ClassicBluetooth from '../../modules/expo-classic-bluetooth';
 import * as NetworkInfo from '../../modules/expo-network-info';
 import * as Ble from '../../modules/expo-ble-gatt';
 import { StorageService } from './StorageService';
+import { deviceMatches, matches } from './triggerMatching';
 
 export type Trigger =
   | { type: 'bluetoothConnected'; nameOrAddress?: string | null }
@@ -78,7 +79,7 @@ function validate(task: any): BackgroundTask {
 
 function compile(code: string): (ctx: any, event: any) => Promise<any> {
   try {
-    // eslint-disable-next-line no-new-func
+     
     return new Function('ctx', 'event', `return (async () => {\n${code}\n})();`) as any;
   } catch (e: any) {
     throw new Error(`Syntaxfehler im Task-Code: ${e?.message}`);
@@ -168,30 +169,7 @@ function createCtx(appId: string, task: BackgroundTask) {
   };
 }
 
-/** x matches if it equals name OR alias OR address (case-insensitive, trimmed). */
-export function deviceMatches(x: string, d?: { name?: string; alias?: string; address?: string }) {
-  const n = (v: any) => String(v ?? '').trim().toLowerCase();
-  const want = n(x);
-  return !!d && want !== '' && [d.name, d.alias, d.address].some((v) => n(v) === want);
-}
-
-function matches(t: Trigger, ev: TriggerEvent) {
-  if (t.type !== ev.type) return false;
-  if ((t.type === 'bluetoothConnected' || t.type === 'bluetoothDisconnected') && t.nameOrAddress) {
-    return deviceMatches(t.nameOrAddress, ev.device);
-  }
-  if (t.type === 'tileMenu' || t.type === 'widgetAction') return !t.id || t.id === ev.id;
-  if (t.type === 'bleNotify') {
-    const n = (v: any) => String(v ?? '').trim().toLowerCase();
-    if (t.address && n(t.address) !== n(ev.ble?.address)) return false;
-    if (t.charUuid && !n(ev.ble?.charUuid).includes(n(t.charUuid))) return false;
-    return true;
-  }
-  if (t.type === 'wifiChanged') return !t.bssid || String(t.bssid).toLowerCase() === String(ev.wifi?.bssid ?? '').toLowerCase()
-    || String(t.bssid).toLowerCase() === String(ev.wifi?.ssid ?? '').toLowerCase();
-  if (t.type === 'quickTile') return String(t.name).trim().toLowerCase() === String(ev.tile?.name ?? '').trim().toLowerCase();
-  return true;
-}
+export { deviceMatches, matches } from "./triggerMatching";
 
 async function runTask(appId: string, task: BackgroundTask, ev: TriggerEvent) {
   await bgLog(appId, `▶ Task "${task.id}" läuft (Trigger: ${ev.type}${ev.device ? ` ${ev.device.name} / ${ev.device.alias} ${ev.device.address}` : ''})`);
@@ -360,7 +338,7 @@ export async function setUi(appId: string, conf: { tiles?: any[]; widgets?: any[
   for (const w of oldWidgets) delete ui.widgets[w];
   const errors: string[] = [];
   for (const t of conf.tiles || []) {
-    let slot = t.slot ? Number(t.slot) : [1, 2, 3, 4, 5].find((i) => !ui.tiles[i]);
+    const slot = t.slot ? Number(t.slot) : [1, 2, 3, 4, 5].find((i) => !ui.tiles[i]);
     if (!slot || slot < 1 || slot > TILE_COUNT) { errors.push(`Kachel "${t.label}": kein freier Slot (max ${TILE_COUNT})`); continue; }
     if (ui.tiles[slot]) errors.push(`Kachel-Slot ${slot} doppelt belegt – "${t.label}" überschreibt`);
     const prev = (await readUi()).tiles[slot];

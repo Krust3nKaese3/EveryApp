@@ -1,0 +1,9 @@
+/** Pure bridge permission check (unit tested). Throws a readable error when the category is not allowed. */
+export const FREE_CATEGORIES = ['clipboard', 'network', 'media'];
+export function checkBridgePermission(category: string, granted: string[]): void {
+  if (category === 'events' || FREE_CATEGORIES.includes(category)) return;
+  if (granted.includes(category)) return;
+  if (category === 'ble')
+    throw new Error('BLE nicht erlaubt: Die Mini-App muss "ble" in den permissions ihres Manifests (everyapp.json) deklarieren und der Nutzer muss es erlauben');
+  throw new Error(`Permission denied: ${category}`);
+}

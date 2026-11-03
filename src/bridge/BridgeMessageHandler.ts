@@ -1,3 +1,4 @@
+import { checkBridgePermission } from './permissions';
 import { Permission } from '../types';
 import { NativeCapabilities } from './NativeCapabilities';
 
@@ -61,16 +62,7 @@ export class BridgeMessageHandler {
       return this.handleEventsMethod(action, args);
     }
 
-    // Clipboard write needs no permission (user-visible, harmless)
-    if (category === 'clipboard' || category === 'network' || category === 'media') {
-      return await this.executeCapabilityMethod(category, action, args);
-    }
-
-    if (!this.grantedPermissions.includes(category as Permission)) {
-      throw new Error(category === 'ble'
-        ? "BLE nicht erlaubt: Die Mini-App muss \"ble\" in den permissions ihres Manifests (everyapp.json) deklarieren und der Nutzer muss es erlauben"
-        : `Permission denied: ${category}`);
-    }
+    checkBridgePermission(category, this.grantedPermissions as string[]);
 
     return await this.executeCapabilityMethod(category, action, args);
   }
