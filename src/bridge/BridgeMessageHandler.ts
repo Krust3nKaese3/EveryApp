@@ -148,6 +148,7 @@ export class BridgeMessageHandler {
             unregisterTask: (id) => sendMessage('background.unregisterTask', [id]),
             unregisterAll: () => sendMessage('background.unregisterAll', []),
             listTasks: () => sendMessage('background.listTasks', []),
+            getTileSlots: () => sendMessage('background.getTileSlots', []),
           },
           media: {
             play: () => sendMessage('media.play', []),

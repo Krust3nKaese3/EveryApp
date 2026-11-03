@@ -8,7 +8,7 @@ import * as ClassicBluetooth from '../../modules/expo-classic-bluetooth';
 import { BluetoothDevice, HttpRequest, HttpResponse } from '../types';
 import { EventEmitter } from './EventEmitter';
 import { BackgroundService } from '../services/BackgroundService';
-import { BackgroundTasks, restartTimers } from '../services/BackgroundTasks';
+import { BackgroundTasks, restartTimers, getTileSlots } from '../services/BackgroundTasks';
 import { PermissionsAndroid, Platform } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import * as NetworkInfo from '../../modules/expo-network-info';
@@ -245,6 +245,8 @@ export class NativeCapabilities {
 
     // Generic background tasks (docs/BACKGROUND.md)
     handlesTriggers: async (): Promise<boolean> => true,
+    // slot -> name of Quick Settings tiles ("EveryApp 1..5"); tiles need the next native build
+    getTileSlots: async (): Promise<Record<string, string>> => getTileSlots(),
     registerTask: async (task: any): Promise<void> => { await BackgroundTasks.register(this.appId, task); },
     unregisterTask: async (taskId: string): Promise<void> => { await BackgroundTasks.unregister(this.appId, taskId); },
     unregisterAll: async (): Promise<void> => { await BackgroundTasks.unregisterAll(this.appId); },

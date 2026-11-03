@@ -35,6 +35,12 @@ class ExpoBackgroundServiceModule : Module() {
       }
     }
 
+    Function("setTileLabel") { index: Int, label: String? ->
+      val context = appContext.reactContext ?: return@Function false
+      EveryAppTileBase.setLabel(context, index, label)
+      true
+    }
+
     Function("isServiceEnabled") {
       val context = appContext.reactContext ?: return@Function false
       EveryAppBackgroundService.isEnabled(context)

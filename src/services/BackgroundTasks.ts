@@ -9,13 +9,16 @@ import * as Notifications from 'expo-notifications';
 import * as Clipboard from 'expo-clipboard';
 import { sendMediaKey } from '../../modules/expo-media-control';
 import { BackgroundService } from './BackgroundService';
+import { requireOptionalNativeModule } from 'expo-modules-core';
+import * as ClassicBluetooth from '../../modules/expo-classic-bluetooth';
 
 export type Trigger =
   | { type: 'bluetoothConnected'; nameOrAddress?: string | null }
   | { type: 'bluetoothDisconnected'; nameOrAddress?: string | null }
   | { type: 'interval'; ms: number }
   | { type: 'boot' }
-  | { type: 'appStart' };
+  | { type: 'appStart' }
+  | { type: 'quickTile'; name: string };
 
 export interface BackgroundTask {
   id: string;
@@ -26,7 +29,7 @@ export interface BackgroundTask {
   registeredAt?: number;
 }
 
-export interface TriggerEvent { type: string; device?: { name?: string; alias?: string; address?: string; [k: string]: any }; time: number }
+export interface TriggerEvent { type: string; tile?: { index: number; name: string }; device?: { name?: string; alias?: string; address?: string; [k: string]: any }; time: number }
 
 const TASKS_KEY = '@everyapp_bg_tasks';
 const MIN_INTERVAL = 10_000;
@@ -57,8 +60,9 @@ function validate(task: any): BackgroundTask {
   if (!Array.isArray(task.triggers) || task.triggers.length === 0) throw new Error('registerTask: "triggers" (Array) fehlt');
   if (typeof task.code !== 'string') throw new Error('registerTask: "code" (String mit Funktionskörper) fehlt');
   for (const t of task.triggers) {
-    if (!['bluetoothConnected', 'bluetoothDisconnected', 'interval', 'boot', 'appStart'].includes(t?.type))
+    if (!['bluetoothConnected', 'bluetoothDisconnected', 'interval', 'boot', 'appStart', 'quickTile'].includes(t?.type))
       throw new Error(`registerTask: unbekannter Trigger "${t?.type}"`);
+    if (t.type === 'quickTile' && !(typeof t.name === 'string' && t.name.trim())) throw new Error('registerTask: quickTile braucht einen Namen');
     if (t.type === 'interval' && !(t.ms >= MIN_INTERVAL)) throw new Error(`registerTask: interval.ms muss >= ${MIN_INTERVAL} sein`);
   }
   compile(task.code); // throws on syntax error
@@ -136,6 +140,10 @@ function createCtx(appId: string, task: BackgroundTask) {
       play: () => sendMediaKey('play'), pause: () => sendMediaKey('pause'), toggle: () => sendMediaKey('toggle'),
       next: () => sendMediaKey('next'), previous: () => sendMediaKey('previous'), stop: () => sendMediaKey('stop'),
     },
+    bluetooth: {
+      getConnectedDevices: async () => await ClassicBluetooth.getConnectedDevicesAsync(false),
+      isConnected: async (x: string) => (await ClassicBluetooth.getConnectedDevicesAsync(false)).some((d: any) => deviceMatches(x, d)),
+    },
     copy: async (text: string) => { await Clipboard.setStringAsync(String(text ?? '')); },
     vibrate: (pattern?: number[]) => {
       if (pattern && pattern.length) Vibration.vibrate([0, ...pattern]); else Vibration.vibrate(200);
@@ -161,13 +169,17 @@ function matches(t: Trigger, ev: TriggerEvent) {
   if ((t.type === 'bluetoothConnected' || t.type === 'bluetoothDisconnected') && t.nameOrAddress) {
     return deviceMatches(t.nameOrAddress, ev.device);
   }
+  if (t.type === 'quickTile') return String(t.name).trim().toLowerCase() === String(ev.tile?.name ?? '').trim().toLowerCase();
   return true;
 }
 
 async function runTask(appId: string, task: BackgroundTask, ev: TriggerEvent) {
   await bgLog(appId, `▶ Task "${task.id}" läuft (Trigger: ${ev.type}${ev.device ? ` ${ev.device.name} / ${ev.device.alias} ${ev.device.address}` : ''})`);
   try {
-    await compile(task.code)(createCtx(appId, task), ev);
+    const ctx: any = createCtx(appId, task);
+    ctx.trigger = { type: ev.type, device: ev.device, tile: ev.tile };
+    ctx.device = ev.device;
+    await compile(task.code)(ctx, ev);
     await bgLog(appId, `✔ Task "${task.id}" fertig`);
   } catch (e: any) {
     await bgLog(appId, `FEHLER: Task "${task.id}" fehlgeschlagen: ${e?.message || e}\n${e?.stack || ''}`, 'error');
@@ -191,6 +203,35 @@ export async function dispatchEvent(ev: TriggerEvent) {
   if (ev.type === 'boot') restartTimers();
 }
 
+// ---- Quick Settings tiles: 5 static native tiles "EveryApp 1..5"; names are assigned to slots here ----
+const TILES_KEY = '@everyapp_tiles';
+const TILE_COUNT = 5;
+export async function getTileSlots(): Promise<Record<string, string>> {
+  try { return JSON.parse((await AsyncStorage.getItem(TILES_KEY)) || '{}'); } catch { return {}; }
+}
+async function syncTiles() {
+  const names: string[] = [];
+  for (const [, t] of await activeTasks())
+    for (const tr of t.triggers) if (tr.type === 'quickTile' && !names.some((n) => n.toLowerCase() === tr.name.trim().toLowerCase())) names.push(tr.name.trim());
+  const old = await getTileSlots(); // slot -> name; keep existing slots stable
+  const slots: Record<string, string> = {};
+  for (const [slot, name] of Object.entries(old)) if (names.some((n) => n.toLowerCase() === name.toLowerCase())) slots[slot] = name;
+  for (const n of names) {
+    if (Object.values(slots).some((v) => v.toLowerCase() === n.toLowerCase())) continue;
+    const free = [1, 2, 3, 4, 5].find((i) => !slots[i]);
+    if (!free) { console.warn(`[EveryApp][BG] FEHLER: mehr als ${TILE_COUNT} Kacheln – "${n}" ignoriert`); continue; }
+    slots[free] = n;
+  }
+  await AsyncStorage.setItem(TILES_KEY, JSON.stringify(slots));
+  const native: any = requireOptionalNativeModule('ExpoBackgroundService');
+  if (!native || typeof native.setTileLabel !== 'function') {
+    if (names.length) console.warn('[EveryApp][BG] Quick-Settings-Kacheln brauchen nächsten Build');
+    return;
+  }
+  for (let i = 1; i <= TILE_COUNT; i++) native.setTileLabel(i, slots[i] ?? null);
+  console.log('[EveryApp][BG] tiles', JSON.stringify(slots));
+}
+
 // ---- interval triggers: JS timers, live as long as the process (kept alive by the foreground service) ----
 let timers: any[] = [];
 let restartPending: any = null;
@@ -199,6 +240,7 @@ export function restartTimers() {
   restartPending = setTimeout(async () => {
     restartPending = null;
     timers.forEach(clearInterval); timers = [];
+    syncTiles().catch((e) => console.error('[EveryApp][BG] tile sync failed', e?.message));
     for (const [appId, t] of await activeTasks()) {
       for (const tr of t.triggers) {
         if (tr.type === 'interval') {
@@ -212,7 +254,11 @@ export function restartTimers() {
 
 /** Headless entry point (native extras: event, name, address, time). */
 export async function headlessEntry(data: any) {
-  const map: Record<string, string> = { 'bluetooth.connected': 'bluetoothConnected', 'bluetooth.disconnected': 'bluetoothDisconnected', boot: 'boot' };
+  const map: Record<string, string> = { 'bluetooth.connected': 'bluetoothConnected', 'bluetooth.disconnected': 'bluetoothDisconnected', boot: 'boot', quickTile: 'quickTile' };
+  if (data?.event === 'quickTile') {
+    await dispatchEvent({ type: 'quickTile', tile: { index: Number(data.tileIndex), name: String(data.tileName || '') }, time: data.time || Date.now() });
+    return;
+  }
   const type = map[data?.event];
   if (!type) { console.warn('[EveryApp][BG] unknown headless event', JSON.stringify(data)); return; }
   let device: any = data.address ? { name: data.name, alias: data.name, address: data.address } : undefined;

@@ -30,6 +30,7 @@ await EveryAppBridge.background.registerTask({
     { type: "interval", ms: 60000 },  // min. 10000
     { type: "boot" },                 // after phone reboot
     { type: "appStart" },             // when the EveryApp UI starts
+    { type: "quickTile", name: "Denon an" }, // Quick Settings tile (from the next build on)
   ],
   // Function BODY as a string; runs as: async (ctx, event) => { <code> }
   code: `
@@ -57,6 +58,9 @@ The code runs outside the WebView: **no DOM, no `window`, no access to variables
 | `ctx.http.get(url)` / `ctx.http.request({url, method, headers, body, timeoutMs})` | → `{status, ok, headers, body}`; default timeout 15 s |
 | `ctx.notify(title, body)` | Shows a notification immediately |
 | `ctx.media.play/pause/toggle/next/previous/stop()` | **From the next build on:** media keys for the currently active player (like headset buttons). Before that it throws "Media-Steuerung braucht nächsten Build". |
+| `ctx.trigger` | `{type, device?, tile?: {index, name}}` – what triggered the run |
+| `ctx.device` | Bluetooth device of the trigger (or undefined) |
+| `ctx.bluetooth.getConnectedDevices()` / `ctx.bluetooth.isConnected(nameOrMac)` | Currently connected devices; match on name/alias/MAC, case-insensitive. Limited for now (bonded devices with isConnected only); complete from the next build on |
 | `ctx.copy(text)` | Copies text to the clipboard |
 | `ctx.vibrate(pattern?)` | Vibration, e.g. `[200,100,200]` (on, pause, on in ms) |
 | `ctx.storage.get/set/remove(key)` | String storage scoped to this app – **the same keys as `EveryAppBridge.storage`**, so it is shared with the UI |
@@ -79,3 +83,10 @@ Errors thrown by the handler are caught and logged as `FEHLER: Task "<id>" fehlg
 - `EveryAppBridge.clipboard.setString(text)` – no permission needed.
 - `EveryAppBridge.network.isAvailable()` / `getInfo()` → `{transport, ssid, ssidError, ip, prefixLength, gateway, dns, interfaceName}`. No permission needed (asks for location for the SSID). Only from the next build on; before that `getInfo` throws "nicht verfügbar".
 - `EveryAppBridge.media.play/pause/toggle/next/previous/stop()` – **from the next build on**, no permission needed. There is no way to find out which app is currently playing.
+
+## Quick Settings tiles (from the next build on)
+Android only allows statically declared tiles. EveryApp therefore ships 5 tiles, "EveryApp 1" to "EveryApp 5".
+Every `quickTile` name from the active tasks (of all apps) is assigned a free slot automatically; the slot stays stable for as long as the name exists.
+The tile shows that name. Unassigned tiles are greyed out. Tapping a tile fires `{type:'quickTile', tile:{index,name}}` (headless, also when the app is closed).
+The user has to add the tile once in the quick settings ("Bearbeiten" → drag "EveryApp N" in). `background.getTileSlots()` → `{ "1": "Denon an", ... }`.
+More than 5 names: the extra ones are ignored and an error is logged. Name matching is case-insensitive.
