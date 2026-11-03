@@ -8,6 +8,7 @@ import * as ClassicBluetooth from '../../modules/expo-classic-bluetooth';
 import { BluetoothDevice, HttpRequest, HttpResponse } from '../types';
 import { EventEmitter } from './EventEmitter';
 import { BackgroundService } from '../services/BackgroundService';
+import { BackgroundTasks, restartTimers } from '../services/BackgroundTasks';
 import { PermissionsAndroid, Platform } from 'react-native';
 
 Notifications.setNotificationHandler({
@@ -224,22 +225,26 @@ export class NativeCapabilities {
         console.log('[EveryApp] POST_NOTIFICATIONS:', r);
       }
       await BackgroundService.start(this.appId);
+      restartTimers();
     },
 
     disable: async (): Promise<void> => {
       await BackgroundService.stop(this.appId);
+      restartTimers();
     },
 
     isEnabled: async (): Promise<boolean> => {
       return await BackgroundService.isRunning(this.appId);
     },
 
-    // true = the host runs the app's stored "macros" (bluetooth triggers) itself while background mode is on
+    // Generic background tasks (docs/BACKGROUND.md)
     handlesTriggers: async (): Promise<boolean> => true,
-
-    getLog: async (): Promise<string> => {
-      return (await AsyncStorage.getItem(this.getStorageKey('background_log'))) || '[]';
-    },
+    registerTask: async (task: any): Promise<void> => { await BackgroundTasks.register(this.appId, task); },
+    unregisterTask: async (taskId: string): Promise<void> => { await BackgroundTasks.unregister(this.appId, taskId); },
+    unregisterAll: async (): Promise<void> => { await BackgroundTasks.unregisterAll(this.appId); },
+    listTasks: async (): Promise<any[]> => BackgroundTasks.list(this.appId),
+    getLog: async (): Promise<string> => BackgroundTasks.getLog(this.appId),
+    clearLog: async (): Promise<void> => BackgroundTasks.clearLog(this.appId),
   };
 
   events = {

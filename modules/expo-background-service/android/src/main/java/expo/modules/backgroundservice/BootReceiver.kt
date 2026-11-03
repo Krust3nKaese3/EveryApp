@@ -11,6 +11,12 @@ class BootReceiver : BroadcastReceiver() {
     try {
       EveryAppBackgroundService.start(context)
       Log.i(EveryAppBackgroundService.TAG, "[EveryApp] background service started after ${intent.action}")
+      val task = Intent(context, MacroHeadlessTaskService::class.java).apply {
+        putExtra("event", "boot")
+        putExtra("time", System.currentTimeMillis().toDouble())
+      }
+      context.startService(task)
+      com.facebook.react.HeadlessJsTaskService.acquireWakeLockNow(context)
     } catch (e: Exception) {
       Log.e(EveryAppBackgroundService.TAG, "[EveryApp] FEHLER: start after boot failed: ${e.message}", e)
     }

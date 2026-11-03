@@ -2,14 +2,15 @@ import { registerRootComponent } from 'expo';
 import { AppRegistry } from 'react-native';
 
 import App from './App';
-import { runMacroTask } from './src/services/MacroEngine';
+import { headlessEntry, initBackgroundTasks } from './src/services/BackgroundTasks';
 
-// Headless task started natively by MacroTriggerReceiver (Bluetooth ACL events) — runs even when the UI is closed.
-AppRegistry.registerHeadlessTask('EveryAppMacroTask', () => async (data: any) => {
+// Generic background task engine (docs/BACKGROUND.md). Started natively by Bluetooth/boot receivers even when the UI is closed.
+AppRegistry.registerHeadlessTask('EveryAppBackgroundTask', () => async (data: any) => {
   try {
-    await runMacroTask(data);
+    initBackgroundTasks(false);
+    await headlessEntry(data);
   } catch (e: any) {
-    console.error('[EveryApp][Macro] FEHLER im Hintergrund-Task:', e?.message, e?.stack);
+    console.error('[EveryApp][BG] FEHLER im Hintergrund-Task:', e?.message, e?.stack);
   }
 });
 

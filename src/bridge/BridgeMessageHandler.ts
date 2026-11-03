@@ -138,6 +138,11 @@ export class BridgeMessageHandler {
             isEnabled: () => sendMessage('background.isEnabled', []),
             handlesTriggers: () => sendMessage('background.handlesTriggers', []),
             getLog: () => sendMessage('background.getLog', []),
+            clearLog: () => sendMessage('background.clearLog', []),
+            registerTask: (task) => sendMessage('background.registerTask', [task]),
+            unregisterTask: (id) => sendMessage('background.unregisterTask', [id]),
+            unregisterAll: () => sendMessage('background.unregisterAll', []),
+            listTasks: () => sendMessage('background.listTasks', []),
           },
           events: {
             on: (event, callback) => {

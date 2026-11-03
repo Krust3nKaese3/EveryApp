@@ -29,7 +29,7 @@ class MacroTriggerReceiver : BroadcastReceiver() {
       Log.w(EveryAppBackgroundService.TAG, "[EveryApp] no BLUETOOTH_CONNECT permission for device name")
     }
     val address = device?.address ?: ""
-    Log.i(EveryAppBackgroundService.TAG, "[EveryApp] $event $name $address -> starting macro task")
+    Log.i(EveryAppBackgroundService.TAG, "[EveryApp] $event $name $address -> starting background task")
 
     val service = Intent(context, MacroHeadlessTaskService::class.java).apply {
       putExtra("event", event)
@@ -45,7 +45,7 @@ class MacroTriggerReceiver : BroadcastReceiver() {
       context.startService(service)
       HeadlessJsTaskService.acquireWakeLockNow(context)
     } catch (e: Exception) {
-      Log.e(EveryAppBackgroundService.TAG, "[EveryApp] FEHLER: Makro-Task konnte nicht gestartet werden: ${e.javaClass.simpleName}: ${e.message}", e)
+      Log.e(EveryAppBackgroundService.TAG, "[EveryApp] FEHLER: Hintergrund-Task konnte nicht gestartet werden: ${e.javaClass.simpleName}: ${e.message}", e)
     }
   }
 }
