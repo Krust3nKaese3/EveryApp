@@ -90,6 +90,18 @@ export class BridgeMessageHandler {
       (function() {
         let messageId = 0;
         const pendingMessages = {};
+        // SVG → white alpha-mask PNG data URL (96px) for tile icons
+        window.__eaSvgToPng = async function(spec) {
+          let src = spec;
+          if (/^<svg/i.test(spec)) src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(spec);
+          else if (!/^data:/i.test(spec)) src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(await sendMessage('tiles.fetchSvg', [spec]));
+          const img = new Image();
+          await new Promise(function(res, rej) { img.onload = res; img.onerror = function() { rej(new Error('SVG-Icon konnte nicht gerendert werden')); }; img.src = src; });
+          const c = document.createElement('canvas'); c.width = 96; c.height = 96;
+          const g = c.getContext('2d'); g.drawImage(img, 0, 0, 96, 96);
+          g.globalCompositeOperation = 'source-in'; g.fillStyle = '#fff'; g.fillRect(0, 0, 96, 96);
+          return c.toDataURL('image/png');
+        };
         const eventListeners = {};
 
         window.EveryAppBridge = {
@@ -169,6 +181,22 @@ export class BridgeMessageHandler {
             getWifi: () => sendMessage('network.getWifi', []),
             requestLocation: (bg) => sendMessage('network.requestLocation', [!!bg]),
           },
+          popup: {
+            open: (spec) => sendMessage('popup.open', [spec]),
+            send: (id, data) => sendMessage('popup.send', [id, data]),
+            close: (id) => sendMessage('popup.close', [id]),
+            state: (id) => sendMessage('popup.state', [id]),
+          },
+          // tile(n).set({icon,label,subtitle,state}) – SVG icons are rasterized here (WebView canvas) to PNG
+          tile: (n) => ({
+            set: async (patch) => {
+              patch = Object.assign({}, patch || {});
+              if (typeof patch.icon === 'string' && /^<svg|^data:image\/svg|\.svg(\?|#|$)/i.test(patch.icon.trim())) patch.icon = await window.__eaSvgToPng(patch.icon.trim());
+              return sendMessage('tiles.set', [n, patch]);
+            },
+            get: () => sendMessage('tiles.get', [n]),
+            release: () => sendMessage('tiles.release', [n]),
+          }),
           net: {
             isAvailable: () => sendMessage('net.isAvailable', []),
             tcp: async (host, port, o) => {

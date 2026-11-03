@@ -17,7 +17,9 @@ export type Permission =
   | 'vibration'
   | 'background'
   | 'ble'
-  | 'net';
+  | 'net'
+  | 'popup'
+  | 'tiles';
 
 export interface MiniApp {
   id: string;

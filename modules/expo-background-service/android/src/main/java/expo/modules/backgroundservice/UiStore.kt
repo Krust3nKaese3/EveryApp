@@ -84,6 +84,19 @@ object UiStore {
     return letterBitmap(spec, sizePx, tint)
   }
 
+  /** Tile icons are tinted by the system: keep alpha, force white; fully opaque images use luminance as alpha. */
+  fun alphaMask(src: Bitmap): Bitmap {
+    val w = src.width; val h = src.height
+    val px = IntArray(w * h); src.getPixels(px, 0, w, 0, 0, w, h)
+    val opaque = px.all { Color.alpha(it) == 255 }
+    for (i in px.indices) {
+      val p = px[i]
+      val a = if (opaque) { val l = (0.299 * Color.red(p) + 0.587 * Color.green(p) + 0.114 * Color.blue(p)).toInt(); 255 - l } else Color.alpha(p)
+      px[i] = Color.argb(a, 255, 255, 255)
+    }
+    return Bitmap.createBitmap(px, w, h, Bitmap.Config.ARGB_8888)
+  }
+
   /** Fallback: first letter of the spec (e.g. an emoji or unknown name). */
   fun letterBitmap(text: String, sizePx: Int, tint: Int): Bitmap {
     val bmp = Bitmap.createBitmap(sizePx, sizePx, Bitmap.Config.ARGB_8888)

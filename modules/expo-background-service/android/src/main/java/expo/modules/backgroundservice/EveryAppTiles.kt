@@ -12,7 +12,7 @@ import android.util.Log
 
 /**
  * Base for the 5 statically declared Quick Settings tiles. Config (JSON in UiStore "tile_<n>"):
- * { label, icon, state: "on"|"off", subtitle?, menu?: [ {type:"button",id,icon,label} | {type:"slider",id,label,min,max,step,value} ] }
+ * { label, icon, state: "on"|"off"|"active"|"inactive"|"unavailable", subtitle? (Android 10+), popup?: {popup spec}, menu?: [ {type:"button",id,icon,label} | {type:"slider",id,label,min,max,step,value} ] }
  * Legacy: plain label from setTileLabel (quickTile name).
  */
 open class EveryAppTileBase(private val index: Int) : TileService() {
@@ -27,11 +27,12 @@ open class EveryAppTileBase(private val index: Int) : TileService() {
       val cfg = UiStore.getTile(this, index)
       val label = cfg?.optString("label")?.takeIf { it.isNotBlank() } ?: labelFor(this, index)
       tile.label = label ?: "EveryApp $index"
-      UiStore.iconBitmap(this, cfg?.optString("icon")?.takeIf { it.isNotBlank() })?.let { tile.icon = Icon.createWithBitmap(it) }
       if (Build.VERSION.SDK_INT >= 29) tile.subtitle = cfg?.optString("subtitle")?.takeIf { it.isNotBlank() }
+      UiStore.iconBitmap(this, cfg?.optString("icon")?.takeIf { it.isNotBlank() })?.let { tile.icon = Icon.createWithBitmap(UiStore.alphaMask(it)) }
       tile.state = when {
         label == null -> Tile.STATE_UNAVAILABLE
-        cfg?.optString("state") == "on" -> Tile.STATE_ACTIVE
+        cfg?.optString("state") == "unavailable" -> Tile.STATE_UNAVAILABLE
+        cfg?.optString("state") == "on" || cfg?.optString("state") == "active" -> Tile.STATE_ACTIVE
         else -> Tile.STATE_INACTIVE
       }
       tile.updateTile()
@@ -47,8 +48,9 @@ open class EveryAppTileBase(private val index: Int) : TileService() {
     Log.i(EveryAppBackgroundService.TAG, "[EveryApp] quickTile $index ($label) clicked")
     if (label == null) return
     val menu = cfg?.optJSONArray("menu")
-    if (menu != null && menu.length() > 0) {
-      val intent = Intent(this, MenuActivity::class.java).apply {
+    val popup = cfg?.optJSONObject("popup")
+    if (popup != null || (menu != null && menu.length() > 0)) {
+      val intent = if (popup != null) PopupActivity.open(this, popup.toString(), index) else Intent(this, MenuActivity::class.java).apply {
         addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         putExtra(MenuActivity.EXTRA_SOURCE, "tile")
         putExtra(MenuActivity.EXTRA_SLOT, index)

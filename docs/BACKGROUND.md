@@ -162,3 +162,28 @@ Host API (bridge `background.*`; guarded, saved but not shown on the current APK
 Scheme `everyapp` in app.json (nativer Build nötig); Dev-Client-Builds haben zusätzlich `exp+everyapp`.
 HomeScreen öffnet die passende Mini-App (Manifest-Name/Repo-Name, Groß/Klein, Leerzeichen egal) und liefert den Link als
 `window.addEventListener('everyapp:deeplink', e => e.detail)` → `{miniapp, path, params, url}`; zusätzlich `window.EveryAppLaunch`.
+
+## Popup-Host (Permission `popup`, nativer Build nötig)
+Transparente Overlay-Activity (`PopupActivity`) mit WebView, Inhalt (HTML/JS) kommt von der Mini-App.
+
+**Spec** `{ id, html | url (nur https), title?, state?: {}, throttleMs?: 300, style?: {...} }`
+`style`: `width`/`height`: dp-Zahl | `"NN%"` | `"auto"` (Höhe = Inhalt; Breite auto = 92 %), `position`: `center|bottom|top`, `margin` (dp, 16),
+`background` (`#RRGGBB`, `#AARRGGBB`, `rgba(r,g,b,a)`), `backgroundAlpha` 0..1, `scrim` Farbe, `scrimAlpha` 0..1 (0.4),
+`blur` dp (Android 12+, sonst ignoriert), `cornerRadius` dp (22), `borderWidth` dp, `borderColor`, `elevation` dp (12),
+`animation`: `fade|slide|scale|none`, `dismissOnOutsideTap` (true). WebView-Hintergrund ist transparent – Form kommt vom Style.
+
+**Binden:** `setUi({tiles:[{label, icon, popup: spec}], widgets:[{id, items:[{type:'button', id, label, popup: spec}]}]})` – Tippen öffnet das Popup.
+**API** (Bridge `EveryAppBridge.popup` und Hintergrund `ctx.popup`): `open(spec)` (nur wenn EveryApp im Vordergrund), `send(id, {k:v})`
+(merged in den gespeicherten State, live an `onMessage`), `close(id?)`, `state(id)`.
+**Seite:** `window.EveryAppPopup = { id, state, title, send(event, value), close(), onMessage(cb), resize(hDp?) }`, Event `everyapp:popupready`.
+**Trigger:** `{type:'popup', popupId?, event?}` → `ctx.trigger = {type:'popup', popupId, event, value, slot?, widgetId?}`; je Event-Name
+gedrosselt (vorne+hinten, `throttleMs`), beim Schließen `event:'close'`. Events gehen nur an Tasks der besitzenden Mini-App.
+
+## Kacheln zur Laufzeit (Permission `tiles`)
+`EveryAppBridge.tile(n)` / `ctx.tile(n)` (n = 1..5): `set({icon?, label?, subtitle?, state?, popup?})`, `get()`, `release()`.
+- `state`: `active|inactive|unavailable` (auch `on/off/true/false`). `subtitle`: Android 10+ (darunter ignoriert).
+- `icon`: eingebauter Name (`lightbulb, power, bolt, tv, wifi, …`, Material-Aliase wie `power_settings_new`), Repo-Pfad (`icons/lamp.png`, lädt aus raw.githubusercontent …/main),
+  `https://…png`, `data:image/png;base64,…`, SVG (`<svg…>`, `.svg`-Pfad/URL, `data:image/svg+xml`) – SVG nur im Vordergrund (WebView rendert zu PNG).
+  Native: Bild → weiße Alpha-Maske (`Icon.createWithBitmap`), System tönt es.
+- Besitz: Eine Kachel gehört der Mini-App, die sie zuerst belegt; andere bekommen `Kachel n gehört der Mini-App "…"`. Persistiert (SharedPreferences), `requestListeningState` aktualisiert sofort, überlebt Neustart.
+- `ctx.tile.setState/setLabel/…` (alt) funktioniert weiter.

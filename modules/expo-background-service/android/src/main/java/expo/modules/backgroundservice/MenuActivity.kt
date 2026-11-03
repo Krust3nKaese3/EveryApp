@@ -50,6 +50,9 @@ class MenuActivity : Activity() {
     val itemId = intent.getStringExtra(EXTRA_ITEM)
 
     if (intent.getBooleanExtra(EXTRA_FIRE, false)) {
+      // widget item with a popup -> open the popup host instead of firing
+      val item = widgetId?.let { UiStore.getWidget(this, it) }?.let { c -> UiStore.arr(c, "items").firstOrNull { it.optString("id") == itemId } }
+      item?.optJSONObject("popup")?.let { p -> startActivity(PopupActivity.open(this, p.toString(), 0, widgetId)); finish(); return }
       UiStore.fire(this, "widgetAction", mapOf("widgetId" to widgetId, "id" to itemId,
         "value" to (if (intent.hasExtra(EXTRA_VALUE)) intent.getDoubleExtra(EXTRA_VALUE, 0.0) else null)))
       finish(); return

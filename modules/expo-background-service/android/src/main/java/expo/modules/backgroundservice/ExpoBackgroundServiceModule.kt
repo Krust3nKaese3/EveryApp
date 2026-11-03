@@ -60,6 +60,20 @@ class ExpoBackgroundServiceModule : Module() {
       UiStore.widgetIds(context)
     }
 
+    // Generic popup host (PopupActivity)
+    Function("popupSend") { appId: String, id: String, json: String ->
+      val context = appContext.reactContext ?: return@Function false
+      PopupActivity.send(context, appId, id, json)
+    }
+    Function("popupClose") { appId: String, id: String? -> PopupActivity.close(appId, id) }
+    Function("popupState") { appId: String, id: String ->
+      val context = appContext.reactContext ?: return@Function "{}"
+      PopupActivity.storedState(context, appId, id).toString()
+    }
+    Function("popupOpen") { json: String ->
+      val context = appContext.currentActivity ?: appContext.reactContext ?: throw IllegalStateException("Kein Context")
+      context.startActivity(PopupActivity.open(context, json)); true
+    }
     Function("isServiceEnabled") {
       val context = appContext.reactContext ?: return@Function false
       EveryAppBackgroundService.isEnabled(context)

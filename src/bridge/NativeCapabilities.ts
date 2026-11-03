@@ -1,3 +1,5 @@
+import { classifyIcon } from '../services/popupTiles';
+import { StorageService } from '../services/StorageService';
 import * as Notifications from 'expo-notifications';
 import { Camera } from 'expo-camera';
 import * as Haptics from 'expo-haptics';
@@ -8,7 +10,7 @@ import * as ClassicBluetooth from '../../modules/expo-classic-bluetooth';
 import { BluetoothDevice, HttpRequest, HttpResponse } from '../types';
 import { EventEmitter } from './EventEmitter';
 import { BackgroundService } from '../services/BackgroundService';
-import { BackgroundTasks, restartTimers, getTileSlots, setUi, updateTile, updateWidget, getUi, wifiInfo } from '../services/BackgroundTasks';
+import { BackgroundTasks, restartTimers, getTileSlots, setUi, updateTile, updateWidget, getUi, wifiInfo, tileHandle, popupApi } from '../services/BackgroundTasks';
 import { PermissionsAndroid, Platform } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import * as NetworkInfo from '../../modules/expo-network-info';
@@ -328,6 +330,26 @@ export class NativeCapabilities {
     tuyaDiscover: async (ms?: number) => tuyaDiscover(RawNet.nativeCrypto, RawNet.nativeNet, ms || 6000),
   };
   private tcp(id: number) { const c = this.tcpConns.get(id); if (!c) throw new Error(`TCP-Socket ${id} nicht offen`); return c; }
+
+  popup = {
+    open: async (spec: any) => popupApi(this.appId).open(spec),
+    send: async (id: string, data: any) => popupApi(this.appId).send(id, data),
+    close: async (id?: string) => popupApi(this.appId).close(id),
+    state: async (id: string) => popupApi(this.appId).state(id),
+  };
+  tiles = {
+    set: async (n: number, patch: any) => tileHandle(this.appId, n).set(patch),
+    get: async (n: number) => tileHandle(this.appId, n).get(),
+    release: async (n: number) => tileHandle(this.appId, n).release(),
+    fetchSvg: async (spec: string) => {
+      
+      const m = (await StorageService.getApps()).find((a) => a.id === this.appId)?.repoUrl.match(/github\.com\/([^/]+)\/([^/]+)/);
+      const k = classifyIcon(spec, m ? `https://raw.githubusercontent.com/${m[1]}/${m[2].replace(/\.git$/, '')}/main` : null);
+      if (k.kind !== 'svg' || !/^https:\/\//.test(k.value)) throw new Error(`Kein SVG-Pfad: ${spec}`);
+      const r = await fetch(k.value); if (!r.ok) throw new Error(`SVG-Icon HTTP ${r.status}: ${k.value}`);
+      return r.text();
+    },
+  };
 
   crypto = {
     isAvailable: async () => RawNet.isAvailable(),

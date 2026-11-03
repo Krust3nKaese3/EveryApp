@@ -17,6 +17,7 @@ import * as Ble from '../../modules/expo-ble-gatt';
 import * as RawNet from '../../modules/expo-raw-net';
 import { makeTuyaLocal, discover as tuyaDiscover } from './TuyaLocal';
 import { StorageService } from './StorageService';
+import { classifyIcon, normalizeTilePatch, checkTileOwner, normalizePopupSpec } from './popupTiles';
 import { deviceMatches, matches } from './triggerMatching';
 
 export type Trigger =
@@ -27,6 +28,7 @@ export type Trigger =
   | { type: 'appStart' }
   | { type: 'quickTile'; name: string }
   | { type: 'tileMenu'; id?: string | null }
+  | { type: 'popup'; popupId?: string | null; event?: string | null }
   | { type: 'widgetAction'; id?: string | null }
   | { type: 'wifiChanged'; bssid?: string | null }
   | { type: 'bleNotify'; address?: string | null; charUuid?: string | null };
@@ -40,7 +42,7 @@ export interface BackgroundTask {
   registeredAt?: number;
 }
 
-export interface TriggerEvent { type: string; ble?: any; id?: string; value?: number; widgetId?: string; wifi?: any; tile?: { index: number; name: string }; device?: { name?: string; alias?: string; address?: string; [k: string]: any }; time: number }
+export interface TriggerEvent { type: string; appId?: string; popupId?: string; event?: string; popupValue?: any; ble?: any; id?: string; value?: number; widgetId?: string; wifi?: any; tile?: { index: number; name: string }; device?: { name?: string; alias?: string; address?: string; [k: string]: any }; time: number }
 
 const TASKS_KEY = '@everyapp_bg_tasks';
 const MIN_INTERVAL = 10_000;
@@ -72,7 +74,7 @@ function validate(task: any): BackgroundTask {
   if (!Array.isArray(task.triggers) || task.triggers.length === 0) throw new Error('registerTask: "triggers" (Array) fehlt');
   if (typeof task.code !== 'string') throw new Error('registerTask: "code" (String mit Funktionskörper) fehlt');
   for (const t of task.triggers) {
-    if (!['bluetoothConnected', 'bluetoothDisconnected', 'interval', 'boot', 'appStart', 'quickTile', 'tileMenu', 'widgetAction', 'wifiChanged', 'bleNotify'].includes(t?.type))
+    if (!['bluetoothConnected', 'bluetoothDisconnected', 'interval', 'boot', 'appStart', 'quickTile', 'tileMenu', 'widgetAction', 'wifiChanged', 'bleNotify', 'popup'].includes(t?.type))
       throw new Error(`registerTask: unbekannter Trigger "${t?.type}"`);
     if (t.type === 'quickTile' && !(typeof t.name === 'string' && t.name.trim())) throw new Error('registerTask: quickTile braucht einen Namen');
     if (t.type === 'interval' && !(t.ms >= MIN_INTERVAL)) throw new Error(`registerTask: interval.ms muss >= ${MIN_INTERVAL} sein`);
@@ -165,7 +167,8 @@ function createCtx(appId: string, task: BackgroundTask) {
       const t = makeTuyaLocal(RawNet.nativeCrypto, RawNet.nativeNet, { ...cfg, debug: cfg?.debug ? (m: string) => bgLog(appId, m) : undefined });
       return guardPerm(appId, 'net', { status: () => t.status(), set: (d: any) => t.set(d) });
     },
-    tile: tileApi,
+    tile: Object.assign((n: number) => guardPerm(appId, 'tiles', tileHandle(appId, n)), tileApi),
+    popup: guardPerm(appId, 'popup', popupApi(appId)),
     widget: widgetApi,
     bluetooth: {
       getConnectedDevices: async () => await ClassicBluetooth.getConnectedDevicesAsync(false),
@@ -191,7 +194,8 @@ async function runTask(appId: string, task: BackgroundTask, ev: TriggerEvent) {
   try {
     const ctx: any = createCtx(appId, task);
     ctx.trigger = { type: ev.type, device: ev.device, tile: ev.tile, id: ev.id, value: ev.value, widgetId: ev.widgetId,
-      slot: ev.tile?.index, ...(ev.wifi || {}), ...(ev.ble || {}) };
+      slot: ev.tile?.index, ...(ev.wifi || {}), ...(ev.ble || {}),
+      ...(ev.type === 'popup' ? { popupId: ev.popupId, event: ev.event, value: ev.popupValue } : {}) };
     ctx.device = ev.device;
     ctx.secrets = await secretsProxy(appId);
     await compile(task.code)(ctx, ev);
@@ -212,7 +216,7 @@ async function activeTasks(): Promise<Array<[string, BackgroundTask]>> {
 export async function dispatchEvent(ev: TriggerEvent) {
   console.log('[EveryApp][BG] event', JSON.stringify(ev));
   const tasks = await activeTasks();
-  const hits = tasks.filter(([, t]) => t.triggers.some((tr) => matches(tr, ev)));
+  const hits = tasks.filter(([a, t]) => (!ev.appId || a === ev.appId) && t.triggers.some((tr) => matches(tr, ev)));
   if (hits.length === 0) console.log(`[EveryApp][BG] no task for ${ev.type} (active tasks: ${tasks.length})`);
   await Promise.all(hits.map(([appId, t]) => runTask(appId, t, ev)));
   if (ev.type === 'boot') restartTimers();
@@ -284,6 +288,12 @@ export async function headlessEntry(data: any) {
     if (data.event === 'widgetAction' && data.widgetId && value !== undefined) rememberSliderValue('widget', data.widgetId, data.id, value);
     return;
   }
+  if (data?.event === 'popup') {
+    let value: any = null; try { value = JSON.parse(String(data.valueJson ?? 'null')); } catch { value = data.valueJson; }
+    await dispatchEvent({ type: 'popup', appId: data.appId || undefined, popupId: String(data.popupId || ''), event: String(data.popupEvent || ''),
+      popupValue: value, widgetId: data.widgetId, tile: data.slot ? { index: Number(data.slot), name: '' } : undefined, time: data.time || Date.now() });
+    return;
+  }
   if (data?.event === 'bleNotify') {
     const hex = String(data.hex || '');
     await dispatchEvent({ type: 'bleNotify', ble: { address: data.address, serviceUuid: data.serviceUuid, charUuid: data.charUuid,
@@ -353,6 +363,20 @@ export async function setUi(appId: string, conf: { tiles?: any[]; widgets?: any[
   for (const s of oldTiles) delete ui.tiles[s];
   for (const w of oldWidgets) delete ui.widgets[w];
   const errors: string[] = [];
+  const perms = ((await StorageService.getAppPermissions(appId).catch(() => [])) as string[]);
+  const bindPopup = (o: any, where: string) => {
+    if (!o || o.popup === undefined) return o;
+    if (!perms.includes('popup')) { errors.push(`${where}: popup braucht Permission "popup" im Manifest – entfernt`); const { popup: _p, ...rest } = o; return rest; }
+    try { return { ...o, popup: normalizePopupSpec(o.popup, appId) }; } catch (e: any) { errors.push(`${where}: ${e.message}`); const { popup: _p, ...rest } = o; return rest; }
+  };
+  const rawBase = await appRawBase(appId);
+  const fixIcon = (o: any, where: string) => {
+    if (!o || !o.icon) return o;
+    try { return { ...o, icon: iconForNative(o.icon, rawBase) }; } catch (e: any) { errors.push(`${where}: ${e.message}`); return { ...o, icon: '' }; }
+  };
+  conf = { ...conf,
+    tiles: (conf.tiles || []).map((t: any) => fixIcon(bindPopup(t, `Kachel "${t.label}"`), `Kachel "${t.label}"`)),
+    widgets: (conf.widgets || []).map((w: any) => ({ ...w, items: Array.isArray(w.items) ? w.items.map((it: any) => fixIcon(bindPopup(it, `Widget ${w.id}/${it.id}`), `Widget ${w.id}/${it.id}`)) : w.items })) };
   for (const t of conf.tiles || []) {
     const slot = t.slot ? Number(t.slot) : [1, 2, 3, 4, 5].find((i) => !ui.tiles[i]);
     if (!slot || slot < 1 || slot > TILE_COUNT) { errors.push(`Kachel "${t.label}": kein freier Slot (max ${TILE_COUNT})`); continue; }
@@ -448,4 +472,70 @@ function guardPerm(appId: string, perm: string, api: Record<string, any>) {
     return f(...a);
   };
   return out;
+}
+
+// ---- Runtime tile customization: tile(n).set({icon,label,subtitle,state}) (permission "tiles") ----
+async function appRawBase(appId: string): Promise<string | null> {
+  try {
+    const app = (await StorageService.getApps()).find((a) => a.id === appId);
+    const m = app?.repoUrl.match(/github\.com\/([^/]+)\/([^/]+)/);
+    return m ? `https://raw.githubusercontent.com/${m[1]}/${m[2].replace(/\.git$/, '')}/main` : null;
+  } catch { return null; }
+}
+/** Converts an icon spec into something the native side renders (builtin name | data: | https URL | letter). */
+export function iconForNative(spec: string, rawBase: string | null): string {
+  const k = classifyIcon(spec, rawBase);
+  if (k.kind === 'svg') throw new Error(`Icon "${String(spec).slice(0, 60)}": SVG muss im Vordergrund (Mini-App-WebView) gesetzt werden – dort wird es automatisch in PNG umgewandelt. Im Hintergrund PNG oder Icon-Namen nutzen`);
+  return k.value;
+}
+export async function setTileFor(appId: string, slot: number, patch: any) {
+  const ui = await readUi();
+  checkTileOwner(slot, ui.tiles[slot], appId);
+  const p = normalizeTilePatch(patch);
+  if (p.icon) p.icon = iconForNative(p.icon, await appRawBase(appId));
+  if (p.popup !== undefined) {
+    const perms = ((await StorageService.getAppPermissions(appId).catch(() => [])) as string[]);
+    if (!perms.includes('popup')) throw new Error('tile.set popup: Permission "popup" fehlt im Manifest');
+    p.popup = p.popup ? normalizePopupSpec(p.popup, appId) : undefined;
+  }
+  const cur = ui.tiles[slot] || { slot, menu: [], state: 'off' };
+  ui.tiles[slot] = { ...cur, ...p, slot, appId, name: cur.name || p.label || cur.label };
+  await AsyncStorage.setItem(UI_KEY, JSON.stringify(ui));
+  await pushTile(slot, ui.tiles[slot]);
+  return ui.tiles[slot];
+}
+export async function releaseTileFor(appId: string, slot: number) {
+  const ui = await readUi();
+  checkTileOwner(slot, ui.tiles[slot], appId);
+  delete ui.tiles[slot];
+  await AsyncStorage.setItem(UI_KEY, JSON.stringify(ui));
+  await pushTile(slot, null);
+}
+export function tileHandle(appId: string, n: number) {
+  return {
+    set: (patch: any) => setTileFor(appId, Number(n), patch),
+    get: async () => { const t = (await readUi()).tiles[Number(n)]; return t ? { ...t } : null; },
+    release: () => releaseTileFor(appId, Number(n)),
+  };
+}
+
+// ---- Generic popup host (permission "popup"; native: next build) ----
+const POPUP_NEXT = 'Popup braucht nächsten Build';
+const popupNative = () => {
+  const n: any = requireOptionalNativeModule('ExpoBackgroundService');
+  if (!n || typeof n.popupOpen !== 'function') throw new Error(POPUP_NEXT);
+  return n;
+};
+export function popupApi(appId: string) {
+  return {
+    /** Opens a popup now (only works while EveryApp is in the foreground – Android blocks background activity starts). */
+    open: async (spec: any) => { const s = normalizePopupSpec(spec, appId); return popupNative().popupOpen(JSON.stringify(s)); },
+    /** Merges data into the popup state (persisted) and delivers it live via EveryAppPopup.onMessage. */
+    send: async (id: string, data: any) => {
+      if (!data || typeof data !== 'object' || Array.isArray(data)) throw new Error('popup.send: Daten müssen ein Objekt sein, z.B. {h:120}');
+      return popupNative().popupSend(appId, String(id), JSON.stringify(data));
+    },
+    close: async (id?: string) => popupNative().popupClose(appId, id == null ? null : String(id)),
+    state: async (id: string) => JSON.parse(popupNative().popupState(appId, String(id)) || '{}'),
+  };
 }

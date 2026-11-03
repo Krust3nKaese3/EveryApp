@@ -14,6 +14,7 @@ export function matches(t: Trigger, ev: TriggerEvent) {
     return deviceMatches(t.nameOrAddress, ev.device);
   }
   if (t.type === 'tileMenu' || t.type === 'widgetAction') return !t.id || t.id === ev.id;
+  if (t.type === 'popup') return (!t.popupId || t.popupId === ev.popupId) && (!t.event || t.event === ev.event);
   if (t.type === 'bleNotify') {
     const n = (v: any) => String(v ?? '').trim().toLowerCase();
     if (t.address && n(t.address) !== n(ev.ble?.address)) return false;

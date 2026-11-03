@@ -50,3 +50,15 @@ test('net permission + crypto free', () => {
   assert.doesNotThrow(() => checkBridgePermission('net', ['net']));
   assert.doesNotThrow(() => checkBridgePermission('crypto', []));
 });
+test('popup/tiles permissions', () => {
+  assert.throws(() => checkBridgePermission('popup', []), /"popup"/);
+  assert.throws(() => checkBridgePermission('tiles', []), /"tiles"/);
+  assert.doesNotThrow(() => checkBridgePermission('popup', ['popup']));
+});
+test('popup trigger matching', () => {
+  const ev = { type: 'popup', popupId: 'a', event: 'h', time: 0 };
+  assert.ok(matches({ type: 'popup' }, ev));
+  assert.ok(matches({ type: 'popup', popupId: 'a', event: 'h' }, ev));
+  assert.ok(!matches({ type: 'popup', popupId: 'b' }, ev));
+  assert.ok(!matches({ type: 'popup', event: 'x' }, ev));
+});
