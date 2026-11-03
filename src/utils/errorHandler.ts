@@ -1,4 +1,4 @@
-import { ErrorUtils } from 'react-native';
+const ErrorUtils: any = (globalThis as any).ErrorUtils;
 
 type ErrorCallback = (error: Error, isFatal: boolean) => void;
 
@@ -7,9 +7,10 @@ let errorCallback: ErrorCallback | null = null;
 export const setupGlobalErrorHandler = (callback: ErrorCallback) => {
   errorCallback = callback;
 
+  if (!ErrorUtils?.getGlobalHandler) return;
   const defaultHandler = ErrorUtils.getGlobalHandler();
 
-  ErrorUtils.setGlobalHandler((error, isFatal) => {
+  ErrorUtils.setGlobalHandler((error: any, isFatal?: boolean) => {
     console.error('Global error handler:', error, 'isFatal:', isFatal);
     
     if (errorCallback) {

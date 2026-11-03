@@ -1,7 +1,7 @@
-import { NativeModulesProxy } from 'expo-modules-core';
-import { NativeEventEmitter, NativeModules, EmitterSubscription } from 'react-native';
+import { requireOptionalNativeModule } from 'expo-modules-core';
 
-const ExpoClassicBluetooth = NativeModulesProxy.ExpoClassicBluetooth || NativeModules.ExpoClassicBluetooth;
+type EmitterSubscription = { remove: () => void };
+const ExpoClassicBluetooth: any = requireOptionalNativeModule('ExpoClassicBluetooth');
 
 export interface BluetoothDevice {
   name: string;
@@ -13,16 +13,13 @@ export interface BluetoothEventPayload {
   address: string;
 }
 
-let eventEmitter: NativeEventEmitter | null = null;
-
-function getEventEmitter(): NativeEventEmitter {
-  if (!eventEmitter && ExpoClassicBluetooth) {
-    eventEmitter = new NativeEventEmitter(ExpoClassicBluetooth as any);
+const noopEmitter = { addListener: () => ({ remove: () => {} }) };
+function getEventEmitter(): any {
+  if (!ExpoClassicBluetooth) {
+    console.warn('ExpoClassicBluetooth module not available - bluetooth events disabled');
+    return noopEmitter;
   }
-  if (!eventEmitter) {
-    throw new Error('ExpoClassicBluetooth module not available');
-  }
-  return eventEmitter;
+  return ExpoClassicBluetooth;
 }
 
 export async function getConnectedDevicesAsync(): Promise<BluetoothDevice[]> {

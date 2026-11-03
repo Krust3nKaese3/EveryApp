@@ -1,4 +1,5 @@
 import { NativeModules, Platform } from 'react-native';
+import { requireOptionalNativeModule } from 'expo-modules-core';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const BACKGROUND_APPS_KEY = '@everyapp_background_apps';
@@ -9,7 +10,7 @@ export class BackgroundService {
       throw new Error('Background service is only supported on Android');
     }
 
-    const { ExpoBackgroundService } = NativeModules;
+    const ExpoBackgroundService: any = requireOptionalNativeModule('ExpoBackgroundService');
     if (!ExpoBackgroundService) {
       throw new Error('Background service module not available');
     }
@@ -33,7 +34,7 @@ export class BackgroundService {
     await AsyncStorage.setItem(BACKGROUND_APPS_KEY, JSON.stringify(filtered));
 
     if (filtered.length === 0) {
-      const { ExpoBackgroundService } = NativeModules;
+      const ExpoBackgroundService: any = requireOptionalNativeModule('ExpoBackgroundService');
       if (ExpoBackgroundService) {
         await ExpoBackgroundService.stopService();
       }

@@ -1,6 +1,6 @@
-import { NativeModulesProxy } from 'expo-modules-core';
+import { requireOptionalNativeModule } from 'expo-modules-core';
 
-const ExpoBackgroundService = NativeModulesProxy.ExpoBackgroundService;
+const ExpoBackgroundService: any = requireOptionalNativeModule('ExpoBackgroundService');
 
 export async function startServiceAsync(): Promise<void> {
   await ExpoBackgroundService.startService();
