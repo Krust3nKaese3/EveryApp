@@ -25,7 +25,9 @@
         "ACCESS_FINE_LOCATION",
         "INTERNET",
         "VIBRATE",
-        "POST_NOTIFICATIONS"
+        "POST_NOTIFICATIONS",
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO"
       ],
       "package": "com.everyapp.container",
       "predictiveBackGestureEnabled": false
@@ -47,6 +49,12 @@
         }
       ],
       "./plugins/withBleManager.js"
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "5c71baaf-8aca-4641-8ba7-c7d02f238288"
+      }
+    },
+    "owner": "krust3nkaese"
   }
 }

@@ -1,4 +1,4 @@
-import * as FileSystem from 'expo-file-system';
+import * as FileSystem from 'expo-file-system/legacy';
 import { MiniAppManifest, MiniApp } from '../types';
 
 const APPS_DIR = `${FileSystem.documentDirectory}miniapps/`;

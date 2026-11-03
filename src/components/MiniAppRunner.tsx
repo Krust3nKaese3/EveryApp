@@ -1,8 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { View, StyleSheet, StatusBar, ActivityIndicator } from 'react-native';
-import { WebView } from 'react-native-webview';
+import WebView, { WebViewMessageEvent } from 'react-native-webview';
 import * as ScreenOrientation from 'expo-screen-orientation';
-import * as FileSystem from 'expo-file-system';
+import * as FileSystem from 'expo-file-system/legacy';
 import { MiniApp, Permission } from '../types';
 import { StorageService } from '../services/StorageService';
 import { PermissionRequestModal } from './PermissionRequestModal';
@@ -15,7 +15,7 @@ interface MiniAppRunnerProps {
 }
 
 export const MiniAppRunner: React.FC<MiniAppRunnerProps> = ({ app, onClose }) => {
-  const webViewRef = useRef<WebView>(null);
+  const webViewRef = useRef<WebView<any>>(null);
   const [loading, setLoading] = useState(true);
   const [html, setHtml] = useState<string>('');
   const [showPermissionModal, setShowPermissionModal] = useState(false);
@@ -87,7 +87,7 @@ export const MiniAppRunner: React.FC<MiniAppRunnerProps> = ({ app, onClose }) =>
     }
   };
 
-  const handleMessage = async (event: any) => {
+  const handleMessage = async (event: WebViewMessageEvent) => {
     try {
       const message = JSON.parse(event.nativeEvent.data);
       const capabilities = new NativeCapabilities(app.id);
