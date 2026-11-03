@@ -26,6 +26,9 @@
         "INTERNET",
         "VIBRATE",
         "POST_NOTIFICATIONS",
+        "FOREGROUND_SERVICE",
+        "FOREGROUND_SERVICE_DATA_SYNC",
+        "REQUEST_IGNORE_BATTERY_OPTIMIZATIONS",
         "android.permission.CAMERA",
         "android.permission.RECORD_AUDIO"
       ],
@@ -48,7 +51,8 @@
           "icon": "./assets/icon.png"
         }
       ],
-      "./plugins/withBleManager.js"
+      "./plugins/withBleManager.js",
+      "./plugins/withEveryAppConfig.js"
     ],
     "extra": {
       "eas": {

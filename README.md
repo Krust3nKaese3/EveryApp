@@ -59,13 +59,14 @@ your-miniapp-repo/
 - `permissions` (array, required): List of requested permissions
 
 **Available Permissions:**
-- `storage` - Local key-value storage
-- `http` - Network requests
-- `bluetooth` - Bluetooth access
-- `notifications` - Push notifications
+- `storage` - Local key-value storage (scoped per app)
+- `http` - Network requests (including cleartext HTTP to LAN devices)
+- `bluetooth` - Bluetooth access (BLE scan/connect + classic Bluetooth events)
+- `notifications` - Local push notifications
 - `camera` - Camera access
-- `sensors` - Accelerometer/gyroscope
+- `sensors` - Accelerometer and gyroscope readings
 - `vibration` - Haptic feedback
+- `background` - Background execution with foreground service
 
 ## Bridge API Reference
 
@@ -88,6 +89,7 @@ await window.EveryAppBridge.storage.remove('key');
 
 ### HTTP API
 
+**Standard Fetch (compatible with existing code):**
 ```javascript
 const response = await window.EveryAppBridge.http.fetch('https://api.example.com/data', {
   method: 'GET',
@@ -101,18 +103,60 @@ const data = await response.json();
 const text = await response.text();
 ```
 
+**Advanced Request (for LAN devices, with full response details):**
+```javascript
+const response = await window.EveryAppBridge.http.request({
+  url: 'http://192.168.178.20:8080/api/data',
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'X-Custom-Header': 'value'
+  },
+  body: JSON.stringify({ key: 'value' }),
+  timeoutMs: 5000  // Optional timeout in milliseconds
+});
+
+// Response contains: { status, headers, body }
+console.log(response.status);  // HTTP status code
+console.log(response.headers); // Object with response headers
+console.log(response.body);    // Response body as text
+```
+
+**Note:** The container supports cleartext HTTP (e.g., `http://` to LAN devices). This is enabled via `usesCleartextTraffic` in the Android manifest.
+
 ### Bluetooth API
 
+**BLE Operations (Low Energy):**
 ```javascript
-// Scan for devices (returns array of peripherals)
+// Scan for BLE devices (returns array of peripherals)
 const devices = await window.EveryAppBridge.bluetooth.scan();
 
-// Connect to a device
+// Connect to a BLE device
 await window.EveryAppBridge.bluetooth.connect(deviceId);
 
-// Disconnect from a device
+// Disconnect from a BLE device
 await window.EveryAppBridge.bluetooth.disconnect(deviceId);
 ```
+
+**Classic Bluetooth:**
+```javascript
+// Get currently connected classic Bluetooth devices
+const connectedDevices = await window.EveryAppBridge.bluetooth.getConnectedDevices();
+// Returns: [{ name: string, address: string }, ...]
+
+// Listen for Bluetooth connection events
+window.EveryAppBridge.events.on('bluetooth.connected', (device) => {
+  console.log(`Device connected: ${device.name} (${device.address})`);
+});
+
+window.EveryAppBridge.events.on('bluetooth.disconnected', (device) => {
+  console.log(`Device disconnected: ${device.name} (${device.address})`);
+});
+```
+
+**Requirements:**
+- Android API 31+ requires `BLUETOOTH_CONNECT` runtime permission
+- Classic Bluetooth events are triggered by the system when devices connect/disconnect
 
 ### Notifications API
 
@@ -155,6 +199,114 @@ window.EveryAppBridge.vibration.vibrate();
 // Pattern vibration (array of durations in ms)
 window.EveryAppBridge.vibration.vibrate([100, 50, 100, 50, 200]);
 ```
+
+### Background Execution API
+
+```javascript
+// Enable background execution for this mini-app
+await window.EveryAppBridge.background.enable();
+// Starts a foreground service that keeps the mini-app's runtime alive
+// Also prompts user to disable battery optimization
+
+// Disable background execution
+await window.EveryAppBridge.background.disable();
+
+// Check if background execution is enabled
+const isEnabled = await window.EveryAppBridge.background.isEnabled();
+```
+
+**Background Behavior:**
+- Mini-apps with the `background` permission can keep running when EveryApp is in the background or the screen is off
+- A persistent notification indicates that background apps are active
+- The mini-app can continue to:
+  - Receive Bluetooth connection events
+  - Make HTTP requests
+  - Execute scheduled logic
+- Background execution stops when:
+  - `background.disable()` is called
+  - The user stops the service from the notification
+  - EveryApp is force-stopped
+
+**Requirements:**
+- Mini-app must declare `"background"` permission in manifest
+- Android displays a persistent foreground service notification
+- Battery optimization prompt will appear on first enable
+
+### Events API
+
+```javascript
+// Listen for app lifecycle events
+window.EveryAppBridge.events.on('app.start', (data) => {
+  console.log('Mini-app runtime started at:', data.timestamp);
+  // This event fires when the mini-app is loaded (foreground or background)
+});
+
+// Listen for Bluetooth events (requires 'bluetooth' permission)
+window.EveryAppBridge.events.on('bluetooth.connected', (device) => {
+  console.log('Bluetooth device connected:', device.name, device.address);
+});
+
+window.EveryAppBridge.events.on('bluetooth.disconnected', (device) => {
+  console.log('Bluetooth device disconnected:', device.name, device.address);
+});
+
+// Remove event listeners
+window.EveryAppBridge.events.off('app.start', callback);
+```
+
+**Available Events:**
+- `app.start` - Fired when the mini-app runtime starts (no permission required)
+- `bluetooth.connected` - Classic Bluetooth device connected (requires `bluetooth` permission)
+- `bluetooth.disconnected` - Classic Bluetooth device disconnected (requires `bluetooth` permission)
+
+## EveryMacro Use Case
+
+The **EveryMacro** mini-app is a prime example of the new capabilities:
+
+**Scenario:** A macro automation app that monitors classic Bluetooth device connections (e.g., car, headphones, smart home devices) and triggers HTTP requests to control LAN devices.
+
+**Required Permissions:**
+```json
+{
+  "permissions": ["bluetooth", "http", "storage", "background", "notifications"]
+}
+```
+
+**Implementation Example:**
+```javascript
+// Enable background execution to monitor devices 24/7
+await window.EveryAppBridge.background.enable();
+
+// Listen for device connections
+window.EveryAppBridge.events.on('bluetooth.connected', async (device) => {
+  // When car Bluetooth connects, turn on home lights
+  if (device.name === 'MY-CAR') {
+    await window.EveryAppBridge.http.request({
+      url: 'http://192.168.1.100/api/lights/on',
+      method: 'POST',
+      timeoutMs: 3000
+    });
+    
+    await window.EveryAppBridge.notifications.schedule(
+      'Macro Triggered',
+      'Home lights turned on',
+      1
+    );
+  }
+});
+
+// On app start, check currently connected devices
+window.EveryAppBridge.events.on('app.start', async () => {
+  const devices = await window.EveryAppBridge.bluetooth.getConnectedDevices();
+  console.log('Currently connected devices:', devices);
+});
+```
+
+**Key Features Utilized:**
+1. **Classic Bluetooth Events** - Real-time connection/disconnection monitoring
+2. **Background Execution** - Keeps running even when screen is off
+3. **LAN HTTP Requests** - Cleartext HTTP to local smart home devices
+4. **Event System** - `app.start` ensures initialization on background wake
 
 ## Example Mini-Apps
 
