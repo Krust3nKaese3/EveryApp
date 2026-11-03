@@ -99,7 +99,8 @@ export const MiniAppRunner: React.FC<MiniAppRunnerProps> = ({ app, onClose }) =>
         <head>
           <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
           <style>
-            html, body { margin: 0; padding: 0; overflow-x: hidden; overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior-y: contain; }
+            html, body { margin: 0; padding: 0; }
+            html { overflow-x: hidden; }
             * { -webkit-tap-highlight-color: transparent; }
           </style>
         </head>
