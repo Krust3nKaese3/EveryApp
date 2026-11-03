@@ -191,7 +191,7 @@ export class BridgeMessageHandler {
           tile: (n) => ({
             set: async (patch) => {
               patch = Object.assign({}, patch || {});
-              if (typeof patch.icon === 'string' && /^<svg|^data:image\/svg|\.svg(\?|#|$)/i.test(patch.icon.trim())) patch.icon = await window.__eaSvgToPng(patch.icon.trim());
+              if (typeof patch.icon === 'string' && /^<svg|^data:image[/]svg|[.]svg([?]|#|$)/i.test(patch.icon.trim())) patch.icon = await window.__eaSvgToPng(patch.icon.trim());
               return sendMessage('tiles.set', [n, patch]);
             },
             get: () => sendMessage('tiles.get', [n]),
