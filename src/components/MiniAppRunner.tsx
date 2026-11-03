@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { View, StyleSheet, StatusBar, ActivityIndicator, Text, ScrollView, TouchableOpacity } from 'react-native';
+import { View, StyleSheet, StatusBar, BackHandler, ActivityIndicator, Text, ScrollView, TouchableOpacity } from 'react-native';
 import WebView, { WebViewMessageEvent } from 'react-native-webview';
 import * as ScreenOrientation from 'expo-screen-orientation';
 import * as FileSystem from 'expo-file-system/legacy';
@@ -42,8 +42,14 @@ export const MiniAppRunner: React.FC<MiniAppRunnerProps> = ({ app, onClose }) =>
     });
 
     ScreenOrientation.unlockAsync();
+
+    const backSub = BackHandler.addEventListener('hardwareBackPress', () => {
+      onClose();
+      return true;
+    });
     
     return () => {
+      backSub.remove();
       removeGlobalErrorHandler();
       ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP);
       if (capabilitiesRef.current) {
@@ -224,6 +230,14 @@ export const MiniAppRunner: React.FC<MiniAppRunnerProps> = ({ app, onClose }) =>
           onLoad={() => setLoading(false)}
         />
       )}
+
+      <TouchableOpacity
+        onPress={onClose}
+        style={{ position: 'absolute', top: 8, right: 8, width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(0,0,0,0.45)', alignItems: 'center', justifyContent: 'center', zIndex: 10 }}
+        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+      >
+        <Text style={{ color: 'white', fontSize: 18, fontWeight: '700' }}>✕</Text>
+      </TouchableOpacity>
 
       <PermissionRequestModal
         visible={showPermissionModal}
