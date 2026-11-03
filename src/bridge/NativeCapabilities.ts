@@ -8,7 +8,7 @@ import * as ClassicBluetooth from '../../modules/expo-classic-bluetooth';
 import { BluetoothDevice, HttpRequest, HttpResponse } from '../types';
 import { EventEmitter } from './EventEmitter';
 import { BackgroundService } from '../services/BackgroundService';
-import { BackgroundTasks, restartTimers, getTileSlots } from '../services/BackgroundTasks';
+import { BackgroundTasks, restartTimers, getTileSlots, setUi, updateTile, updateWidget, getUi, wifiInfo } from '../services/BackgroundTasks';
 import { PermissionsAndroid, Platform } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import * as NetworkInfo from '../../modules/expo-network-info';
@@ -247,6 +247,10 @@ export class NativeCapabilities {
     handlesTriggers: async (): Promise<boolean> => true,
     // slot -> name of Quick Settings tiles ("EveryApp 1..5"); tiles need the next native build
     getTileSlots: async (): Promise<Record<string, string>> => getTileSlots(),
+    setUi: async (conf: any) => setUi(this.appId, conf || {}),
+    getUi: async () => getUi(),
+    tileUpdate: async (slotOrName: any, patch: any) => updateTile(slotOrName, patch || {}),
+    widgetUpdate: async (id: string, patch: any) => updateWidget(id, patch || {}),
     registerTask: async (task: any): Promise<void> => { await BackgroundTasks.register(this.appId, task); },
     unregisterTask: async (taskId: string): Promise<void> => { await BackgroundTasks.unregister(this.appId, taskId); },
     unregisterAll: async (): Promise<void> => { await BackgroundTasks.unregisterAll(this.appId); },
@@ -264,6 +268,21 @@ export class NativeCapabilities {
         try { await PermissionsAndroid.request(PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION); } catch {}
       }
       return await NetworkInfo.getInfoAsync();
+    },
+    getWifi: async (): Promise<any> => wifiInfo(),
+    // Two-step location prompt: fine first; background ('Immer erlauben') only via settings on Android 11+.
+    requestLocation: async (background?: boolean): Promise<any> => {
+      if (Platform.OS !== 'android') return { fine: true, background: true };
+      const P = PermissionsAndroid.PERMISSIONS as any;
+      const fine = (await PermissionsAndroid.request(P.ACCESS_FINE_LOCATION, {
+        title: 'Standort für WLAN', message: 'Android gibt WLAN-Name und Access-Point (BSSID) nur mit genauer Standort-Berechtigung heraus. EveryApp nutzt den Standort nicht.', buttonPositive: 'Weiter' })) === 'granted';
+      let bg = P.ACCESS_BACKGROUND_LOCATION ? await PermissionsAndroid.check(P.ACCESS_BACKGROUND_LOCATION) : true;
+      if (fine && background && !bg && P.ACCESS_BACKGROUND_LOCATION) {
+        const r = await PermissionsAndroid.request(P.ACCESS_BACKGROUND_LOCATION, {
+          title: 'Standort im Hintergrund', message: 'Für den Trigger wifiChanged bei geschlossener App: in den Einstellungen „Immer zulassen“ wählen.', buttonPositive: 'Zu den Einstellungen' });
+        bg = r === 'granted';
+      }
+      return { fine, background: bg };
     },
   };
 

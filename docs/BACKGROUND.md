@@ -90,3 +90,19 @@ Every `quickTile` name from the active tasks (of all apps) is assigned a free sl
 The tile shows that name. Unassigned tiles are greyed out. Tapping a tile fires `{type:'quickTile', tile:{index,name}}` (headless, also when the app is closed).
 The user has to add the tile once in the quick settings ("Bearbeiten" → drag "EveryApp N" in). `background.getTileSlots()` → `{ "1": "Denon an", ... }`.
 More than 5 names: the extra ones are ignored and an error is logged. Name matching is case-insensitive.
+
+## Tiles / tile menu / widgets / Wi-Fi AP (native: next build)
+Host API (bridge `background.*`; guarded, saved but not shown on the current APK):
+- `setUi({tiles:[{slot?,icon,label,state,subtitle?,menu?}], widgets:[{id,size,title?,columns?,items}]})` replaces everything this app declared. Explicit tile slots win over quickTile auto-slots (max 5).
+- `tileUpdate(slot|label, patch)` and `widgetUpdate(id, patch)`: `patch.items` can be an array or `{itemId: patch}`. `getUi()` returns the current config.
+- Native side: `UiStore.kt` (prefs `everyapp_ui`, JSON per tile/widget; remote icons are inlined as base64), `MenuActivity.kt` (translucent dialog; also a no-UI "fire" trampoline for widget buttons), `EveryAppWidget.kt` (Small/Large providers + `WidgetConfigActivity`), `EveryAppTiles.kt`.
+- Triggers:
+  - `tileMenu {id?}` → event `{id, value, slot, tileName}`
+  - `widgetAction {id?}` → `{widgetId, id, value}`
+  - `wifiChanged {bssid?}` (matches BSSID or SSID) → `{bssid, ssid, rssi, frequency, prevBssid, prevSsid}`, all flattened into `ctx.trigger`
+- Background ctx has `ctx.tile.*`, `ctx.widget.update`, and `ctx.wifi.info()`.
+- Wi-Fi details:
+  - `WifiWatcher.kt` (NetworkCallback with FLAG_INCLUDE_LOCATION_INFO, API 31+) runs while the foreground service runs.
+  - It needs ACCESS_FINE_LOCATION plus ACCESS_BACKGROUND_LOCATION. Without them, Android redacts the BSSID and nothing fires; this is logged once as `FEHLER wifiChanged: BSSID verborgen`.
+  - Bridge `network.getWifi()` and `network.requestLocation(background)` handle the two-step prompt.
+- Full Denon and Fritzbox/Repeater examples: EveryMacro MACROS.md.

@@ -1,0 +1,7 @@
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+  android:id="@+id/ea_item" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1"
+  android:layout_margin="3dp" android:orientation="vertical" android:gravity="center" android:background="@drawable/ea_item_bg">
+  <ImageView android:id="@+id/ea_item_icon" android:layout_width="28dp" android:layout_height="28dp"/>
+  <TextView android:id="@+id/ea_item_label" android:layout_width="wrap_content" android:layout_height="wrap_content"
+    android:textColor="#FFFFFFFF" android:textSize="11sp" android:maxLines="1" android:ellipsize="end"/>
+</LinearLayout>

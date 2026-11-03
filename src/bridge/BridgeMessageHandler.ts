@@ -149,6 +149,10 @@ export class BridgeMessageHandler {
             unregisterAll: () => sendMessage('background.unregisterAll', []),
             listTasks: () => sendMessage('background.listTasks', []),
             getTileSlots: () => sendMessage('background.getTileSlots', []),
+            setUi: (conf) => sendMessage('background.setUi', [conf]),
+            getUi: () => sendMessage('background.getUi', []),
+            tileUpdate: (s, patch) => sendMessage('background.tileUpdate', [s, patch]),
+            widgetUpdate: (id, patch) => sendMessage('background.widgetUpdate', [id, patch]),
           },
           media: {
             play: () => sendMessage('media.play', []),
@@ -161,6 +165,8 @@ export class BridgeMessageHandler {
           network: {
             isAvailable: () => sendMessage('network.isAvailable', []),
             getInfo: () => sendMessage('network.getInfo', []),
+            getWifi: () => sendMessage('network.getWifi', []),
+            requestLocation: (bg) => sendMessage('network.requestLocation', [!!bg]),
           },
           clipboard: {
             setString: (text) => sendMessage('clipboard.setString', [text]),

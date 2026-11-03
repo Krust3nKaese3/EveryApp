@@ -41,6 +41,25 @@ class ExpoBackgroundServiceModule : Module() {
       true
     }
 
+    AsyncFunction("setTileConfig") { slot: Int, json: String? ->
+      val context = appContext.reactContext ?: throw IllegalStateException("React context not available")
+      UiStore.setTile(context, slot, json?.let { UiStore.inlineRemoteIcons(it) })
+      EveryAppTileBase.refresh(context, slot)
+      true
+    }
+
+    AsyncFunction("setWidgetConfig") { id: String, json: String? ->
+      val context = appContext.reactContext ?: throw IllegalStateException("React context not available")
+      UiStore.setWidget(context, id, json?.let { UiStore.inlineRemoteIcons(it) })
+      EveryAppWidgetBase.updateAll(context)
+      true
+    }
+
+    Function("getWidgetIds") {
+      val context = appContext.reactContext ?: return@Function emptyList<String>()
+      UiStore.widgetIds(context)
+    }
+
     Function("isServiceEnabled") {
       val context = appContext.reactContext ?: return@Function false
       EveryAppBackgroundService.isEnabled(context)

@@ -12,6 +12,25 @@ class ExpoNetworkInfoModule : Module() {
   override fun definition() = ModuleDefinition {
     Name("ExpoNetworkInfo")
 
+    // {ssid,bssid,rssi,frequency,linkSpeed,ip,error?}. BSSID/SSID need ACCESS_FINE_LOCATION + location on.
+    AsyncFunction("getWifi") {
+      val ctx = appContext.reactContext ?: throw IllegalStateException("React context not available")
+      val out = mutableMapOf<String, Any?>()
+      try {
+        val cm = ctx.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+        val lp = cm.activeNetwork?.let { cm.getLinkProperties(it) }
+        out["ip"] = lp?.linkAddresses?.map { it.address }?.firstOrNull { it is Inet4Address }?.hostAddress
+        @Suppress("DEPRECATION")
+        val wi = (ctx.applicationContext.getSystemService(Context.WIFI_SERVICE) as WifiManager).connectionInfo
+        val ssid = wi?.ssid?.trim('"')?.takeIf { it != "<unknown ssid>" }
+        val bssid = wi?.bssid?.takeIf { it != "02:00:00:00:00:00" }
+        out["ssid"] = ssid; out["bssid"] = bssid
+        out["rssi"] = wi?.rssi; out["frequency"] = wi?.frequency; out["linkSpeed"] = wi?.linkSpeed
+        if (ssid == null || bssid == null) out["error"] = "SSID/BSSID unbekannt: Standort-Berechtigung (genau) + Standort an nötig"
+      } catch (e: Exception) { out["error"] = "FEHLER WLAN-Info: ${e.message}" }
+      out
+    }
+
     AsyncFunction("getInfo") {
       val ctx = appContext.reactContext ?: throw IllegalStateException("React context not available")
       val cm = ctx.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
@@ -39,6 +58,7 @@ class ExpoNetworkInfoModule : Module() {
         },
         "ssid" to ssid,
         "ssidError" to ssidError,
+        "bssid" to try { @Suppress("DEPRECATION") (ctx.applicationContext.getSystemService(Context.WIFI_SERVICE) as WifiManager).connectionInfo?.bssid?.takeIf { it != "02:00:00:00:00:00" } } catch (e: Exception) { null },
         "ip" to ip,
         "prefixLength" to prefix,
         "gateway" to gateway,

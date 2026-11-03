@@ -28,6 +28,7 @@ class EveryAppBackgroundService : Service() {
       stopSelf()
       return START_NOT_STICKY
     }
+    try { WifiWatcher.start(this) } catch (e: Exception) { Log.e(TAG, "[EveryApp] FEHLER WifiWatcher: ${e.message}") }
     return START_STICKY
   }
 
@@ -48,6 +49,7 @@ class EveryAppBackgroundService : Service() {
 
   override fun onDestroy() {
     super.onDestroy()
+    WifiWatcher.stop(this)
     Log.i(TAG, "[EveryApp] background service destroyed")
     stopForeground(STOP_FOREGROUND_REMOVE)
   }

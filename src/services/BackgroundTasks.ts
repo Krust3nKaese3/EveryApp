@@ -11,6 +11,7 @@ import { sendMediaKey } from '../../modules/expo-media-control';
 import { BackgroundService } from './BackgroundService';
 import { requireOptionalNativeModule } from 'expo-modules-core';
 import * as ClassicBluetooth from '../../modules/expo-classic-bluetooth';
+import * as NetworkInfo from '../../modules/expo-network-info';
 
 export type Trigger =
   | { type: 'bluetoothConnected'; nameOrAddress?: string | null }
@@ -18,7 +19,10 @@ export type Trigger =
   | { type: 'interval'; ms: number }
   | { type: 'boot' }
   | { type: 'appStart' }
-  | { type: 'quickTile'; name: string };
+  | { type: 'quickTile'; name: string }
+  | { type: 'tileMenu'; id?: string | null }
+  | { type: 'widgetAction'; id?: string | null }
+  | { type: 'wifiChanged'; bssid?: string | null };
 
 export interface BackgroundTask {
   id: string;
@@ -29,7 +33,7 @@ export interface BackgroundTask {
   registeredAt?: number;
 }
 
-export interface TriggerEvent { type: string; tile?: { index: number; name: string }; device?: { name?: string; alias?: string; address?: string; [k: string]: any }; time: number }
+export interface TriggerEvent { type: string; id?: string; value?: number; widgetId?: string; wifi?: any; tile?: { index: number; name: string }; device?: { name?: string; alias?: string; address?: string; [k: string]: any }; time: number }
 
 const TASKS_KEY = '@everyapp_bg_tasks';
 const MIN_INTERVAL = 10_000;
@@ -60,7 +64,7 @@ function validate(task: any): BackgroundTask {
   if (!Array.isArray(task.triggers) || task.triggers.length === 0) throw new Error('registerTask: "triggers" (Array) fehlt');
   if (typeof task.code !== 'string') throw new Error('registerTask: "code" (String mit Funktionskörper) fehlt');
   for (const t of task.triggers) {
-    if (!['bluetoothConnected', 'bluetoothDisconnected', 'interval', 'boot', 'appStart', 'quickTile'].includes(t?.type))
+    if (!['bluetoothConnected', 'bluetoothDisconnected', 'interval', 'boot', 'appStart', 'quickTile', 'tileMenu', 'widgetAction', 'wifiChanged'].includes(t?.type))
       throw new Error(`registerTask: unbekannter Trigger "${t?.type}"`);
     if (t.type === 'quickTile' && !(typeof t.name === 'string' && t.name.trim())) throw new Error('registerTask: quickTile braucht einen Namen');
     if (t.type === 'interval' && !(t.ms >= MIN_INTERVAL)) throw new Error(`registerTask: interval.ms muss >= ${MIN_INTERVAL} sein`);
@@ -140,6 +144,9 @@ function createCtx(appId: string, task: BackgroundTask) {
       play: () => sendMediaKey('play'), pause: () => sendMediaKey('pause'), toggle: () => sendMediaKey('toggle'),
       next: () => sendMediaKey('next'), previous: () => sendMediaKey('previous'), stop: () => sendMediaKey('stop'),
     },
+    wifi: { info: () => wifiInfo() },
+    tile: tileApi,
+    widget: widgetApi,
     bluetooth: {
       getConnectedDevices: async () => await ClassicBluetooth.getConnectedDevicesAsync(false),
       isConnected: async (x: string) => (await ClassicBluetooth.getConnectedDevicesAsync(false)).some((d: any) => deviceMatches(x, d)),
@@ -169,6 +176,9 @@ function matches(t: Trigger, ev: TriggerEvent) {
   if ((t.type === 'bluetoothConnected' || t.type === 'bluetoothDisconnected') && t.nameOrAddress) {
     return deviceMatches(t.nameOrAddress, ev.device);
   }
+  if (t.type === 'tileMenu' || t.type === 'widgetAction') return !t.id || t.id === ev.id;
+  if (t.type === 'wifiChanged') return !t.bssid || String(t.bssid).toLowerCase() === String(ev.wifi?.bssid ?? '').toLowerCase()
+    || String(t.bssid).toLowerCase() === String(ev.wifi?.ssid ?? '').toLowerCase();
   if (t.type === 'quickTile') return String(t.name).trim().toLowerCase() === String(ev.tile?.name ?? '').trim().toLowerCase();
   return true;
 }
@@ -177,7 +187,8 @@ async function runTask(appId: string, task: BackgroundTask, ev: TriggerEvent) {
   await bgLog(appId, `▶ Task "${task.id}" läuft (Trigger: ${ev.type}${ev.device ? ` ${ev.device.name} / ${ev.device.alias} ${ev.device.address}` : ''})`);
   try {
     const ctx: any = createCtx(appId, task);
-    ctx.trigger = { type: ev.type, device: ev.device, tile: ev.tile };
+    ctx.trigger = { type: ev.type, device: ev.device, tile: ev.tile, id: ev.id, value: ev.value, widgetId: ev.widgetId,
+      slot: ev.tile?.index, ...(ev.wifi || {}) };
     ctx.device = ev.device;
     await compile(task.code)(ctx, ev);
     await bgLog(appId, `✔ Task "${task.id}" fertig`);
@@ -218,7 +229,8 @@ async function syncTiles() {
   for (const [slot, name] of Object.entries(old)) if (names.some((n) => n.toLowerCase() === name.toLowerCase())) slots[slot] = name;
   for (const n of names) {
     if (Object.values(slots).some((v) => v.toLowerCase() === n.toLowerCase())) continue;
-    const free = [1, 2, 3, 4, 5].find((i) => !slots[i]);
+    const uiTaken = (await readUi()).tiles;
+    const free = [1, 2, 3, 4, 5].find((i) => !slots[i] && !uiTaken[i]);
     if (!free) { console.warn(`[EveryApp][BG] FEHLER: mehr als ${TILE_COUNT} Kacheln – "${n}" ignoriert`); continue; }
     slots[free] = n;
   }
@@ -228,7 +240,12 @@ async function syncTiles() {
     if (names.length) console.warn('[EveryApp][BG] Quick-Settings-Kacheln brauchen nächsten Build');
     return;
   }
-  for (let i = 1; i <= TILE_COUNT; i++) native.setTileLabel(i, slots[i] ?? null);
+  const ui = await readUi();
+  for (let i = 1; i <= TILE_COUNT; i++) {
+    if (ui.tiles[i]) { delete slots[i]; continue; }
+    native.setTileLabel(i, slots[i] ?? null);
+  }
+  await AsyncStorage.setItem(TILES_KEY, JSON.stringify(slots));
   console.log('[EveryApp][BG] tiles', JSON.stringify(slots));
 }
 
@@ -255,6 +272,20 @@ export function restartTimers() {
 /** Headless entry point (native extras: event, name, address, time). */
 export async function headlessEntry(data: any) {
   const map: Record<string, string> = { 'bluetooth.connected': 'bluetoothConnected', 'bluetooth.disconnected': 'bluetoothDisconnected', boot: 'boot', quickTile: 'quickTile' };
+  if (data?.event === 'tileMenu' || data?.event === 'widgetAction') {
+    const value = data.value === undefined || data.value === null ? undefined : Number(data.value);
+    await dispatchEvent({ type: data.event, id: data.id, value, widgetId: data.widgetId,
+      tile: data.slot ? { index: Number(data.slot), name: String(data.tileName || '') } : undefined, time: data.time || Date.now() });
+    if (data.event === 'tileMenu' && data.slot && value !== undefined) rememberSliderValue('tile', String(data.slot), data.id, value);
+    if (data.event === 'widgetAction' && data.widgetId && value !== undefined) rememberSliderValue('widget', data.widgetId, data.id, value);
+    return;
+  }
+  if (data?.event === 'wifiChanged') {
+    const n = (v: any) => (v === undefined || v === null ? undefined : Number(v));
+    await dispatchEvent({ type: 'wifiChanged', wifi: { bssid: data.bssid, ssid: data.ssid, rssi: n(data.rssi), frequency: n(data.frequency),
+      prevBssid: data.prevBssid, prevSsid: data.prevSsid }, time: data.time || Date.now() });
+    return;
+  }
   if (data?.event === 'quickTile') {
     await dispatchEvent({ type: 'quickTile', tile: { index: Number(data.tileIndex), name: String(data.tileName || '') }, time: data.time || Date.now() });
     return;
@@ -275,4 +306,110 @@ export function initBackgroundTasks(isAppStart: boolean) {
     appStarted = true;
     dispatchEvent({ type: 'appStart', time: Date.now() }).catch((e) => console.error('[EveryApp][BG] appStart failed', e));
   }
+}
+
+// ---- Tiles with icon/state/menu + home screen widgets (native: next build) ----
+const UI_KEY = '@everyapp_ui'; // { tiles: {slot: cfg & {appId}}, widgets: {id: cfg & {appId}} }
+type UiState = { tiles: Record<string, any>; widgets: Record<string, any> };
+async function readUi(): Promise<UiState> {
+  try { const u = JSON.parse((await AsyncStorage.getItem(UI_KEY)) || '{}'); return { tiles: u.tiles || {}, widgets: u.widgets || {} }; }
+  catch { return { tiles: {}, widgets: {} }; }
+}
+const uiNative = () => {
+  const n: any = requireOptionalNativeModule('ExpoBackgroundService');
+  return n && typeof n.setTileConfig === 'function' ? n : null;
+};
+const NEXT_BUILD = 'Kacheln/Widgets brauchen nächsten Build';
+async function pushTile(slot: number, cfg: any | null) {
+  const n = uiNative(); if (!n) { console.warn(`[EveryApp][BG] ${NEXT_BUILD}`); return; }
+  try { await n.setTileConfig(slot, cfg ? JSON.stringify(cfg) : null); } catch (e: any) { console.error(`[EveryApp][BG] FEHLER Kachel ${slot}: ${e?.message}`); }
+}
+async function pushWidget(id: string, cfg: any | null) {
+  const n = uiNative(); if (!n) { console.warn(`[EveryApp][BG] ${NEXT_BUILD}`); return; }
+  try { await n.setWidgetConfig(id, cfg ? JSON.stringify(cfg) : null); } catch (e: any) { console.error(`[EveryApp][BG] FEHLER Widget ${id}: ${e?.message}`); }
+}
+function findSlot(ui: UiState, x: number | string): number | null {
+  if (typeof x === 'number' || /^\d+$/.test(String(x))) return Number(x) >= 1 && Number(x) <= TILE_COUNT ? Number(x) : null;
+  const want = String(x).trim().toLowerCase();
+  for (const [s, c] of Object.entries(ui.tiles)) if (String(c.name ?? c.label ?? '').trim().toLowerCase() === want) return Number(s);
+  return null;
+}
+
+/** Replace all tiles/widgets declared by appId. tiles: [{slot?,name?,icon,label,state,menu}], widgets: [{id,size,title,items}] */
+export async function setUi(appId: string, conf: { tiles?: any[]; widgets?: any[] }) {
+  const ui = await readUi();
+  const oldTiles = Object.keys(ui.tiles).filter((s) => ui.tiles[s].appId === appId);
+  const oldWidgets = Object.keys(ui.widgets).filter((w) => ui.widgets[w].appId === appId);
+  for (const s of oldTiles) delete ui.tiles[s];
+  for (const w of oldWidgets) delete ui.widgets[w];
+  const errors: string[] = [];
+  for (const t of conf.tiles || []) {
+    let slot = t.slot ? Number(t.slot) : [1, 2, 3, 4, 5].find((i) => !ui.tiles[i]);
+    if (!slot || slot < 1 || slot > TILE_COUNT) { errors.push(`Kachel "${t.label}": kein freier Slot (max ${TILE_COUNT})`); continue; }
+    if (ui.tiles[slot]) errors.push(`Kachel-Slot ${slot} doppelt belegt – "${t.label}" überschreibt`);
+    const prev = (await readUi()).tiles[slot];
+    ui.tiles[slot] = { ...t, slot, appId, name: t.name || t.label, state: t.state ?? prev?.state ?? 'off', menu: Array.isArray(t.menu) ? t.menu : [] };
+  }
+  for (const w of conf.widgets || []) {
+    if (!w.id) { errors.push('Widget ohne id'); continue; }
+    ui.widgets[w.id] = { ...w, appId, items: Array.isArray(w.items) ? w.items : [] };
+  }
+  await AsyncStorage.setItem(UI_KEY, JSON.stringify(ui));
+  for (const s of oldTiles) if (!ui.tiles[s]) await pushTile(Number(s), null);
+  for (const w of oldWidgets) if (!ui.widgets[w]) await pushWidget(w, null);
+  for (const [s, c] of Object.entries(ui.tiles)) if (c.appId === appId) await pushTile(Number(s), c);
+  for (const [w, c] of Object.entries(ui.widgets)) if (c.appId === appId) await pushWidget(w, c);
+  restartTimers();
+  for (const e of errors) await bgLog(appId, `FEHLER UI: ${e}`, 'error');
+  await bgLog(appId, `UI: ${(conf.tiles || []).length} Kachel(n), ${(conf.widgets || []).length} Widget(s)${uiNative() ? '' : ' – ' + NEXT_BUILD}`);
+  return { native: !!uiNative(), errors };
+}
+
+export async function updateTile(slotOrName: number | string, patch: any) {
+  const ui = await readUi();
+  const slot = findSlot(ui, slotOrName);
+  if (!slot) throw new Error(`Kachel "${slotOrName}" nicht gefunden (in ui:[tile(...)] deklariert?)`);
+  const cur = ui.tiles[slot] || { slot, menu: [] };
+  ui.tiles[slot] = { ...cur, ...patch };
+  await AsyncStorage.setItem(UI_KEY, JSON.stringify(ui));
+  await pushTile(slot, ui.tiles[slot]);
+  return ui.tiles[slot];
+}
+export async function updateWidget(id: string, patch: any) {
+  const ui = await readUi();
+  if (!ui.widgets[id]) throw new Error(`Widget "${id}" nicht gefunden`);
+  // patch.items: either a full array or {itemId: patch}
+  let items = ui.widgets[id].items;
+  if (patch.items && !Array.isArray(patch.items)) {
+    items = items.map((it: any) => (patch.items[it.id] ? { ...it, ...patch.items[it.id] } : it));
+    patch = { ...patch, items };
+  }
+  ui.widgets[id] = { ...ui.widgets[id], ...patch };
+  await AsyncStorage.setItem(UI_KEY, JSON.stringify(ui));
+  await pushWidget(id, ui.widgets[id]);
+  return ui.widgets[id];
+}
+async function rememberSliderValue(kind: 'tile' | 'widget', key: string, itemId: string, value: number) {
+  try {
+    const ui = await readUi();
+    const c = kind === 'tile' ? ui.tiles[key] : ui.widgets[key];
+    const list = c && (kind === 'tile' ? c.menu : c.items);
+    const it = list?.find((x: any) => x.id === itemId);
+    if (it) { it.value = value; await AsyncStorage.setItem(UI_KEY, JSON.stringify(ui)); }
+  } catch {}
+}
+export async function getUi() { return readUi(); }
+export const tileApi = {
+  setState: (s: number | string, state: 'on' | 'off' | boolean) => updateTile(s, { state: state === true || state === 'on' ? 'on' : 'off' }),
+  setLabel: (s: number | string, label: string) => updateTile(s, { label: String(label) }),
+  setIcon: (s: number | string, icon: string) => updateTile(s, { icon: String(icon) }),
+  setSubtitle: (s: number | string, subtitle: string) => updateTile(s, { subtitle: String(subtitle) }),
+  update: (s: number | string, patch: any) => updateTile(s, patch),
+};
+export const widgetApi = { update: (id: string, patch: any) => updateWidget(id, patch) };
+
+/** ctx.wifi.info(): native (next build) or lite fallback {ssid:null,bssid:null,error}. */
+export async function wifiInfo(): Promise<any> {
+  try { return await NetworkInfo.getWifiAsync(); }
+  catch (e: any) { return { ssid: null, bssid: null, rssi: null, frequency: null, ip: null, error: e?.message || String(e) }; }
 }
