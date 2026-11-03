@@ -30,7 +30,17 @@ export async function getConnectedDevicesAsync(includePaired = false): Promise<B
   if (!ExpoClassicBluetooth) {
     throw new Error('ExpoClassicBluetooth module not available');
   }
-  return await ExpoClassicBluetooth.getConnectedDevices(includePaired);
+  try {
+    return await ExpoClassicBluetooth.getConnectedDevices(includePaired);
+  } catch (e: any) {
+    // Installed APK may still have the old native signature getConnectedDevices() (no args, name+address only)
+    if (/argument/i.test(String(e?.message))) {
+      console.warn('[EveryApp] old native getConnectedDevices() - falling back (name+address only)');
+      const list = await ExpoClassicBluetooth.getConnectedDevices();
+      return (list || []).map((d: any) => ({ alias: d.name, connected: true, ...d }));
+    }
+    throw e;
+  }
 }
 
 export function addBluetoothConnectedListener(
