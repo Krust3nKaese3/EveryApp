@@ -106,3 +106,20 @@ Host API (bridge `background.*`; guarded, saved but not shown on the current APK
   - It needs ACCESS_FINE_LOCATION plus ACCESS_BACKGROUND_LOCATION. Without them, Android redacts the BSSID and nothing fires; this is logged once as `FEHLER wifiChanged: BSSID verborgen`.
   - Bridge `network.getWifi()` and `network.requestLocation(background)` handle the two-step prompt.
 - Full Denon and Fritzbox/Repeater examples: EveryMacro MACROS.md.
+
+## BLE GATT (native module `modules/expo-ble-gatt`, next build)
+- Implementation: Kotlin `BleManager` is a process-wide singleton, so it works the same from the UI and from headless tasks.
+  - It keeps one `BluetoothGatt` per address and reuses connections.
+  - GATT operations are serialized per connection (a lock plus a latch, with a timeout per op).
+  - Connect uses TRANSPORT_LE and autoConnect=false with a timeout (default 10 s); it requests MTU 185.
+- JS: `modules/expo-ble-gatt/index.ts`:
+  - `scan / connect / disconnect / write / read / notify`; data is passed as a hex string.
+  - Headless ctx: `ctx.ble = makeApi(false)`. It only checks permissions; it never prompts.
+  - Bridge category `ble.*` (no mini-app permission gate; Android's "Nearby devices" permission applies).
+- Trigger `bleNotify {address?, charUuid?}`:
+  - Native `onCharacteristicChanged` starts `MacroHeadlessTaskService` with event=bleNotify, address, serviceUuid, charUuid and hex.
+  - `ctx.trigger` gets `{address, serviceUuid, charUuid, hex, bytes, value}`.
+- Permissions: BLUETOOTH_SCAN (neverForLocation) and BLUETOOTH_CONNECT; BLUETOOTH/ADMIN up to API 30.
+- Limits:
+  - A notify subscription lives only as long as the process and connection. After a process kill or a disconnect, the macro has to call `notify` again, for example on `appStart` or an interval.
+  - `onCharacteristicChanged` can fire while the app is in the background. Starting the headless service from there may then be blocked by Android's background-start rules. The foreground service makes this unlikely.

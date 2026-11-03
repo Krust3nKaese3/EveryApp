@@ -12,6 +12,7 @@ import { BackgroundService } from './BackgroundService';
 import { requireOptionalNativeModule } from 'expo-modules-core';
 import * as ClassicBluetooth from '../../modules/expo-classic-bluetooth';
 import * as NetworkInfo from '../../modules/expo-network-info';
+import * as Ble from '../../modules/expo-ble-gatt';
 
 export type Trigger =
   | { type: 'bluetoothConnected'; nameOrAddress?: string | null }
@@ -22,7 +23,8 @@ export type Trigger =
   | { type: 'quickTile'; name: string }
   | { type: 'tileMenu'; id?: string | null }
   | { type: 'widgetAction'; id?: string | null }
-  | { type: 'wifiChanged'; bssid?: string | null };
+  | { type: 'wifiChanged'; bssid?: string | null }
+  | { type: 'bleNotify'; address?: string | null; charUuid?: string | null };
 
 export interface BackgroundTask {
   id: string;
@@ -33,7 +35,7 @@ export interface BackgroundTask {
   registeredAt?: number;
 }
 
-export interface TriggerEvent { type: string; id?: string; value?: number; widgetId?: string; wifi?: any; tile?: { index: number; name: string }; device?: { name?: string; alias?: string; address?: string; [k: string]: any }; time: number }
+export interface TriggerEvent { type: string; ble?: any; id?: string; value?: number; widgetId?: string; wifi?: any; tile?: { index: number; name: string }; device?: { name?: string; alias?: string; address?: string; [k: string]: any }; time: number }
 
 const TASKS_KEY = '@everyapp_bg_tasks';
 const MIN_INTERVAL = 10_000;
@@ -64,7 +66,7 @@ function validate(task: any): BackgroundTask {
   if (!Array.isArray(task.triggers) || task.triggers.length === 0) throw new Error('registerTask: "triggers" (Array) fehlt');
   if (typeof task.code !== 'string') throw new Error('registerTask: "code" (String mit Funktionskörper) fehlt');
   for (const t of task.triggers) {
-    if (!['bluetoothConnected', 'bluetoothDisconnected', 'interval', 'boot', 'appStart', 'quickTile', 'tileMenu', 'widgetAction', 'wifiChanged'].includes(t?.type))
+    if (!['bluetoothConnected', 'bluetoothDisconnected', 'interval', 'boot', 'appStart', 'quickTile', 'tileMenu', 'widgetAction', 'wifiChanged', 'bleNotify'].includes(t?.type))
       throw new Error(`registerTask: unbekannter Trigger "${t?.type}"`);
     if (t.type === 'quickTile' && !(typeof t.name === 'string' && t.name.trim())) throw new Error('registerTask: quickTile braucht einen Namen');
     if (t.type === 'interval' && !(t.ms >= MIN_INTERVAL)) throw new Error(`registerTask: interval.ms muss >= ${MIN_INTERVAL} sein`);
@@ -145,6 +147,7 @@ function createCtx(appId: string, task: BackgroundTask) {
       next: () => sendMediaKey('next'), previous: () => sendMediaKey('previous'), stop: () => sendMediaKey('stop'),
     },
     wifi: { info: () => wifiInfo() },
+    ble: Ble.makeApi(false),
     tile: tileApi,
     widget: widgetApi,
     bluetooth: {
@@ -177,6 +180,12 @@ function matches(t: Trigger, ev: TriggerEvent) {
     return deviceMatches(t.nameOrAddress, ev.device);
   }
   if (t.type === 'tileMenu' || t.type === 'widgetAction') return !t.id || t.id === ev.id;
+  if (t.type === 'bleNotify') {
+    const n = (v: any) => String(v ?? '').trim().toLowerCase();
+    if (t.address && n(t.address) !== n(ev.ble?.address)) return false;
+    if (t.charUuid && !n(ev.ble?.charUuid).includes(n(t.charUuid))) return false;
+    return true;
+  }
   if (t.type === 'wifiChanged') return !t.bssid || String(t.bssid).toLowerCase() === String(ev.wifi?.bssid ?? '').toLowerCase()
     || String(t.bssid).toLowerCase() === String(ev.wifi?.ssid ?? '').toLowerCase();
   if (t.type === 'quickTile') return String(t.name).trim().toLowerCase() === String(ev.tile?.name ?? '').trim().toLowerCase();
@@ -188,7 +197,7 @@ async function runTask(appId: string, task: BackgroundTask, ev: TriggerEvent) {
   try {
     const ctx: any = createCtx(appId, task);
     ctx.trigger = { type: ev.type, device: ev.device, tile: ev.tile, id: ev.id, value: ev.value, widgetId: ev.widgetId,
-      slot: ev.tile?.index, ...(ev.wifi || {}) };
+      slot: ev.tile?.index, ...(ev.wifi || {}), ...(ev.ble || {}) };
     ctx.device = ev.device;
     await compile(task.code)(ctx, ev);
     await bgLog(appId, `✔ Task "${task.id}" fertig`);
@@ -278,6 +287,12 @@ export async function headlessEntry(data: any) {
       tile: data.slot ? { index: Number(data.slot), name: String(data.tileName || '') } : undefined, time: data.time || Date.now() });
     if (data.event === 'tileMenu' && data.slot && value !== undefined) rememberSliderValue('tile', String(data.slot), data.id, value);
     if (data.event === 'widgetAction' && data.widgetId && value !== undefined) rememberSliderValue('widget', data.widgetId, data.id, value);
+    return;
+  }
+  if (data?.event === 'bleNotify') {
+    const hex = String(data.hex || '');
+    await dispatchEvent({ type: 'bleNotify', ble: { address: data.address, serviceUuid: data.serviceUuid, charUuid: data.charUuid,
+      hex, bytes: Ble.hexToBytes(hex), value: Ble.hexToBytes(hex) }, time: data.time || Date.now() });
     return;
   }
   if (data?.event === 'wifiChanged') {

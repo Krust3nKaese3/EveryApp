@@ -62,7 +62,7 @@ export class BridgeMessageHandler {
     }
 
     // Clipboard write needs no permission (user-visible, harmless)
-    if (category === 'clipboard' || category === 'network' || category === 'media') {
+    if (category === 'clipboard' || category === 'network' || category === 'media' || category === 'ble') {
       return await this.executeCapabilityMethod(category, action, args);
     }
 
@@ -167,6 +167,15 @@ export class BridgeMessageHandler {
             getInfo: () => sendMessage('network.getInfo', []),
             getWifi: () => sendMessage('network.getWifi', []),
             requestLocation: (bg) => sendMessage('network.requestLocation', [!!bg]),
+          },
+          ble: {
+            isAvailable: () => sendMessage('ble.isAvailable', []),
+            scan: (o) => sendMessage('ble.scan', [o || {}]),
+            connect: (a, o) => sendMessage('ble.connect', [a, o || {}]),
+            disconnect: (a) => sendMessage('ble.disconnect', [a]),
+            write: (a, s, c, d, o) => sendMessage('ble.write', [a, s, c, d, o || {}]),
+            read: (a, s, c, o) => sendMessage('ble.read', [a, s, c, o || {}]),
+            notify: (a, s, c, e, o) => sendMessage('ble.notify', [a, s, c, e !== false, o || {}]),
           },
           clipboard: {
             setString: (text) => sendMessage('clipboard.setString', [text]),

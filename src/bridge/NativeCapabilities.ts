@@ -12,6 +12,7 @@ import { BackgroundTasks, restartTimers, getTileSlots, setUi, updateTile, update
 import { PermissionsAndroid, Platform } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import * as NetworkInfo from '../../modules/expo-network-info';
+import * as Ble from '../../modules/expo-ble-gatt';
 import { sendMediaKey } from '../../modules/expo-media-control';
 
 Notifications.setNotificationHandler({
@@ -284,6 +285,17 @@ export class NativeCapabilities {
       }
       return { fine, background: bg };
     },
+  };
+
+  // BLE GATT (pending native module, next build). Guarded: throws 'braucht nächsten Build'.
+  ble = {
+    isAvailable: async (): Promise<boolean> => Ble.isAvailable(),
+    scan: async (o: any) => Ble.scan(o, true),
+    connect: async (a: string, o: any) => Ble.connect(a, o, true),
+    disconnect: async (a: string) => Ble.disconnect(a),
+    write: async (a: string, s: string, c: string, d: any, o: any) => Ble.write(a, s, c, d, o),
+    read: async (a: string, s: string, c: string, o: any) => Ble.read(a, s, c, o),
+    notify: async (a: string, s: string, c: string, e: boolean, o: any) => Ble.notify(a, s, c, e, o),
   };
 
   media = {
