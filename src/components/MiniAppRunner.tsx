@@ -99,7 +99,7 @@ export const MiniAppRunner: React.FC<MiniAppRunnerProps> = ({ app, onClose }) =>
         <head>
           <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
           <style>
-            body { margin: 0; padding: 0; overflow: hidden; }
+            html, body { margin: 0; padding: 0; overflow-x: hidden; overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior-y: contain; }
             * { -webkit-tap-highlight-color: transparent; }
           </style>
         </head>
@@ -225,8 +225,11 @@ export const MiniAppRunner: React.FC<MiniAppRunnerProps> = ({ app, onClose }) =>
           domStorageEnabled
           allowsInlineMediaPlayback
           mediaPlaybackRequiresUserAction={false}
-          scrollEnabled={false}
+          scrollEnabled
+          nestedScrollEnabled
+          overScrollMode="content"
           bounces={false}
+          setSupportMultipleWindows={false}
           onLoad={() => setLoading(false)}
         />
       )}

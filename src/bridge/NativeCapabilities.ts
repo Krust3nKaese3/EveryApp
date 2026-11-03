@@ -250,7 +250,16 @@ export class NativeCapabilities {
   };
 
   clipboard = {
-    setString: async (text: string): Promise<void> => { await Clipboard.setStringAsync(String(text ?? '')); },
+    setString: async (text: string): Promise<boolean> => {
+      try {
+        await Clipboard.setStringAsync(String(text ?? ''));
+        console.log('[EveryApp] clipboard.setString ok,', String(text ?? '').length, 'chars');
+        return true;
+      } catch (e: any) {
+        console.error('[EveryApp] clipboard.setString FEHLER:', e?.message);
+        throw new Error(`Zwischenablage-Fehler (expo-clipboard): ${e?.message || e}`);
+      }
+    },
   };
 
   events = {
