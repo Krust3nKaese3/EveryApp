@@ -120,6 +120,7 @@ export const HomeScreen: React.FC = () => {
     ]);
   };
 
+  const [actionApp, setActionApp] = useState<MiniApp | null>(null);
   const [refreshingId, setRefreshingId] = useState<string | null>(null);
 
   const handleRefreshApp = async (app: MiniApp) => {
@@ -150,24 +151,7 @@ export const HomeScreen: React.FC = () => {
       key={app.id}
       style={styles.appItem}
       onPress={() => setSelectedApp(app)}
-      onLongPress={() =>
-        Alert.alert('App Actions', `${app.manifest.name}\n\n${app.repoUrl}`, [
-          { text: 'Cancel', style: 'cancel' },
-          {
-            text: 'Copy GitHub Link',
-            onPress: async () => {
-              await Clipboard.setStringAsync(app.repoUrl);
-              Alert.alert('Copied', app.repoUrl);
-            },
-          },
-          { text: 'Move to Root', onPress: () => handleMoveApp(app, null) },
-          ...folders.map((f) => ({
-            text: `Move to ${f.name}`,
-            onPress: () => handleMoveApp(app, f.id),
-          })),
-          { text: 'Delete', style: 'destructive', onPress: () => handleDeleteApp(app) },
-        ])
-      }
+      onLongPress={() => setActionApp(app)}
     >
       <View style={{ flexDirection: 'row', alignItems: 'center' }}>
         <View style={{ flex: 1 }}>
@@ -291,6 +275,30 @@ export const HomeScreen: React.FC = () => {
           </Modal>
         </>
       )}
+
+      <Modal visible={!!actionApp} transparent animationType="fade" onRequestClose={() => setActionApp(null)}>
+        <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setActionApp(null)}>
+          <View style={{ backgroundColor: 'white', borderRadius: 12, padding: 16, width: '85%' }}>
+            <Text style={{ fontSize: 18, fontWeight: '700', marginBottom: 8 }}>{actionApp?.manifest.name}</Text>
+            <Text selectable style={{ fontSize: 13, color: '#333', backgroundColor: '#f2f2f2', padding: 8, borderRadius: 6, marginBottom: 8 }}>{actionApp?.repoUrl}</Text>
+            {[
+              { label: 'Copy GitHub Link', fn: async (a: MiniApp) => { await Clipboard.setStringAsync(a.repoUrl); } },
+              { label: 'Move to Root', fn: (a: MiniApp) => handleMoveApp(a, null) },
+              ...folders.map((f) => ({ label: `Move to ${f.name}`, fn: (a: MiniApp) => handleMoveApp(a, f.id) })),
+              { label: 'Delete', fn: (a: MiniApp) => handleDeleteApp(a), danger: true },
+              { label: 'Cancel', fn: () => {} },
+            ].map((b: any) => (
+              <TouchableOpacity
+                key={b.label}
+                style={{ paddingVertical: 12 }}
+                onPress={() => { const a = actionApp; setActionApp(null); if (a) b.fn(a); }}
+              >
+                <Text style={{ fontSize: 16, color: b.danger ? '#d32f2f' : '#2196F3' }}>{b.label}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </TouchableOpacity>
+      </Modal>
     </View>
   );
 };
