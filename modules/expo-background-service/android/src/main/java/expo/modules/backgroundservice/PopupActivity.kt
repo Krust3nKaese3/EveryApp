@@ -286,7 +286,7 @@ ${if (autoHeight) "var rs=function(){window.EveryAppPopup.resize();};if(window.R
   }
 
   inner class Bridge {
-    @JavascriptInterface fun post(event: String, valueJson: String) { handler.post { post(event, valueJson) } }
+    @JavascriptInterface fun post(event: String, valueJson: String) { handler.post { this@PopupActivity.post(event, valueJson) } }
     @JavascriptInterface fun close() { handler.post { dismiss() } }
     @JavascriptInterface fun resize(heightCssPx: Double) {
       handler.post {
