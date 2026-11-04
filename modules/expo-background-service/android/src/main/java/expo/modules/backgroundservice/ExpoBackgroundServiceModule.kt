@@ -60,6 +60,9 @@ class ExpoBackgroundServiceModule : Module() {
       UiStore.widgetIds(context)
     }
 
+    Function("nativeLogRead") { appContext.reactContext?.let { NativeLog.read(it) } ?: "[]" }
+    Function("nativeLogClear") { appContext.reactContext?.let { NativeLog.clear(it) }; true }
+
     // Generic popup host (PopupActivity)
     Function("popupSend") { appId: String, id: String, json: String ->
       val context = appContext.reactContext ?: return@Function false

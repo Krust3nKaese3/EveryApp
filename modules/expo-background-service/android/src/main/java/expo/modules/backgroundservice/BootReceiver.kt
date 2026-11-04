@@ -18,6 +18,7 @@ class BootReceiver : BroadcastReceiver() {
       context.startService(task)
       com.facebook.react.HeadlessJsTaskService.acquireWakeLockNow(context)
     } catch (e: Exception) {
+      NativeLog.add(context, "FEHLER Start nach Boot: ${e.javaClass.name}: ${e.message}")
       Log.e(EveryAppBackgroundService.TAG, "[EveryApp] FEHLER: start after boot failed: ${e.message}", e)
     }
   }

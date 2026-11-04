@@ -61,9 +61,15 @@ class PopupActivity : Activity() {
       val d = try { JSONObject(json) } catch (e: Exception) { throw IllegalArgumentException("popup.send: Daten müssen ein JSON-Objekt sein") }
       d.keys().forEach { st.put(it, d.get(it)) }
       p.edit().putString(key(appId, id), st.toString()).apply()
-      val a = current?.get() ?: return false
-      if (a.popupId != id || a.appId != appId || a.isFinishing) return false
+      val a = current?.get()
+      if (a == null) { NativeLog.add(ctx, "popup.send($id): kein Popup offen – nur State gespeichert"); return false }
+      if (a.popupId != id || a.appId != appId || a.isFinishing) {
+        NativeLog.add(ctx, "popup.send($id, appId=$appId): offenes Popup ist ${a.popupId} (appId=${a.appId}, finishing=${a.isFinishing}) – nicht zugestellt")
+        return false
+      }
       a.runOnUiThread { a.web?.evaluateJavascript("window.__eaPopupRecv && window.__eaPopupRecv($json);", null) }
+      a.diag("vom Makro empfangen (popup.send): $json")
+      NativeLog.add(ctx, "popup.send($id) zugestellt: $json")
       return true
     }
 
@@ -260,12 +266,13 @@ ${if (autoHeight) "var rs=function(){window.EveryAppPopup.resize();};if(window.R
       UiStore.fire(applicationContext, "popup", mapOf("popupId" to popupId, "appId" to appId, "popupEvent" to event, "valueJson" to valueJson,
         "slot" to (if (slot > 0) slot else null), "widgetId" to widgetId))
     } catch (e: Throwable) { "${e.javaClass.name}: ${e.message}" }
+    if (err != null) NativeLog.add(applicationContext, "Popup-Event $event ($popupId) konnte Task nicht starten: $err")
     diag(if (err == null) "an Android übergeben: $event appId=${appId ?: "null"} popupId=$popupId"
          else "FEHLER Android: $err (Event $event, appId=${appId ?: "null"}, popupId=$popupId)")
   }
 
   /** Diagnostic line into the popup page: window.__eaPopupDiag / EveryAppPopup.onDiag(cb) / event 'everyapp:popupdiag'. */
-  private fun diag(text: String) {
+  fun diag(text: String) {
     Log.i("EveryAppPopup", "[diag] $text")
     val q = JSONObject.quote(text)
     runOnUiThread {

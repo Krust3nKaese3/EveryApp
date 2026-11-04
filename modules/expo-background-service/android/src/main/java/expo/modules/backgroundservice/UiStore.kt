@@ -128,6 +128,7 @@ object UiStore {
       Log.i(TAG, "[EveryApp] fired $event $extras")
       return null
     } catch (e: Throwable) {
+      NativeLog.add(ctx, "FEHLER $event-Task konnte nicht starten: ${e.javaClass.name}: ${e.message}")
       Log.e(TAG, "[EveryApp] FEHLER $event-Task konnte nicht starten: ${e.javaClass.simpleName}: ${e.message}", e)
       return "${e.javaClass.name}: ${e.message}"
     }
