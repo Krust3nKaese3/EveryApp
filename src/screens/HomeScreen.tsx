@@ -8,7 +8,9 @@ import {
   TextInput,
   Alert,
   Modal,
+  ScrollView,
 } from 'react-native';
+import { readDebugLog, clearDebugLog } from '../services/DebugLog';
 import { MiniApp, Folder } from '../types';
 import { StorageService } from '../services/StorageService';
 import { GitRepoService } from '../services/GitRepoService';
@@ -24,6 +26,8 @@ export const HomeScreen: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [selectedApp, setSelectedApp] = useState<MiniApp | null>(null);
   const [showFolderModal, setShowFolderModal] = useState(false);
+  const [debugLines, setDebugLines] = useState<string[] | null>(null);
+  const openDebugLog = async () => setDebugLines(await readDebugLog());
   const [newFolderName, setNewFolderName] = useState('');
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set());
 
@@ -223,6 +227,9 @@ export const HomeScreen: React.FC = () => {
             >
               <Text style={styles.toolbarButtonText}>+ New Folder</Text>
             </TouchableOpacity>
+            <TouchableOpacity style={[styles.toolbarButton, { marginLeft: 8 }]} onPress={openDebugLog}>
+              <Text style={styles.toolbarButtonText}>Debug-Log</Text>
+            </TouchableOpacity>
           </View>
 
           <FlatList
@@ -260,6 +267,33 @@ export const HomeScreen: React.FC = () => {
               }
             }}
           />
+
+          <Modal visible={debugLines !== null} transparent animationType="slide" onRequestClose={() => setDebugLines(null)}>
+            <View style={styles.modalOverlay}>
+              <View style={[styles.modalContainer, { maxHeight: '85%', width: '92%' }]}>
+                <Text style={styles.modalTitle}>Debug-Log ({debugLines?.length ?? 0})</Text>
+                <ScrollView style={{ maxHeight: 420, backgroundColor: '#111', borderRadius: 6, padding: 8, marginBottom: 12 }}>
+                  <Text selectable style={{ color: '#eee', fontFamily: 'monospace', fontSize: 11 }}>
+                    {debugLines && debugLines.length ? [...debugLines].reverse().join('\n') : 'Noch keine Einträge.'}
+                  </Text>
+                </ScrollView>
+                <View style={styles.modalButtons}>
+                  <TouchableOpacity style={styles.modalButtonCreate} onPress={async () => { await Clipboard.setStringAsync((debugLines || []).join('\n')); Alert.alert('Debug-Log', 'In die Zwischenablage kopiert'); }}>
+                    <Text style={styles.modalButtonText}>Kopieren</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={styles.modalButtonCreate} onPress={openDebugLog}>
+                    <Text style={styles.modalButtonText}>Neu laden</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={styles.modalButtonCancel} onPress={async () => { await clearDebugLog(); setDebugLines([]); }}>
+                    <Text style={styles.modalButtonText}>Leeren</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={styles.modalButtonCancel} onPress={() => setDebugLines(null)}>
+                    <Text style={styles.modalButtonText}>Schließen</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </View>
+          </Modal>
 
           <Modal visible={showFolderModal} transparent animationType="slide">
             <View style={styles.modalOverlay}>

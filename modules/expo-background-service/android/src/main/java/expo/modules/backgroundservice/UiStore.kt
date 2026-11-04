@@ -107,7 +107,8 @@ object UiStore {
   }
 
   /** Fire a trigger into the headless JS engine (same path as the Bluetooth receiver). */
-  fun fire(ctx: Context, event: String, extras: Map<String, Any?>) {
+  /** Returns null on success, otherwise an error text (for diagnostics). */
+  fun fire(ctx: Context, event: String, extras: Map<String, Any?>): String? {
     val i = Intent(ctx, MacroHeadlessTaskService::class.java).apply {
       putExtra("event", event)
       putExtra("time", System.currentTimeMillis().toDouble())
@@ -125,8 +126,10 @@ object UiStore {
       ctx.startService(i)
       HeadlessJsTaskService.acquireWakeLockNow(ctx)
       Log.i(TAG, "[EveryApp] fired $event $extras")
-    } catch (e: Exception) {
+      return null
+    } catch (e: Throwable) {
       Log.e(TAG, "[EveryApp] FEHLER $event-Task konnte nicht starten: ${e.javaClass.simpleName}: ${e.message}", e)
+      return "${e.javaClass.name}: ${e.message}"
     }
   }
 

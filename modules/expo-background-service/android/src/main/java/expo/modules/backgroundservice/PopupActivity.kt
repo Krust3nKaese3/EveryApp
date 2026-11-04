@@ -203,10 +203,11 @@ class PopupActivity : Activity() {
       addJavascriptInterface(Bridge(), "EveryAppPopupNative")
     }
     web = wv
-    val shimJs = """(function(){if(window.EveryAppPopup)return;var N=window.EveryAppPopupNative,L=[];
+    val shimJs = """(function(){if(window.EveryAppPopup)return;var N=window.EveryAppPopupNative,L=[],D=[];
 window.EveryAppPopup={id:${JSONObject.quote(popupId)},state:$state,title:${JSONObject.quote(cfg.optString("title"))},
 send:function(e,v){N.post(String(e),JSON.stringify(v===undefined?null:v));},close:function(){N.close();},
-onMessage:function(cb){L.push(cb);},resize:function(h){N.resize(h==null?Math.ceil(document.documentElement.scrollHeight):Number(h));}};
+onMessage:function(cb){L.push(cb);},onDiag:function(cb){D.push(cb);},resize:function(h){N.resize(h==null?Math.ceil(document.documentElement.scrollHeight):Number(h));}};
+window.__eaPopupDiag=function(t){D.forEach(function(cb){try{cb(t);}catch(e){console.error(e);}});};
 window.__eaPopupRecv=function(d){for(var k in d)window.EveryAppPopup.state[k]=d[k];L.forEach(function(cb){try{cb(d);}catch(e){console.error(e);}});};
 document.documentElement.style.background='transparent';
 ${if (autoHeight) "var rs=function(){window.EveryAppPopup.resize();};if(window.ResizeObserver)new ResizeObserver(rs).observe(document.documentElement);setTimeout(rs,50);" else ""}
@@ -254,8 +255,24 @@ ${if (autoHeight) "var rs=function(){window.EveryAppPopup.resize();};if(window.R
 
   private fun fireRaw(event: String, valueJson: String) {
     lastFire[event] = System.currentTimeMillis()
-    UiStore.fire(applicationContext, "popup", mapOf("popupId" to popupId, "appId" to appId, "popupEvent" to event, "valueJson" to valueJson,
-      "slot" to (if (slot > 0) slot else null), "widgetId" to widgetId))
+    if (appId == null) diag("WARNUNG: appId ist null (Popup-Spec ohne appId) – Event geht an alle Apps")
+    val err = try {
+      UiStore.fire(applicationContext, "popup", mapOf("popupId" to popupId, "appId" to appId, "popupEvent" to event, "valueJson" to valueJson,
+        "slot" to (if (slot > 0) slot else null), "widgetId" to widgetId))
+    } catch (e: Throwable) { "${e.javaClass.name}: ${e.message}" }
+    diag(if (err == null) "an Android übergeben: $event appId=${appId ?: "null"} popupId=$popupId"
+         else "FEHLER Android: $err (Event $event, appId=${appId ?: "null"}, popupId=$popupId)")
+  }
+
+  /** Diagnostic line into the popup page: window.__eaPopupDiag / EveryAppPopup.onDiag(cb) / event 'everyapp:popupdiag'. */
+  private fun diag(text: String) {
+    Log.i("EveryAppPopup", "[diag] $text")
+    val q = JSONObject.quote(text)
+    runOnUiThread {
+      try {
+        web?.evaluateJavascript("(function(t){try{if(window.__eaPopupDiag)window.__eaPopupDiag(t);window.dispatchEvent(new CustomEvent('everyapp:popupdiag',{detail:t}));}catch(e){}})($q);", null)
+      } catch (e: Throwable) { Log.e("EveryAppPopup", "diag failed", e) }
+    }
   }
 
   /** Leading + trailing throttle per event name. */

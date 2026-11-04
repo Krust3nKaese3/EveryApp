@@ -19,6 +19,7 @@ import { makeTuyaLocal, discover as tuyaDiscover } from './TuyaLocal';
 import { StorageService } from './StorageService';
 import { classifyIcon, normalizeTilePatch, checkTileOwner, normalizePopupSpec } from './popupTiles';
 import { deviceMatches, matches } from './triggerMatching';
+import { debugLog } from './DebugLog';
 
 export type Trigger =
   | { type: 'bluetoothConnected'; nameOrAddress?: string | null }
@@ -190,6 +191,7 @@ function createCtx(appId: string, task: BackgroundTask) {
 export { deviceMatches, matches } from "./triggerMatching";
 
 async function runTask(appId: string, task: BackgroundTask, ev: TriggerEvent) {
+  await debugLog(`runTask START ${appId}/${task.id} (Trigger ${ev.type})`);
   await bgLog(appId, `▶ Task "${task.id}" läuft (Trigger: ${ev.type}${ev.device ? ` ${ev.device.name} / ${ev.device.alias} ${ev.device.address}` : ''})`);
   try {
     const ctx: any = createCtx(appId, task);
@@ -200,7 +202,9 @@ async function runTask(appId: string, task: BackgroundTask, ev: TriggerEvent) {
     ctx.secrets = await secretsProxy(appId);
     await compile(task.code)(ctx, ev);
     await bgLog(appId, `✔ Task "${task.id}" fertig`);
+    await debugLog(`runTask ENDE ${appId}/${task.id}`);
   } catch (e: any) {
+    await debugLog(`runTask FEHLER ${appId}/${task.id}: ${e?.message || e}`);
     await bgLog(appId, `FEHLER: Task "${task.id}" fehlgeschlagen: ${e?.message || e}\n${e?.stack || ''}`, 'error');
   }
 }
@@ -215,8 +219,13 @@ async function activeTasks(): Promise<Array<[string, BackgroundTask]>> {
 
 export async function dispatchEvent(ev: TriggerEvent) {
   console.log('[EveryApp][BG] event', JSON.stringify(ev));
+  const evInfo = ev.type === 'popup' ? ` appId=${ev.appId ?? '(keine)'} popupId=${ev.popupId} event=${ev.event}` : (ev.appId ? ` appId=${ev.appId}` : '');
+  let running: string[] = [];
+  try { running = await BackgroundService.getRunningApps(); } catch (e: any) { await debugLog(`dispatch: getRunningApps FEHLER ${e?.message || e}`); }
   const tasks = await activeTasks();
+  const list = tasks.map(([a, t]) => `${a}/${t.id}[${t.triggers.map((tr: any) => tr.type).join(',')}]`).join('; ') || '(keine)';
   const hits = tasks.filter(([a, t]) => (!ev.appId || a === ev.appId) && t.triggers.some((tr) => matches(tr, ev)));
+  await debugLog(`dispatch ${ev.type}${evInfo} | laufende Apps: ${running.join(', ') || '(keine – Hintergrundmodus aus?)'} | aktive Tasks (${tasks.length}): ${list} | Treffer: ${hits.map(([a, t]) => `${a}/${t.id}`).join(', ') || 'kein Makro registriert'}`);
   if (hits.length === 0) console.log(`[EveryApp][BG] no task for ${ev.type} (active tasks: ${tasks.length})`);
   await Promise.all(hits.map(([appId, t]) => runTask(appId, t, ev)));
   if (ev.type === 'boot') restartTimers();
@@ -279,6 +288,8 @@ export function restartTimers() {
 
 /** Headless entry point (native extras: event, name, address, time). */
 export async function headlessEntry(data: any) {
+  let raw = ''; try { raw = JSON.stringify(data); } catch { raw = String(data); }
+  await debugLog(`headless empfangen: ${raw}`);
   const map: Record<string, string> = { 'bluetooth.connected': 'bluetoothConnected', 'bluetooth.disconnected': 'bluetoothDisconnected', boot: 'boot', quickTile: 'quickTile' };
   if (data?.event === 'tileMenu' || data?.event === 'widgetAction') {
     const value = data.value === undefined || data.value === null ? undefined : Number(data.value);
