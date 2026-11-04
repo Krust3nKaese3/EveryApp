@@ -105,6 +105,7 @@ export class BridgeMessageHandler {
         const eventListeners = {};
 
         window.EveryAppBridge = {
+          buildInfo: { isDev: ${__DEV__ ? 'true' : 'false'}, devClient: ${__DEV__ ? 'true' : 'false'}, environment: '${__DEV__ ? 'development' : 'production'}', buildType: '${__DEV__ ? 'SrvEveryApp' : 'EveryApp'}' },
           storage: {
             get: (key) => sendMessage('storage.get', [key]),
             set: (key, value) => sendMessage('storage.set', [key, value]),
