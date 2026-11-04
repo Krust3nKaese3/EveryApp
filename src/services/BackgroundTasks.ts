@@ -5,7 +5,7 @@
  */
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { maskSecrets, secretsProxy } from './SecretStore';
-import { Vibration } from 'react-native';
+import { Vibration, Alert, AppState } from 'react-native';
 import * as Notifications from 'expo-notifications';
 import * as Clipboard from 'expo-clipboard';
 import { sendMediaKey } from '../../modules/expo-media-control';
@@ -405,6 +405,7 @@ export async function setUi(appId: string, conf: { tiles?: any[]; widgets?: any[
   for (const [s, c] of Object.entries(ui.tiles)) if (c.appId === appId) await pushTile(Number(s), c);
   for (const [w, c] of Object.entries(ui.widgets)) if (c.appId === appId) await pushWidget(w, c);
   restartTimers();
+  if ((conf.tiles || []).some(wantsLocked)) await ensureLockGrant(appId).catch((e) => bgLog(appId, `FEHLER allowLocked: ${e?.message}`, 'error'));
   for (const e of errors) await bgLog(appId, `FEHLER UI: ${e}`, 'error');
   await bgLog(appId, `UI: ${(conf.tiles || []).length} Kachel(n), ${(conf.widgets || []).length} Widget(s)${uiNative() ? '' : ' – ' + NEXT_BUILD}`);
   return { native: !!uiNative(), errors };
@@ -418,6 +419,7 @@ export async function updateTile(slotOrName: number | string, patch: any) {
   ui.tiles[slot] = { ...cur, ...patch };
   await AsyncStorage.setItem(UI_KEY, JSON.stringify(ui));
   await pushTile(slot, ui.tiles[slot]);
+  if (wantsLocked(ui.tiles[slot]) && ui.tiles[slot].appId) await ensureLockGrant(ui.tiles[slot].appId).catch((e) => bgLog(ui.tiles[slot].appId, `FEHLER allowLocked: ${e?.message}`, 'error'));
   return ui.tiles[slot];
 }
 export async function updateWidget(id: string, patch: any) {
@@ -513,6 +515,7 @@ export async function setTileFor(appId: string, slot: number, patch: any) {
   ui.tiles[slot] = { ...cur, ...p, slot, appId, name: cur.name || p.label || cur.label };
   await AsyncStorage.setItem(UI_KEY, JSON.stringify(ui));
   await pushTile(slot, ui.tiles[slot]);
+  if (wantsLocked(ui.tiles[slot])) await ensureLockGrant(appId).catch((e) => bgLog(appId, `FEHLER allowLocked: ${e?.message}`, 'error'));
   return ui.tiles[slot];
 }
 export async function releaseTileFor(appId: string, slot: number) {
@@ -528,6 +531,30 @@ export function tileHandle(appId: string, n: number) {
     get: async () => { const t = (await readUi()).tiles[Number(n)]; return t ? { ...t } : null; },
     release: () => releaseTileFor(appId, Number(n)),
   };
+}
+
+// ---- Lock-screen grant (allowLocked opt-in needs a one-time user confirmation per mini-app) ----
+const LOCK_ASKED_KEY = '@everyapp_lock_asked'; // { [appId]: true } – asked once; answer persisted natively
+const wantsLocked = (t: any) => t?.allowLocked === true || t?.popup?.allowLocked === true;
+export async function ensureLockGrant(appId: string) {
+  const n = uiNative();
+  if (!n || typeof n.lockGrantGet !== 'function') { await bgLog(appId, 'allowLocked: braucht nächsten Build (Sperrbildschirm)'); return; }
+  if (n.lockGrantGet(appId)) return;
+  const asked = JSON.parse((await AsyncStorage.getItem(LOCK_ASKED_KEY)) || '{}');
+  if (asked[appId]) { await bgLog(appId, 'allowLocked: Sperrbildschirm-Freigabe wurde abgelehnt – Kachel verlangt Entsperren'); return; }
+  if (AppState.currentState !== 'active') { await bgLog(appId, 'allowLocked: Freigabe-Dialog erscheint beim nächsten Öffnen von EveryApp'); return; }
+  asked[appId] = true; await AsyncStorage.setItem(LOCK_ASKED_KEY, JSON.stringify(asked));
+  Alert.alert('Auf dem Sperrbildschirm erlauben?',
+    `Die Mini-App "${appId}" möchte Kacheln/Popups bedienen lassen, ohne dass das Handy entsperrt ist. Jeder mit Zugriff auf dein gesperrtes Handy kann diese Aktionen dann auslösen.`,
+    [{ text: 'Ablehnen', style: 'cancel', onPress: () => { bgLog(appId, 'allowLocked: Freigabe abgelehnt'); } },
+     { text: 'Erlauben', onPress: () => { try { n.lockGrantSet(appId, true); bgLog(appId, 'allowLocked: Freigabe erteilt'); } catch (e: any) { bgLog(appId, `FEHLER allowLocked lockGrantSet: ${e?.message}`, 'error'); } } }],
+    { cancelable: false });
+}
+/** Revoke from settings UI: also resets "asked" so the dialog can appear again. */
+export async function revokeLockGrant(appId: string) {
+  const n = uiNative(); try { n?.lockGrantSet?.(appId, false); } catch {}
+  const asked = JSON.parse((await AsyncStorage.getItem(LOCK_ASKED_KEY)) || '{}'); delete asked[appId];
+  await AsyncStorage.setItem(LOCK_ASKED_KEY, JSON.stringify(asked));
 }
 
 // ---- Generic popup host (permission "popup"; native: next build) ----

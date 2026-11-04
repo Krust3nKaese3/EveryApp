@@ -26,6 +26,7 @@ object UiStore {
   private fun prefs(ctx: Context) = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
 
   fun getTile(ctx: Context, slot: Int): JSONObject? = prefs(ctx).getString("tile_$slot", null)?.let { parse(it) }
+  fun tileSlotsFor(ctx: Context, appId: String): List<Int> = (1..5).filter { getTile(ctx, it)?.optString("appId") == appId }
   fun setTile(ctx: Context, slot: Int, json: String?) { prefs(ctx).edit().apply { if (json == null) remove("tile_$slot") else putString("tile_$slot", json) }.apply() }
 
   fun getWidget(ctx: Context, id: String): JSONObject? = prefs(ctx).getString("widget_$id", null)?.let { parse(it) }

@@ -43,13 +43,15 @@ class PopupActivity : Activity() {
     const val EXTRA_POPUP = "popup"
     const val EXTRA_SLOT = "slot"
     const val EXTRA_WIDGET = "widgetId"
+    const val EXTRA_OVER_LOCK = "overLock"
     private const val PREFS = "everyapp_popup"
     private var current: WeakReference<PopupActivity>? = null
 
-    fun open(ctx: Context, popupJson: String, slot: Int = 0, widgetId: String? = null): Intent =
+    fun open(ctx: Context, popupJson: String, slot: Int = 0, widgetId: String? = null, overLock: Boolean = false): Intent =
       Intent(ctx, PopupActivity::class.java).apply {
         addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         putExtra(EXTRA_POPUP, popupJson); putExtra(EXTRA_SLOT, slot); widgetId?.let { putExtra(EXTRA_WIDGET, it) }
+        putExtra(EXTRA_OVER_LOCK, overLock)
       }
 
     private fun key(appId: String?, id: String) = "state_${appId ?: ""}_$id"
@@ -113,6 +115,8 @@ class PopupActivity : Activity() {
   private var autoHeight = false
   private var maxHeightPx = 0
   private var closing = false
+  /** true = shown over the keyguard: no navigation away from the popup page, never opens the app. */
+  var overLock = false
   private val handler = Handler(Looper.getMainLooper())
   private val lastFire = HashMap<String, Long>()
   private val pending = HashMap<String, String>()
@@ -124,11 +128,30 @@ class PopupActivity : Activity() {
     super.onCreate(savedInstanceState)
     requestWindowFeature(Window.FEATURE_NO_TITLE)
     current = WeakReference(this)
+    applyLockMode()
     try { build() } catch (e: Exception) {
       Log.e(UiStore.TAG, "[EveryApp] FEHLER Popup: ${e.message}", e)
       setContentView(TextView(this).apply { text = "FEHLER Popup: ${e.message}"; setTextIsSelectable(true); setTextColor(Color.WHITE)
         setBackgroundColor(Color.parseColor("#CC000000")); setPadding(dp(16), dp(16), dp(16), dp(16)) })
     }
+  }
+
+  /** Over-lock only when the tile asked for it (allowLocked + user grant, checked in EveryAppTileBase) – re-verified here. */
+  private fun applyLockMode() {
+    val req = intent?.getBooleanExtra(EXTRA_OVER_LOCK, false) == true
+    val locked = LockScreen.isLocked(this)
+    if (!req) { if (locked) NativeLog.add(this, "Popup: gesperrt, aber ohne Sperrbildschirm-Freigabe gestartet -> normal (hinter Sperre)"); return }
+    val spec = try { JSONObject(intent?.getStringExtra(EXTRA_POPUP) ?: "{}") } catch (e: Exception) { JSONObject() }
+    val aid = spec.optString("appId").takeIf { it.isNotBlank() }
+    if (!LockScreen.isGranted(this, aid)) {
+      NativeLog.add(this, "FEHLER Popup ${spec.optString("id")}: overLock angefragt, aber keine Freigabe für appId=${aid ?: "null"} -> nicht über Sperrbildschirm"); return
+    }
+    overLock = true
+    try {
+      if (Build.VERSION.SDK_INT >= 27) { setShowWhenLocked(true); setTurnScreenOn(true) }
+      else { @Suppress("DEPRECATION") window.addFlags(WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED or WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON) }
+      NativeLog.add(this, "Popup ${spec.optString("id")} (appId=$aid): über Sperrbildschirm angezeigt (gesperrt=$locked)")
+    } catch (e: Throwable) { NativeLog.add(this, "FEHLER Popup showWhenLocked: ${e.javaClass.name}: ${e.message}") }
   }
 
   override fun onDestroy() {
@@ -219,6 +242,11 @@ document.documentElement.style.background='transparent';
 ${if (autoHeight) "var rs=function(){window.EveryAppPopup.resize();};if(window.ResizeObserver)new ResizeObserver(rs).observe(document.documentElement);setTimeout(rs,50);" else ""}
 })();"""
     wv.webViewClient = object : WebViewClient() {
+      override fun shouldOverrideUrlLoading(view: WebView, req: android.webkit.WebResourceRequest): Boolean {
+        if (!overLock) return false
+        NativeLog.add(this@PopupActivity, "Popup über Sperrbildschirm: Navigation zu ${req.url} blockiert")
+        return true
+      }
       override fun onPageFinished(view: WebView, u: String?) {
         view.evaluateJavascript("$shimJs;window.dispatchEvent(new Event('everyapp:popupready'));", null)
       }

@@ -77,6 +77,14 @@ class ExpoBackgroundServiceModule : Module() {
       val context = appContext.currentActivity ?: appContext.reactContext ?: throw IllegalStateException("Kein Context")
       context.startActivity(PopupActivity.open(context, json)); true
     }
+    // Lock-screen grant per mini-app (only set from EveryApp's own confirmation dialog, never from mini-app code)
+    Function("lockGrantGet") { appId: String -> appContext.reactContext?.let { LockScreen.isGranted(it, appId) } ?: false }
+    Function("lockGrantSet") { appId: String, granted: Boolean ->
+      val context = appContext.reactContext ?: return@Function false
+      LockScreen.setGranted(context, appId, granted)
+      UiStore.tileSlotsFor(context, appId).forEach { EveryAppTileBase.refresh(context, it) }
+      true
+    }
     Function("isServiceEnabled") {
       val context = appContext.reactContext ?: return@Function false
       EveryAppBackgroundService.isEnabled(context)
