@@ -203,37 +203,34 @@ window.EveryAppBridge.vibration.vibrate([100, 50, 100, 50, 200]);
 ### Background Execution API
 
 ```javascript
-// Participate in background events. This does NOT keep a foreground service running.
+// Enable background execution for this mini-app
 await window.EveryAppBridge.background.enable();
+// Arms background mode. The foreground service stays up only for interval
+// triggers or a connected/due BLE notify. Other triggers use a short headless task.
 
-// Disable background execution for this mini-app
+// Disable background execution
 await window.EveryAppBridge.background.disable();
 
 // Check if background execution is enabled
 const isEnabled = await window.EveryAppBridge.background.isEnabled();
-
-// Optional triggers. The foreground service stays up only for `interval`
-// and for bleNotify subscriptions that are connected or due for a retry.
-await window.EveryAppBridge.background.registerTasks([
-  { type: 'bluetooth', action: { kind: 'http', url: 'http://192.168.1.100/api/lights/on', method: 'POST' } },
-  { type: 'wifiChanged' },
-  { type: 'interval', everyMs: 900000 },
-  { type: 'bleNotify', deviceId: 'AA:BB:CC:DD:EE:FF', serviceUUID: '180d', characteristicUUID: '2a37' },
-]);
 ```
 
 **Background Behavior:**
-- `background.enable()` / `disable()` / `isEnabled()` keep their previous meaning: the mini-app is registered for background events
-- Bluetooth connect/disconnect, boot, quick tiles, popups and widgets start a short headless task and then the process may exit
-- A persistent foreground service runs only while an enabled mini-app has an `interval` trigger or a bleNotify subscription that is connected or due. Wifi uses `ConnectivityManager.registerNetworkCallback` with a `PendingIntent` and does not hold the service
-- `wifiChanged` is debounced (30s) and fires only when SSID or BSSID actually changes
-- bleNotify reconnect uses exponential backoff capped at 5 minutes, stops after 10 failed attempts, and resets that counter on a successful connection. The service is not kept alive between retries
-- Events that arrive while the mini-app UI is closed are queued and delivered the next time that mini-app opens. Declarative `action` entries (`http` or `notification`) run inside the headless task
-- Copyable start/stop reasons are written to the native log (`background.getLog()` and logcat tag `EveryApp`)
+- Mini-apps with the `background` permission can keep running when EveryApp is in the background or the screen is off
+- A persistent notification is shown only while an interval or a connected/due BLE notify needs the process
+- The mini-app can continue to:
+  - Receive Bluetooth connection events
+  - Make HTTP requests
+  - Execute scheduled logic
+- Background execution stops when:
+  - `background.disable()` is called
+  - The user stops the service from the notification
+  - EveryApp is force-stopped
 
 **Requirements:**
 - Mini-app must declare `"background"` permission in manifest
-- The persistent notification is shown only while interval or BLE-notify work actually needs the process
+- Android displays a persistent foreground service notification
+- Battery optimization prompt will appear on first enable
 
 ### Events API
 
@@ -277,8 +274,7 @@ The **EveryMacro** mini-app is a prime example of the new capabilities:
 
 **Implementation Example:**
 ```javascript
-// Receive Bluetooth events without keeping EveryApp running all day.
-// Use either the listener below (UI open / queued until next open) or a task action, not both for the same request.
+// Enable background execution to monitor devices 24/7
 await window.EveryAppBridge.background.enable();
 
 // Listen for device connections
@@ -307,8 +303,8 @@ window.EveryAppBridge.events.on('app.start', async () => {
 ```
 
 **Key Features Utilized:**
-1. **Classic Bluetooth Events** - Connection/disconnection starts a short headless task
-2. **Background Execution** - Wakes on demand instead of a permanent foreground service
+1. **Classic Bluetooth Events** - Real-time connection/disconnection monitoring
+2. **Background Execution** - Keeps running even when screen is off
 3. **LAN HTTP Requests** - Cleartext HTTP to local smart home devices
 4. **Event System** - `app.start` ensures initialization on background wake
 

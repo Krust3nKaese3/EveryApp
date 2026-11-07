@@ -15,7 +15,11 @@ export type Permission =
   | 'camera'
   | 'sensors'
   | 'vibration'
-  | 'background';
+  | 'background'
+  | 'ble'
+  | 'net'
+  | 'popup'
+  | 'tiles';
 
 export interface MiniApp {
   id: string;

@@ -8,11 +8,16 @@ import {
   TextInput,
   Alert,
   Modal,
+  ScrollView,
 } from 'react-native';
+import { readDebugLog, clearDebugLog } from '../services/DebugLog';
 import { MiniApp, Folder } from '../types';
 import { StorageService } from '../services/StorageService';
 import { GitRepoService } from '../services/GitRepoService';
 import { MiniAppRunner } from '../components/MiniAppRunner';
+import * as Clipboard from 'expo-clipboard';
+import { Linking } from 'react-native';
+import { parseDeepLink, matchesMiniApp, queueDeepLink } from '../services/deepLinks';
 
 export const HomeScreen: React.FC = () => {
   const [apps, setApps] = useState<MiniApp[]>([]);
@@ -21,8 +26,26 @@ export const HomeScreen: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [selectedApp, setSelectedApp] = useState<MiniApp | null>(null);
   const [showFolderModal, setShowFolderModal] = useState(false);
+  const [debugLines, setDebugLines] = useState<string[] | null>(null);
+  const openDebugLog = async () => setDebugLines(await readDebugLog());
   const [newFolderName, setNewFolderName] = useState('');
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set());
+
+  // Deep links everyapp://<miniapp>/<path>?query → open that mini-app and deliver the link as an event.
+  useEffect(() => {
+    const handle = async (url?: string | null) => {
+      const link = url ? parseDeepLink(url) : null;
+      if (!link) return;
+      const all = await StorageService.getApps();
+      const target = all.find((a) => matchesMiniApp(link, a));
+      if (!target) { Alert.alert('Deep-Link', `Mini-App "${link.miniapp}" ist nicht installiert.\n\n${url}`); return; }
+      queueDeepLink(target.id, link);
+      setSelectedApp((cur) => (cur && cur.id === target.id ? cur : target));
+    };
+    Linking.getInitialURL().then(handle).catch(() => {});
+    const sub = Linking.addEventListener('url', (e) => { handle(e.url); });
+    return () => sub.remove();
+  }, []);
 
   useEffect(() => {
     loadData();
@@ -119,6 +142,22 @@ export const HomeScreen: React.FC = () => {
     ]);
   };
 
+  const [actionApp, setActionApp] = useState<MiniApp | null>(null);
+  const [refreshingId, setRefreshingId] = useState<string | null>(null);
+
+  const handleRefreshApp = async (app: MiniApp) => {
+    setRefreshingId(app.id);
+    try {
+      const fresh = await GitRepoService.fetchRepo(app.repoUrl);
+      await StorageService.saveApp({ ...fresh, addedAt: app.addedAt, folderId: app.folderId });
+      await loadData();
+    } catch (error: any) {
+      Alert.alert('Update failed', error.message);
+    } finally {
+      setRefreshingId(null);
+    }
+  };
+
   const toggleFolder = (folderId: string) => {
     const newExpanded = new Set(expandedFolders);
     if (newExpanded.has(folderId)) {
@@ -134,20 +173,21 @@ export const HomeScreen: React.FC = () => {
       key={app.id}
       style={styles.appItem}
       onPress={() => setSelectedApp(app)}
-      onLongPress={() =>
-        Alert.alert('App Actions', `Actions for ${app.manifest.name}`, [
-          { text: 'Cancel', style: 'cancel' },
-          { text: 'Move to Root', onPress: () => handleMoveApp(app, null) },
-          ...folders.map((f) => ({
-            text: `Move to ${f.name}`,
-            onPress: () => handleMoveApp(app, f.id),
-          })),
-          { text: 'Delete', style: 'destructive', onPress: () => handleDeleteApp(app) },
-        ])
-      }
+      onLongPress={() => setActionApp(app)}
     >
-      <Text style={styles.appName}>{app.manifest.name}</Text>
-      <Text style={styles.appDesc}>{app.manifest.description}</Text>
+      <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.appName}>{app.manifest.name}</Text>
+          <Text style={styles.appDesc}>{app.manifest.description}</Text>
+        </View>
+        <TouchableOpacity
+          onPress={() => handleRefreshApp(app)}
+          disabled={refreshingId === app.id}
+          style={{ padding: 10 }}
+        >
+          <Text style={{ fontSize: 22, opacity: refreshingId === app.id ? 0.3 : 1 }}>⟳</Text>
+        </TouchableOpacity>
+      </View>
     </TouchableOpacity>
   );
 
@@ -187,6 +227,9 @@ export const HomeScreen: React.FC = () => {
             >
               <Text style={styles.toolbarButtonText}>+ New Folder</Text>
             </TouchableOpacity>
+            <TouchableOpacity style={[styles.toolbarButton, { marginLeft: 8 }]} onPress={openDebugLog}>
+              <Text style={styles.toolbarButtonText}>Debug-Log</Text>
+            </TouchableOpacity>
           </View>
 
           <FlatList
@@ -225,6 +268,33 @@ export const HomeScreen: React.FC = () => {
             }}
           />
 
+          <Modal visible={debugLines !== null} transparent animationType="slide" onRequestClose={() => setDebugLines(null)}>
+            <View style={styles.modalOverlay}>
+              <View style={[styles.modalContainer, { maxHeight: '85%', width: '92%' }]}>
+                <Text style={styles.modalTitle}>Debug-Log ({debugLines?.length ?? 0})</Text>
+                <ScrollView style={{ maxHeight: 420, backgroundColor: '#111', borderRadius: 6, padding: 8, marginBottom: 12 }}>
+                  <Text selectable style={{ color: '#eee', fontFamily: 'monospace', fontSize: 11 }}>
+                    {debugLines && debugLines.length ? [...debugLines].reverse().join('\n') : 'Noch keine Einträge.'}
+                  </Text>
+                </ScrollView>
+                <View style={styles.modalButtons}>
+                  <TouchableOpacity style={styles.modalButtonCreate} onPress={async () => { await Clipboard.setStringAsync((debugLines || []).join('\n')); Alert.alert('Debug-Log', 'In die Zwischenablage kopiert'); }}>
+                    <Text style={styles.modalButtonText}>Kopieren</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={styles.modalButtonCreate} onPress={openDebugLog}>
+                    <Text style={styles.modalButtonText}>Neu laden</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={styles.modalButtonCancel} onPress={async () => { await clearDebugLog(); setDebugLines([]); }}>
+                    <Text style={styles.modalButtonText}>Leeren</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={styles.modalButtonCancel} onPress={() => setDebugLines(null)}>
+                    <Text style={styles.modalButtonText}>Schließen</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </View>
+          </Modal>
+
           <Modal visible={showFolderModal} transparent animationType="slide">
             <View style={styles.modalOverlay}>
               <View style={styles.modalContainer}>
@@ -257,6 +327,30 @@ export const HomeScreen: React.FC = () => {
           </Modal>
         </>
       )}
+
+      <Modal visible={!!actionApp} transparent animationType="fade" onRequestClose={() => setActionApp(null)}>
+        <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setActionApp(null)}>
+          <View style={{ backgroundColor: 'white', borderRadius: 12, padding: 16, width: '85%' }}>
+            <Text style={{ fontSize: 18, fontWeight: '700', marginBottom: 8 }}>{actionApp?.manifest.name}</Text>
+            <Text selectable style={{ fontSize: 13, color: '#333', backgroundColor: '#f2f2f2', padding: 8, borderRadius: 6, marginBottom: 8 }}>{actionApp?.repoUrl}</Text>
+            {[
+              { label: 'Copy GitHub Link', fn: async (a: MiniApp) => { await Clipboard.setStringAsync(a.repoUrl); } },
+              { label: 'Move to Root', fn: (a: MiniApp) => handleMoveApp(a, null) },
+              ...folders.map((f) => ({ label: `Move to ${f.name}`, fn: (a: MiniApp) => handleMoveApp(a, f.id) })),
+              { label: 'Delete', fn: (a: MiniApp) => handleDeleteApp(a), danger: true },
+              { label: 'Cancel', fn: () => {} },
+            ].map((b: any) => (
+              <TouchableOpacity
+                key={b.label}
+                style={{ paddingVertical: 12 }}
+                onPress={() => { const a = actionApp; setActionApp(null); if (a) b.fn(a); }}
+              >
+                <Text style={{ fontSize: 16, color: b.danger ? '#d32f2f' : '#2196F3' }}>{b.label}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </TouchableOpacity>
+      </Modal>
     </View>
   );
 };

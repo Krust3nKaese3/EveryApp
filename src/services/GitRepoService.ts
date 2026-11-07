@@ -58,7 +58,7 @@ export class GitRepoService {
     }
     const [, owner, repo] = match;
     const cleanRepo = repo.replace(/\.git$/, '');
-    return `https://raw.githubusercontent.com/${owner}/${cleanRepo}/main/${filePath}`;
+    return `https://raw.githubusercontent.com/${owner}/${cleanRepo}/main/${filePath}?t=${Date.now()}`;
   }
 
   private static generateAppId(repoUrl: string): string {

@@ -1,35 +1,46 @@
-import { NativeModulesProxy } from 'expo-modules-core';
-import { NativeEventEmitter, NativeModules, EmitterSubscription } from 'react-native';
+import { requireOptionalNativeModule } from 'expo-modules-core';
 
-const ExpoClassicBluetooth = NativeModulesProxy.ExpoClassicBluetooth || NativeModules.ExpoClassicBluetooth;
+type EmitterSubscription = { remove: () => void };
+const ExpoClassicBluetooth: any = requireOptionalNativeModule('ExpoClassicBluetooth');
 
 export interface BluetoothDevice {
-  name: string;
-  address: string;
+  name: string;        // original device name
+  alias: string;       // user-set name (Android 11+), falls back to name
+  address: string;     // MAC
+  type: 'classic' | 'le' | 'dual' | 'unknown';
+  bondState: 'bonded' | 'bonding' | 'none';
+  majorClass: string;  // e.g. AUDIO_VIDEO
+  deviceClass: number;
+  uuids: string[];
+  connected: boolean;
 }
 
-export interface BluetoothEventPayload {
-  name: string;
-  address: string;
-}
+export type BluetoothEventPayload = BluetoothDevice;
 
-let eventEmitter: NativeEventEmitter | null = null;
-
-function getEventEmitter(): NativeEventEmitter {
-  if (!eventEmitter && ExpoClassicBluetooth) {
-    eventEmitter = new NativeEventEmitter(ExpoClassicBluetooth as any);
+const noopEmitter = { addListener: () => ({ remove: () => {} }) };
+function getEventEmitter(): any {
+  if (!ExpoClassicBluetooth) {
+    console.warn('ExpoClassicBluetooth module not available - bluetooth events disabled');
+    return noopEmitter;
   }
-  if (!eventEmitter) {
-    throw new Error('ExpoClassicBluetooth module not available');
-  }
-  return eventEmitter;
+  return ExpoClassicBluetooth;
 }
 
-export async function getConnectedDevicesAsync(): Promise<BluetoothDevice[]> {
+export async function getConnectedDevicesAsync(includePaired = false): Promise<BluetoothDevice[]> {
   if (!ExpoClassicBluetooth) {
     throw new Error('ExpoClassicBluetooth module not available');
   }
-  return await ExpoClassicBluetooth.getConnectedDevices();
+  try {
+    return await ExpoClassicBluetooth.getConnectedDevices(includePaired);
+  } catch (e: any) {
+    // Installed APK may still have the old native signature getConnectedDevices() (no args, name+address only)
+    if (/argument/i.test(String(e?.message))) {
+      console.warn('[EveryApp] old native getConnectedDevices() - falling back (name+address only)');
+      const list = await ExpoClassicBluetooth.getConnectedDevices();
+      return (list || []).map((d: any) => ({ alias: d.name, connected: true, ...d }));
+    }
+    throw e;
+  }
 }
 
 export function addBluetoothConnectedListener(

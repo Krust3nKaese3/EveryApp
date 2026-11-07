@@ -1,6 +1,5 @@
 package expo.modules.backgroundservice
 
-import android.content.Context
 import expo.modules.kotlin.Promise
 import expo.modules.kotlin.modules.Module
 import expo.modules.kotlin.modules.ModuleDefinition
@@ -9,120 +8,92 @@ class ExpoBackgroundServiceModule : Module() {
   override fun definition() = ModuleDefinition {
     Name("ExpoBackgroundService")
 
-    // Legacy entry points. They no longer pin a permanent foreground service.
     AsyncFunction("startService") { promise: Promise ->
       try {
-        val context = reactContextOrReject(promise) ?: return@AsyncFunction
-        ServiceGate.sync(context, "startService()")
+        val context = appContext.reactContext ?: run {
+          promise.reject("NO_CONTEXT", "React context not available", null); return@AsyncFunction
+        }
+        EveryAppBackgroundService.setEnabled(context, true)
+        ServiceGate.sync(context, "startService")
         promise.resolve(true)
       } catch (e: Exception) {
-        promise.reject("START_SERVICE_FAILED", "${e.javaClass.name}: ${e.message}", e)
+        promise.reject("START_SERVICE_FAILED", "${e.javaClass.simpleName}: ${e.message}", e)
       }
     }
 
     AsyncFunction("stopService") { promise: Promise ->
       try {
-        val context = reactContextOrReject(promise) ?: return@AsyncFunction
-        context.stopService(android.content.Intent(context, EveryAppBackgroundService::class.java))
-        NativeLog.add(context, "stopService() | Vordergrunddienst angehalten | Quelle: stopService")
+        val context = appContext.reactContext ?: run {
+          promise.reject("NO_CONTEXT", "React context not available", null); return@AsyncFunction
+        }
+        EveryAppBackgroundService.setEnabled(context, false)
+        ServiceGate.sync(context, "stopService")
         promise.resolve(true)
       } catch (e: Exception) {
-        promise.reject("STOP_SERVICE_FAILED", "${e.javaClass.name}: ${e.message}", e)
+        promise.reject("STOP_SERVICE_FAILED", e.message, e)
       }
     }
 
-    AsyncFunction("enableApp") { appId: String, promise: Promise ->
-      try {
-        val context = reactContextOrReject(promise) ?: return@AsyncFunction
-        TaskStore.setEnabled(context, appId, true)
-        ServiceGate.sync(context, "enableApp($appId)")
-        promise.resolve(true)
-      } catch (e: Exception) {
-        promise.reject("ENABLE_APP_FAILED", "${e.javaClass.name}: ${e.message}", e)
-      }
-    }
-
-    AsyncFunction("disableApp") { appId: String, promise: Promise ->
-      try {
-        val context = reactContextOrReject(promise) ?: return@AsyncFunction
-        TaskStore.setEnabled(context, appId, false)
-        ServiceGate.sync(context, "disableApp($appId)")
-        promise.resolve(true)
-      } catch (e: Exception) {
-        promise.reject("DISABLE_APP_FAILED", "${e.javaClass.name}: ${e.message}", e)
-      }
-    }
-
-    Function("registerTasks") { appId: String, tasksJson: String ->
-      val context = appContext.reactContext ?: return@Function "FEHLER registerTasks: kein Context"
-      val warning = TaskStore.setTasks(context, appId, tasksJson)
-      ServiceGate.sync(context, "registerTasks($appId)")
-      warning ?: ""
-    }
-
-    Function("getTaskSnapshot") {
-      appContext.reactContext?.let { TaskStore.snapshot(it) } ?: "{}"
-    }
-
-    Function("getNativeLog") {
-      appContext.reactContext?.let { NativeLog.dump(it) } ?: ""
-    }
-
-    Function("addNativeLog") { message: String ->
+    Function("setTileLabel") { index: Int, label: String? ->
       val context = appContext.reactContext ?: return@Function false
-      NativeLog.add(context, message)
+      EveryAppTileBase.setLabel(context, index, label)
       true
     }
 
-    Function("drainEvents") { appId: String ->
-      appContext.reactContext?.let { EventQueue.drain(it, appId) } ?: "[]"
-    }
-
-    Function("appendEvent") { event: String, dataJson: String ->
-      val context = appContext.reactContext ?: return@Function false
-      EventQueue.appendForEnabled(context, event, dataJson)
+    AsyncFunction("setTileConfig") { slot: Int, json: String? ->
+      val context = appContext.reactContext ?: throw IllegalStateException("React context not available")
+      UiStore.setTile(context, slot, json?.let { UiStore.inlineRemoteIcons(it) })
+      EveryAppTileBase.refresh(context, slot)
       true
     }
 
-    Function("noteBleConnected") { deviceId: String ->
-      val context = appContext.reactContext ?: return@Function false
-      BleReconnect.noteExternalConnect(context, deviceId)
+    AsyncFunction("setWidgetConfig") { id: String, json: String? ->
+      val context = appContext.reactContext ?: throw IllegalStateException("React context not available")
+      UiStore.setWidget(context, id, json?.let { UiStore.inlineRemoteIcons(it) })
+      EveryAppWidgetBase.updateAll(context)
       true
     }
 
-    Function("lockGrantGet") { appId: String ->
-      appContext.reactContext?.let { LockScreen.isGranted(it, appId) } ?: false
+    Function("getWidgetIds") {
+      val context = appContext.reactContext ?: return@Function emptyList<String>()
+      UiStore.widgetIds(context)
     }
 
+    Function("nativeLogRead") { appContext.reactContext?.let { NativeLog.read(it) } ?: "[]" }
+    Function("nativeLogClear") { appContext.reactContext?.let { NativeLog.clear(it) }; true }
+
+    // Generic popup host (PopupActivity)
+    Function("popupSend") { appId: String, id: String, json: String ->
+      val context = appContext.reactContext ?: return@Function false
+      PopupActivity.send(context, appId, id, json)
+    }
+    Function("popupClose") { appId: String, id: String? -> PopupActivity.close(appId, id) }
+    Function("popupState") { appId: String, id: String ->
+      val context = appContext.reactContext ?: return@Function "{}"
+      PopupActivity.storedState(context, appId, id).toString()
+    }
+    Function("popupOpen") { json: String ->
+      val context = appContext.currentActivity ?: appContext.reactContext ?: throw IllegalStateException("Kein Context")
+      context.startActivity(PopupActivity.open(context, json)); true
+    }
+    // Lock-screen grant per mini-app (only set from EveryApp's own confirmation dialog, never from mini-app code)
+    Function("lockGrantGet") { appId: String -> appContext.reactContext?.let { LockScreen.isGranted(it, appId) } ?: false }
     Function("lockGrantSet") { appId: String, granted: Boolean ->
       val context = appContext.reactContext ?: return@Function false
       LockScreen.setGranted(context, appId, granted)
       UiStore.tileSlotsFor(context, appId).forEach { EveryAppTileBase.refresh(context, it) }
       true
     }
-
-    Function("setTile") { slot: Int, json: String ->
+    Function("setRuntimeNeeds") { interval: Boolean, intervalMs: Double, wifi: Boolean ->
       val context = appContext.reactContext ?: return@Function false
-      if (slot !in 1..5) {
-        NativeLog.add(context, "FEHLER setTile | Slot $slot außerhalb 1..5")
-        return@Function false
-      }
-      UiStore.setTile(context, slot, json.ifBlank { null })
+      ServiceGate.setNeeds(context, interval, intervalMs.toLong(), wifi)
+      ServiceGate.sync(context, "setRuntimeNeeds")
       true
     }
-
-    Function("getTiles") {
-      appContext.reactContext?.let { UiStore.allTiles(it) } ?: "[]"
+    Function("isServiceEnabled") {
+      val context = appContext.reactContext ?: return@Function false
+      EveryAppBackgroundService.isEnabled(context)
     }
-  }
-
-  private fun reactContextOrReject(promise: Promise): Context? {
-    val context = appContext.reactContext
-    if (context == null) {
-      promise.reject("NO_CONTEXT", "React context not available", null)
-      return null
-    }
-    return context
   }
 
   companion object {

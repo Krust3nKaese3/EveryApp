@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { View, StyleSheet, StatusBar, ActivityIndicator, Text, ScrollView, TouchableOpacity } from 'react-native';
+import { View, StyleSheet, StatusBar, BackHandler, ActivityIndicator, Text, ScrollView, TouchableOpacity } from 'react-native';
 import WebView, { WebViewMessageEvent } from 'react-native-webview';
 import * as ScreenOrientation from 'expo-screen-orientation';
 import * as FileSystem from 'expo-file-system/legacy';
@@ -9,8 +9,8 @@ import { StorageService } from '../services/StorageService';
 import { PermissionRequestModal } from './PermissionRequestModal';
 import { BridgeMessageHandler } from '../bridge/BridgeMessageHandler';
 import { NativeCapabilities } from '../bridge/NativeCapabilities';
+import { takeDeepLink, onDeepLinkQueued, deepLinkInjection } from '../services/deepLinks';
 import { setupGlobalErrorHandler, removeGlobalErrorHandler } from '../utils/errorHandler';
-import { drainBackgroundEvents, subscribeBackgroundEvents } from '../services/backgroundEvents';
 
 interface MiniAppRunnerProps {
   app: MiniApp;
@@ -26,15 +26,15 @@ export const MiniAppRunner: React.FC<MiniAppRunnerProps> = ({ app, onClose }) =>
   const capabilitiesRef = useRef<NativeCapabilities | null>(null);
   const [error, setError] = useState<{ message: string; stack?: string } | null>(null);
 
-  const injectEvent = (event: string, data: any) => {
-    const payload = JSON.stringify(data ?? {}).replace(/</g, '\\u003c');
-    webViewRef.current?.injectJavaScript(
-      `window.dispatchBridgeEvent(${JSON.stringify(event)}, ${payload}); true;`,
-    );
+  const webLoadedRef = useRef(false);
+  const deliverDeepLink = () => {
+    if (!webLoadedRef.current) return;
+    const link = takeDeepLink(app.id);
+    if (link) webViewRef.current?.injectJavaScript(deepLinkInjection(link));
   };
+  useEffect(() => onDeepLinkQueued((id) => { if (id === app.id) deliverDeepLink(); }), [app.id]);
 
   useEffect(() => {
-    const unsubscribe = subscribeBackgroundEvents(injectEvent);
     setupGlobalErrorHandler((error, isFatal) => {
       setError({
         message: error.message || 'Unknown error',
@@ -51,9 +51,14 @@ export const MiniAppRunner: React.FC<MiniAppRunnerProps> = ({ app, onClose }) =>
     });
 
     ScreenOrientation.unlockAsync();
+
+    const backSub = BackHandler.addEventListener('hardwareBackPress', () => {
+      onClose();
+      return true;
+    });
     
     return () => {
-      unsubscribe();
+      backSub.remove();
       removeGlobalErrorHandler();
       ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP);
       if (capabilitiesRef.current) {
@@ -65,7 +70,9 @@ export const MiniAppRunner: React.FC<MiniAppRunnerProps> = ({ app, onClose }) =>
   const initApp = async () => {
     const existingPermissions = await StorageService.getAppPermissions(app.id);
     
-    if (existingPermissions.length === 0 && app.manifest.permissions.length > 0) {
+    // Ask again when the manifest declares permissions that were not granted yet (e.g. new 'ble')
+    const missing = app.manifest.permissions.filter((p) => !existingPermissions.includes(p));
+    if (missing.length > 0) {
       setShowPermissionModal(true);
     } else {
       setGrantedPermissions(existingPermissions);
@@ -103,7 +110,8 @@ export const MiniAppRunner: React.FC<MiniAppRunnerProps> = ({ app, onClose }) =>
         <head>
           <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
           <style>
-            body { margin: 0; padding: 0; overflow: hidden; }
+            html, body { margin: 0; padding: 0; }
+            html { overflow-x: hidden; }
             * { -webkit-tap-highlight-color: transparent; }
           </style>
         </head>
@@ -134,7 +142,7 @@ export const MiniAppRunner: React.FC<MiniAppRunnerProps> = ({ app, onClose }) =>
         capabilitiesRef.current = new NativeCapabilities(app.id);
       }
 
-      const bridgeHandler = new BridgeMessageHandler(app.id, grantedPermissions, capabilitiesRef.current);
+      const bridgeHandler = new BridgeMessageHandler(app.id, grantedPermissions, capabilitiesRef.current, (js) => webViewRef.current?.injectJavaScript(js));
       const response = await bridgeHandler.handleMessage(message);
       
       if (response) {
@@ -222,6 +230,7 @@ export const MiniAppRunner: React.FC<MiniAppRunnerProps> = ({ app, onClose }) =>
           source={{ html }}
           style={styles.webview}
           onMessage={handleMessage}
+          onLoadEnd={() => { webLoadedRef.current = true; setTimeout(deliverDeepLink, 300); }}
           onError={handleWebViewError}
           onHttpError={handleHttpError}
           onRenderProcessGone={handleRenderProcessGone}
@@ -229,23 +238,22 @@ export const MiniAppRunner: React.FC<MiniAppRunnerProps> = ({ app, onClose }) =>
           domStorageEnabled
           allowsInlineMediaPlayback
           mediaPlaybackRequiresUserAction={false}
-          scrollEnabled={false}
+          scrollEnabled
+          nestedScrollEnabled
+          overScrollMode="content"
           bounces={false}
-          onLoad={() => {
-            setLoading(false);
-            const pending = drainBackgroundEvents(app.id);
-            for (const item of pending) {
-              let data: any = {};
-              try {
-                data = JSON.parse(item.dataJson || '{}');
-              } catch {
-                data = { raw: item.dataJson };
-              }
-              injectEvent(String(item.event || 'unknown'), data);
-            }
-          }}
+          setSupportMultipleWindows={false}
+          onLoad={() => setLoading(false)}
         />
       )}
+
+      <TouchableOpacity
+        onPress={onClose}
+        style={{ position: 'absolute', top: 8, right: 8, width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(0,0,0,0.45)', alignItems: 'center', justifyContent: 'center', zIndex: 10 }}
+        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+      >
+        <Text style={{ color: 'white', fontSize: 18, fontWeight: '700' }}>✕</Text>
+      </TouchableOpacity>
 
       <PermissionRequestModal
         visible={showPermissionModal}

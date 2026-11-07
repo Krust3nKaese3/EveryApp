@@ -1,0 +1,1 @@
+power, tv, music, volume_up, volume_down, volume_mute, speaker, lightbulb, home, play, pause, stop, next, previous, bluetooth, wifi, star, heart, add, remove, check, close, headset, movie, game, bolt, lock, car, circle, input, menu

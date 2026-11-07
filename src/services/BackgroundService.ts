@@ -1,4 +1,5 @@
 import { NativeModules, Platform } from 'react-native';
+import { requireOptionalNativeModule } from 'expo-modules-core';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const BACKGROUND_APPS_KEY = '@everyapp_background_apps';
@@ -9,7 +10,7 @@ export class BackgroundService {
       throw new Error('Background service is only supported on Android');
     }
 
-    const { ExpoBackgroundService } = NativeModules;
+    const ExpoBackgroundService: any = requireOptionalNativeModule('ExpoBackgroundService');
     if (!ExpoBackgroundService) {
       throw new Error('Background service module not available');
     }
@@ -20,11 +21,11 @@ export class BackgroundService {
       await AsyncStorage.setItem(BACKGROUND_APPS_KEY, JSON.stringify(runningApps));
     }
 
-    if (typeof ExpoBackgroundService.enableApp === 'function') {
-      await ExpoBackgroundService.enableApp(appId);
-    } else {
-      await ExpoBackgroundService.startService();
-    }
+    await ExpoBackgroundService.startService();
+    try {
+      const { syncRuntimeNeeds } = require('./BackgroundTasks');
+      await syncRuntimeNeeds();
+    } catch (e) { console.error('[EveryApp][BG] syncRuntimeNeeds', e); }
   }
 
   static async stop(appId: string): Promise<void> {
@@ -36,11 +37,16 @@ export class BackgroundService {
     const filtered = runningApps.filter(id => id !== appId);
     await AsyncStorage.setItem(BACKGROUND_APPS_KEY, JSON.stringify(filtered));
 
-    const { ExpoBackgroundService } = NativeModules;
-    if (typeof ExpoBackgroundService?.disableApp === 'function') {
-      await ExpoBackgroundService.disableApp(appId);
-    } else if (filtered.length === 0 && ExpoBackgroundService) {
-      await ExpoBackgroundService.stopService();
+    if (filtered.length === 0) {
+      const ExpoBackgroundService: any = requireOptionalNativeModule('ExpoBackgroundService');
+      if (ExpoBackgroundService) {
+        await ExpoBackgroundService.stopService();
+      }
+    } else {
+      try {
+        const { syncRuntimeNeeds } = require('./BackgroundTasks');
+        await syncRuntimeNeeds();
+      } catch (e) { console.error('[EveryApp][BG] syncRuntimeNeeds', e); }
     }
   }
 

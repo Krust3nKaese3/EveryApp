@@ -1,5 +1,7 @@
 package expo.modules.backgroundservice
 
+import android.app.AlarmManager
+import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.net.ConnectivityManager
@@ -8,207 +10,196 @@ import android.net.NetworkRequest
 import android.net.wifi.WifiInfo
 import android.net.wifi.WifiManager
 import android.os.Build
-import android.app.PendingIntent
 import org.json.JSONObject
 
 /**
- * SSID/BSSID changes via ConnectivityManager.registerNetworkCallback(request, PendingIntent).
- * No foreground service. Duplicate callbacks are ignored. Real changes are debounced (30s).
- * Logic matches decideWifi / decideWifiAlarm in src/services/backgroundPolicy.ts.
+ * Wi-Fi changes via ConnectivityManager.registerNetworkCallback(request, PendingIntent).
+ * The callback survives process death and does not need the foreground service.
+ * Debounce and the last SSID/BSSID live in prefs so a dead process cannot double-fire.
+ * The first sample is stored and not emitted (same as the old in-process watcher).
  */
 object WifiWatcher {
-  const val ACTION_WIFI = "expo.modules.backgroundservice.WIFI"
+  const val ACTION_CALLBACK = "expo.modules.backgroundservice.WIFI_CB"
+  const val ACTION_DEBOUNCE = "expo.modules.backgroundservice.WIFI_DEBOUNCE"
   private const val PREFS = "everyapp_wifi"
-
-  private fun prefs(ctx: Context) = ctx.applicationContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-
-  private fun pending(ctx: Context): PendingIntent {
-    val intent = Intent(ctx, InternalTriggerReceiver::class.java).apply { action = ACTION_WIFI }
-    return PendingIntent.getBroadcast(
-      ctx,
-      21,
-      intent,
-      PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
-    )
-  }
-
-  fun onBoot(ctx: Context) {
-    prefs(ctx).edit().putBoolean("registered", false).apply()
-  }
+  private const val DEBOUNCE_MS = 30_000L
+  @Volatile private var registered = false
 
   fun sync(ctx: Context) {
-    val want = TaskStore.wifiCount(ctx) > 0
-    val remembered = prefs(ctx).getBoolean("registered", false)
-    val cm = ctx.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
-    val pi = pending(ctx)
+    val app = ctx.applicationContext
+    val want = EveryAppBackgroundService.isEnabled(app) &&
+      app.getSharedPreferences(ServiceGate.PREFS, Context.MODE_PRIVATE).getBoolean("wifi", false)
+    val cm = app.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+    val pi = callbackPi(app)
     if (!want) {
-      if (!remembered) return
-      try {
-        cm.unregisterNetworkCallback(pi)
-      } catch (_: Exception) {
+      if (registered) {
+        try { cm.unregisterNetworkCallback(pi) } catch (_: Exception) {}
+        registered = false
       }
-      prefs(ctx).edit().putBoolean("registered", false).apply()
-      AlarmScheduler.cancelWifiDebounce(ctx)
-      NativeLog.add(ctx, "WLAN AUS | kein wifiChanged-Trigger | kein Vordergrunddienst")
+      cancelAlarm(app)
       return
     }
-    if (remembered) return
-    if (Build.VERSION.SDK_INT < 26) {
-      prefs(ctx).edit().putBoolean("registered", true).apply()
-      NativeLog.add(ctx, "FEHLER WLAN | registerNetworkCallback(PendingIntent) braucht API 26 | kein Vordergrunddienst gestartet")
-      return
-    }
-    val request = NetworkRequest.Builder().addTransportType(NetworkCapabilities.TRANSPORT_WIFI).build()
+    if (registered) return
+    val req = NetworkRequest.Builder().addTransportType(NetworkCapabilities.TRANSPORT_WIFI).build()
     try {
-      cm.registerNetworkCallback(request, pi)
-      prefs(ctx).edit().putBoolean("registered", true).apply()
-      NativeLog.add(ctx, "WLAN AN | NetworkCallback per PendingIntent | kein Vordergrunddienst")
+      cm.registerNetworkCallback(req, pi)
+      registered = true
+      NativeLog.add(app, "WLAN NetworkCallback registriert (PendingIntent, ohne Vordergrunddienst)")
     } catch (e: Exception) {
-      prefs(ctx).edit().putBoolean("registered", true).apply()
-      NativeLog.add(ctx, "WLAN | registerNetworkCallback: ${e.javaClass.name}: ${e.message} | behandle als bereits registriert, kein Vordergrunddienst")
+      registered = false
+      NativeLog.add(app, "FEHLER WLAN NetworkCallback: ${e.javaClass.name}: ${e.message}")
     }
   }
 
   fun onCallback(ctx: Context) {
-    apply(ctx, readIdentity(ctx), alarm = false)
+    val app = ctx.applicationContext
+    if (!EveryAppBackgroundService.isEnabled(app)) return
+    handle(app, currentWifi(app))
   }
 
-  fun onDebounceAlarm(ctx: Context) {
-    apply(ctx, null, alarm = true)
+  fun onDebounce(ctx: Context) {
+    val app = ctx.applicationContext
+    if (!EveryAppBackgroundService.isEnabled(app)) return
+    val st = load(app)
+    if (!st.pending) return
+    if (st.seenSsid == st.emSsid && st.seenBssid == st.emBssid) {
+      save(app, st.copy(pending = false)); return
+    }
+    val now = System.currentTimeMillis()
+    if (st.lastEmit != 0L && now - st.lastEmit < DEBOUNCE_MS) {
+      schedule(app, st.lastEmit + DEBOUNCE_MS); return
+    }
+    emit(app, st, st.seenSsid, st.seenBssid, currentWifi(app), now)
   }
 
-  private data class Id(val ssid: String?, val bssid: String?)
+  @Synchronized
+  private fun handle(app: Context, wi: WifiInfo?) {
+    val bssid = wi?.bssid?.takeIf { it != "02:00:00:00:00:00" }?.lowercase()
+    val ssid = wi?.ssid?.trim('"')?.takeIf { it.isNotEmpty() && it != "<unknown ssid>" }
+    var st = load(app)
+    if (wi != null && bssid == null) {
+      if (!st.warned) {
+        st = st.copy(warned = true)
+        save(app, st)
+        NativeLog.add(app, "FEHLER wifiChanged: BSSID verborgen – Standort 'immer erlauben' + Standort an nötig")
+      }
+      return
+    }
+    if (!st.hasSeen) {
+      save(app, st.copy(hasSeen = true, seenSsid = ssid, seenBssid = bssid, emSsid = ssid, emBssid = bssid, pending = false, dupLogged = false))
+      NativeLog.add(app, "WLAN Baseline ${ssid ?: "null"}/${bssid ?: "null"}, kein Event")
+      return
+    }
+    if (st.seenBssid == bssid && st.seenSsid == ssid) {
+      if (!st.dupLogged) {
+        save(app, st.copy(dupLogged = true))
+        NativeLog.add(app, "WLAN ignoriert | SSID/BSSID unverändert ${ssid ?: "null"}/${bssid ?: "null"} | doppelter Callback, kein Event")
+      }
+      return
+    }
+    st = st.copy(seenSsid = ssid, seenBssid = bssid, dupLogged = false)
+    if (st.emBssid == bssid && st.emSsid == ssid) {
+      save(app, st.copy(pending = false))
+      NativeLog.add(app, "WLAN ignoriert | wieder ${ssid ?: "null"}/${bssid ?: "null"}, identisch zum letzten Event")
+      return
+    }
+    val now = System.currentTimeMillis()
+    if (st.lastEmit != 0L && now - st.lastEmit < DEBOUNCE_MS) {
+      save(app, st.copy(pending = true))
+      schedule(app, st.lastEmit + DEBOUNCE_MS)
+      NativeLog.add(app, "WLAN gedrosselt | geändert auf ${ssid ?: "null"}/${bssid ?: "null"} | Debounce ${DEBOUNCE_MS}ms")
+      return
+    }
+    emit(app, st, ssid, bssid, wi, now)
+  }
+
+  private fun emit(app: Context, st: State, ssid: String?, bssid: String?, wi: WifiInfo?, now: Long) {
+    val prevS = st.emSsid
+    val prevB = st.emBssid
+    save(app, st.copy(seenSsid = ssid, seenBssid = bssid, emSsid = ssid, emBssid = bssid, lastEmit = now, pending = false, dupLogged = false))
+    NativeLog.add(app, "WLAN Event | SSID/BSSID geändert -> ${ssid ?: "null"}/${bssid ?: "null"}")
+    UiStore.fire(app, "wifiChanged", mapOf(
+      "bssid" to bssid, "ssid" to ssid, "rssi" to wi?.rssi, "frequency" to wi?.frequency,
+      "prevBssid" to prevB, "prevSsid" to prevS,
+    ))
+  }
+
+  private fun currentWifi(app: Context): WifiInfo? {
+    val cm = app.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+    val caps = cm.activeNetwork?.let { cm.getNetworkCapabilities(it) } ?: return null
+    if (!caps.hasTransport(NetworkCapabilities.TRANSPORT_WIFI)) return null
+    if (Build.VERSION.SDK_INT >= 29) {
+      val info = caps.transportInfo
+      if (info is WifiInfo) return info
+    }
+    @Suppress("DEPRECATION")
+    return (app.getSystemService(Context.WIFI_SERVICE) as WifiManager).connectionInfo
+  }
+
+  private fun callbackPi(app: Context): PendingIntent {
+    val flags = PendingIntent.FLAG_UPDATE_CURRENT or
+      (if (Build.VERSION.SDK_INT >= 31) PendingIntent.FLAG_MUTABLE else 0)
+    val i = Intent(app, WifiCallbackReceiver::class.java).setAction(ACTION_CALLBACK)
+    return PendingIntent.getBroadcast(app, 21, i, flags)
+  }
+
+  private fun alarmPi(app: Context): PendingIntent {
+    val i = Intent(app, WifiCallbackReceiver::class.java).setAction(ACTION_DEBOUNCE)
+    return PendingIntent.getBroadcast(app, 13, i, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
+  }
+
+  private fun schedule(app: Context, at: Long) {
+    val am = app.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+    val pi = alarmPi(app)
+    try {
+      val exact = Build.VERSION.SDK_INT < 31 || am.canScheduleExactAlarms()
+      if (exact && Build.VERSION.SDK_INT >= 23) am.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, at, pi)
+      else if (Build.VERSION.SDK_INT >= 23) am.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, at, pi)
+      else am.set(AlarmManager.RTC_WAKEUP, at, pi)
+    } catch (e: Throwable) {
+      try { am.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, at, pi) } catch (e2: Throwable) {
+        NativeLog.add(app, "FEHLER WLAN Debounce-Alarm: ${e2.javaClass.name}: ${e2.message}")
+      }
+    }
+  }
+
+  private fun cancelAlarm(app: Context) {
+    val am = app.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+    try { am.cancel(alarmPi(app)) } catch (_: Exception) {}
+  }
 
   private data class State(
-    val hasSeen: Boolean,
-    val seen: Id,
-    val emitted: Id,
-    val lastEmitAt: Long,
-    val pending: Boolean,
+    val hasSeen: Boolean, val seenSsid: String?, val seenBssid: String?,
+    val emSsid: String?, val emBssid: String?, val lastEmit: Long,
+    val pending: Boolean, val warned: Boolean, val dupLogged: Boolean,
   )
 
-  private fun load(ctx: Context): State {
-    val o = try {
-      JSONObject(prefs(ctx).getString("state", "{}") ?: "{}")
-    } catch (_: Exception) {
-      JSONObject()
-    }
+  private fun load(app: Context): State {
+    val o = try { JSONObject(app.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getString("state", "{}")) } catch (_: Exception) { JSONObject() }
     return State(
-      hasSeen = o.optBoolean("hasSeen"),
-      seen = Id(o.optString("seenSsid").ifEmpty { null }, o.optString("seenBssid").ifEmpty { null }),
-      emitted = Id(o.optString("emittedSsid").ifEmpty { null }, o.optString("emittedBssid").ifEmpty { null }),
-      lastEmitAt = o.optLong("lastEmitAt"),
-      pending = o.optBoolean("pending"),
+      o.optBoolean("hasSeen"),
+      o.optString("seenSsid").ifEmpty { null },
+      o.optString("seenBssid").ifEmpty { null },
+      o.optString("emSsid").ifEmpty { null },
+      o.optString("emBssid").ifEmpty { null },
+      o.optLong("lastEmit"),
+      o.optBoolean("pending"),
+      o.optBoolean("warned"),
+      o.optBoolean("dupLogged"),
     )
   }
 
-  private fun save(ctx: Context, state: State) {
+  private fun save(app: Context, s: State) {
     val o = JSONObject()
-      .put("hasSeen", state.hasSeen)
-      .put("seenSsid", state.seen.ssid ?: "")
-      .put("seenBssid", state.seen.bssid ?: "")
-      .put("emittedSsid", state.emitted.ssid ?: "")
-      .put("emittedBssid", state.emitted.bssid ?: "")
-      .put("lastEmitAt", state.lastEmitAt)
-      .put("pending", state.pending)
-    prefs(ctx).edit().putString("state", o.toString()).commit()
-  }
-
-  private fun same(a: Id, b: Id) = a.ssid == b.ssid && a.bssid == b.bssid
-  private fun label(id: Id) = "${id.ssid ?: "null"}/${id.bssid ?: "null"}"
-
-  private fun apply(ctx: Context, next: Id?, alarm: Boolean) {
-    if (TaskStore.wifiCount(ctx) == 0) return
-    val now = System.currentTimeMillis()
-    val state = load(ctx)
-    if (alarm) {
-      if (!state.pending) {
-        NativeLog.add(ctx, "WLAN Alarm ohne ausstehendes Event")
-        return
-      }
-      if (same(state.seen, state.emitted)) {
-        save(ctx, state.copy(pending = false))
-        NativeLog.add(ctx, "WLAN Alarm | nichts mehr geändert")
-        return
-      }
-      if (state.lastEmitAt != 0L && now - state.lastEmitAt < ServicePolicy.WIFI_DEBOUNCE_MS) {
-        val at = state.lastEmitAt + ServicePolicy.WIFI_DEBOUNCE_MS
-        AlarmScheduler.scheduleWifiDebounce(ctx, at)
-        NativeLog.add(ctx, "WLAN Alarm zu früh, erneut planen")
-        return
-      }
-      val emitted = state.copy(emitted = state.seen, lastEmitAt = now, pending = false)
-      save(ctx, emitted)
-      NativeLog.add(ctx, "WLAN Event nach Debounce | SSID/BSSID -> ${label(state.seen)}")
-      BackgroundRuntime.wake(ctx, "wifiChanged", mapOf("ssid" to (state.seen.ssid ?: ""), "bssid" to (state.seen.bssid ?: "")))
-      return
-    }
-    val id = next ?: Id(null, null)
-    if (!state.hasSeen) {
-      val seeded = state.copy(hasSeen = true, seen = id)
-      if (id.ssid == null && id.bssid == null) {
-        save(ctx, seeded)
-        NativeLog.add(ctx, "WLAN Baseline ohne SSID/BSSID, kein Event")
-        return
-      }
-      save(ctx, seeded.copy(emitted = id, lastEmitAt = now, pending = false))
-      NativeLog.add(ctx, "WLAN erste SSID/BSSID ${label(id)}")
-      BackgroundRuntime.wake(ctx, "wifiChanged", mapOf("ssid" to (id.ssid ?: ""), "bssid" to (id.bssid ?: "")))
-      return
-    }
-    if (same(state.seen, id)) {
-      val p = prefs(ctx)
-      if (!p.getBoolean("dupLogged", false)) {
-        NativeLog.add(ctx, "WLAN ignoriert | SSID/BSSID unverändert ${label(id)} | doppelter Callback, kein Event")
-        p.edit().putBoolean("dupLogged", true).apply()
-      }
-      return
-    }
-    prefs(ctx).edit().putBoolean("dupLogged", false).apply()
-    val seenState = state.copy(seen = id)
-    if (same(state.emitted, id) && state.lastEmitAt != 0L) {
-      save(ctx, seenState.copy(pending = false))
-      AlarmScheduler.cancelWifiDebounce(ctx)
-      NativeLog.add(ctx, "WLAN ignoriert | wieder ${label(id)}, identisch zum letzten Event")
-      return
-    }
-    if (state.lastEmitAt != 0L && now - state.lastEmitAt < ServicePolicy.WIFI_DEBOUNCE_MS) {
-      save(ctx, seenState.copy(pending = true))
-      val at = state.lastEmitAt + ServicePolicy.WIFI_DEBOUNCE_MS
-      AlarmScheduler.scheduleWifiDebounce(ctx, at)
-      NativeLog.add(ctx, "WLAN gedrosselt | geändert auf ${label(id)} | Debounce ${ServicePolicy.WIFI_DEBOUNCE_MS}ms")
-      return
-    }
-    save(ctx, seenState.copy(emitted = id, lastEmitAt = now, pending = false))
-    NativeLog.add(ctx, "WLAN Event | SSID/BSSID geändert -> ${label(id)}")
-    BackgroundRuntime.wake(ctx, "wifiChanged", mapOf("ssid" to (id.ssid ?: ""), "bssid" to (id.bssid ?: "")))
-  }
-
-  private fun readIdentity(ctx: Context): Id {
-    try {
-      val cm = ctx.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
-      val network = cm.activeNetwork
-      val caps = network?.let { cm.getNetworkCapabilities(it) }
-      if (caps == null || !caps.hasTransport(NetworkCapabilities.TRANSPORT_WIFI)) {
-        return Id(null, null)
-      }
-      if (Build.VERSION.SDK_INT >= 29 && caps.transportInfo is WifiInfo) {
-        val info = caps.transportInfo as WifiInfo
-        return clean(info.ssid, info.bssid)
-      }
-      val wm = ctx.applicationContext.getSystemService(Context.WIFI_SERVICE) as WifiManager
-      @Suppress("DEPRECATION")
-      val info = wm.connectionInfo
-      return clean(info?.ssid, info?.bssid)
-    } catch (e: Throwable) {
-      NativeLog.add(ctx, "FEHLER WLAN lesen: ${e.javaClass.name}: ${e.message}")
-      return Id(null, null)
-    }
-  }
-
-  private fun clean(ssid: String?, bssid: String?): Id {
-    val s = ssid?.trim('"')?.takeIf { it.isNotBlank() && it != "<unknown ssid>" }
-    val b = bssid?.takeIf { it.isNotBlank() && it != "02:00:00:00:00:00" }
-    return Id(s, b)
+      .put("hasSeen", s.hasSeen)
+      .put("seenSsid", s.seenSsid ?: "")
+      .put("seenBssid", s.seenBssid ?: "")
+      .put("emSsid", s.emSsid ?: "")
+      .put("emBssid", s.emBssid ?: "")
+      .put("lastEmit", s.lastEmit)
+      .put("pending", s.pending)
+      .put("warned", s.warned)
+      .put("dupLogged", s.dupLogged)
+    app.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putString("state", o.toString()).commit()
   }
 }

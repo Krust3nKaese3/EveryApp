@@ -6,12 +6,14 @@
     "@react-native-async-storage/async-storage": "2.2.0",
     "expo": "~58.0.22",
     "expo-camera": "~58.0.14",
-    "expo-clipboard": "~6.0.3",
+    "expo-clipboard": "~58.0.4",
+    "expo-dev-client": "~58.0.18",
     "expo-device": "~58.0.5",
     "expo-file-system": "~58.0.13",
     "expo-haptics": "~58.0.7",
     "expo-notifications": "~58.1.7",
     "expo-screen-orientation": "~58.0.3",
+    "expo-secure-store": "~58.0.2",
     "expo-sensors": "~58.0.4",
     "expo-status-bar": "~58.0.4",
     "react": "19.3.0",
@@ -20,9 +22,11 @@
     "react-native-webview": "14.0.1"
   },
   "devDependencies": {
-    "@types/node": "^26.6.6",
     "@types/react": "~19.3.0",
-    "typescript": "~6.0.3"
+    "eslint": "^9.39.5",
+    "eslint-plugin-react-hooks": "^5.2.0",
+    "typescript": "~6.0.3",
+    "typescript-eslint": "^8.72.1"
   },
   "scripts": {
     "start": "expo start",
@@ -30,7 +34,9 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "build:android": "eas build --platform android --profile preview",
-    "test": "node --experimental-strip-types --test src/services/backgroundPolicy.test.ts"
+    "test": "node tests/run.js",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src modules/*/index.ts index.ts App.tsx"
   },
   "private": true
 }

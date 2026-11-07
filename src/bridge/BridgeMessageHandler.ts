@@ -1,3 +1,4 @@
+import { checkBridgePermission } from './permissions';
 import { Permission } from '../types';
 import { NativeCapabilities } from './NativeCapabilities';
 
@@ -5,8 +6,10 @@ export class BridgeMessageHandler {
   private appId: string;
   private grantedPermissions: Permission[];
   private capabilities: NativeCapabilities;
+  private inject?: (js: string) => void;
 
-  constructor(appId: string, grantedPermissions: Permission[], capabilities: NativeCapabilities) {
+  constructor(appId: string, grantedPermissions: Permission[], capabilities: NativeCapabilities, inject?: (js: string) => void) {
+    this.inject = inject;
     this.appId = appId;
     this.grantedPermissions = grantedPermissions;
     this.capabilities = capabilities;
@@ -31,16 +34,23 @@ export class BridgeMessageHandler {
   private handleEventSubscription(message: any) {
     const { event, action, callbackId } = message;
 
+    const caps: any = this.capabilities;
+    caps.__forwarded = caps.__forwarded || {};
     if (action === 'on') {
-      this.capabilities.eventEmitter.on(event, (data) => {
-        this.sendEventToWebView(event, data, callbackId);
-      });
+      // Forward each event only once; the WebView fans out to its own listeners
+      if (caps.__forwarded[event]) return;
+      const inject = this.inject;
+      const fn = (data: any) => {
+        console.log('[EveryApp] event -> webview', event, JSON.stringify(data));
+        inject?.(`window.dispatchBridgeEvent && window.dispatchBridgeEvent(${JSON.stringify(event)}, ${JSON.stringify(data ?? null)}); true;`);
+      };
+      caps.__forwarded[event] = fn;
+      this.capabilities.eventEmitter.on(event, fn);
     } else if (action === 'off') {
-      this.capabilities.eventEmitter.removeAllListeners(event);
+      const fn = caps.__forwarded[event];
+      if (fn) this.capabilities.eventEmitter.off(event, fn);
+      delete caps.__forwarded[event];
     }
-  }
-
-  private sendEventToWebView(event: string, data: any, callbackId: string) {
   }
 
   private async executeMethod(method: string, args: any[]): Promise<any> {
@@ -52,9 +62,7 @@ export class BridgeMessageHandler {
       return this.handleEventsMethod(action, args);
     }
 
-    if (!this.grantedPermissions.includes(category as Permission)) {
-      throw new Error(`Permission denied: ${category}`);
-    }
+    checkBridgePermission(category, this.grantedPermissions as string[]);
 
     return await this.executeCapabilityMethod(category, action, args);
   }
@@ -82,13 +90,33 @@ export class BridgeMessageHandler {
       (function() {
         let messageId = 0;
         const pendingMessages = {};
+        // SVG → white alpha-mask PNG data URL (96px) for tile icons
+        window.__eaSvgToPng = async function(spec) {
+          let src = spec;
+          if (/^<svg/i.test(spec)) src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(spec);
+          else if (!/^data:/i.test(spec)) src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(await sendMessage('tiles.fetchSvg', [spec]));
+          const img = new Image();
+          await new Promise(function(res, rej) { img.onload = res; img.onerror = function() { rej(new Error('SVG-Icon konnte nicht gerendert werden')); }; img.src = src; });
+          const c = document.createElement('canvas'); c.width = 96; c.height = 96;
+          const g = c.getContext('2d'); g.drawImage(img, 0, 0, 96, 96);
+          g.globalCompositeOperation = 'source-in'; g.fillStyle = '#fff'; g.fillRect(0, 0, 96, 96);
+          return c.toDataURL('image/png');
+        };
         const eventListeners = {};
 
         window.EveryAppBridge = {
+          buildInfo: { isDev: ${__DEV__ ? 'true' : 'false'}, devClient: ${__DEV__ ? 'true' : 'false'}, environment: '${__DEV__ ? 'development' : 'production'}', buildType: '${__DEV__ ? 'SrvEveryApp' : 'EveryApp'}' },
           storage: {
             get: (key) => sendMessage('storage.get', [key]),
             set: (key, value) => sendMessage('storage.set', [key, value]),
             remove: (key) => sendMessage('storage.remove', [key]),
+          },
+          secrets: {
+            get: (key) => sendMessage('secrets.get', [key]),
+            set: (key, value) => sendMessage('secrets.set', [key, value]),
+            delete: (key) => sendMessage('secrets.delete', [key]),
+            list: () => sendMessage('secrets.list', []),
+            info: () => sendMessage('secrets.info', []),
           },
           http: {
             request: async (req) => {
@@ -108,7 +136,7 @@ export class BridgeMessageHandler {
             scan: () => sendMessage('bluetooth.scan', []),
             connect: (deviceId) => sendMessage('bluetooth.connect', [deviceId]),
             disconnect: (deviceId) => sendMessage('bluetooth.disconnect', [deviceId]),
-            getConnectedDevices: () => sendMessage('bluetooth.getConnectedDevices', []),
+            getConnectedDevices: (includePaired) => sendMessage('bluetooth.getConnectedDevices', [!!includePaired]),
           },
           notifications: {
             schedule: (title, body, seconds) => sendMessage('notifications.schedule', [title, body, seconds]),
@@ -127,10 +155,83 @@ export class BridgeMessageHandler {
             enable: () => sendMessage('background.enable', []),
             disable: () => sendMessage('background.disable', []),
             isEnabled: () => sendMessage('background.isEnabled', []),
-            registerTasks: (tasks) => sendMessage('background.registerTasks', [tasks]),
-            setTile: (slot, patch) => sendMessage('background.setTile', [slot, patch]),
-            revokeLock: () => sendMessage('background.revokeLock', []),
+            handlesTriggers: () => sendMessage('background.handlesTriggers', []),
             getLog: () => sendMessage('background.getLog', []),
+            clearLog: () => sendMessage('background.clearLog', []),
+            registerTask: (task) => sendMessage('background.registerTask', [task]),
+            unregisterTask: (id) => sendMessage('background.unregisterTask', [id]),
+            unregisterAll: () => sendMessage('background.unregisterAll', []),
+            listTasks: () => sendMessage('background.listTasks', []),
+            getTileSlots: () => sendMessage('background.getTileSlots', []),
+            setUi: (conf) => sendMessage('background.setUi', [conf]),
+            getUi: () => sendMessage('background.getUi', []),
+            tileUpdate: (s, patch) => sendMessage('background.tileUpdate', [s, patch]),
+            widgetUpdate: (id, patch) => sendMessage('background.widgetUpdate', [id, patch]),
+          },
+          media: {
+            play: () => sendMessage('media.play', []),
+            pause: () => sendMessage('media.pause', []),
+            toggle: () => sendMessage('media.toggle', []),
+            next: () => sendMessage('media.next', []),
+            previous: () => sendMessage('media.previous', []),
+            stop: () => sendMessage('media.stop', []),
+          },
+          network: {
+            isAvailable: () => sendMessage('network.isAvailable', []),
+            getInfo: () => sendMessage('network.getInfo', []),
+            getWifi: () => sendMessage('network.getWifi', []),
+            requestLocation: (bg) => sendMessage('network.requestLocation', [!!bg]),
+          },
+          popup: {
+            open: (spec) => sendMessage('popup.open', [spec]),
+            send: (id, data) => sendMessage('popup.send', [id, data]),
+            close: (id) => sendMessage('popup.close', [id]),
+            state: (id) => sendMessage('popup.state', [id]),
+          },
+          // tile(n).set({icon,label,subtitle,state}) – SVG icons are rasterized here (WebView canvas) to PNG
+          tile: (n) => ({
+            set: async (patch) => {
+              patch = Object.assign({}, patch || {});
+              if (typeof patch.icon === 'string' && /^<svg|^data:image[/]svg|[.]svg([?]|#|$)/i.test(patch.icon.trim())) patch.icon = await window.__eaSvgToPng(patch.icon.trim());
+              return sendMessage('tiles.set', [n, patch]);
+            },
+            get: () => sendMessage('tiles.get', [n]),
+            release: () => sendMessage('tiles.release', [n]),
+          }),
+          net: {
+            isAvailable: () => sendMessage('net.isAvailable', []),
+            tcp: async (host, port, o) => {
+              const id = await sendMessage('net.tcpOpen', [host, port, o || {}]);
+              return { id, send: (d) => sendMessage('net.tcpSend', [id, d]), receive: (r) => sendMessage('net.tcpReceive', [id, r || {}]),
+                close: () => sendMessage('net.tcpClose', [id]) };
+            },
+            udpSend: (h, p, d, o) => sendMessage('net.udpSend', [h, p, d, o || {}]),
+            udpListen: (ports, ms) => sendMessage('net.udpListen', [ports, ms]),
+            tuyaStatus: (cfg) => sendMessage('net.tuyaStatus', [cfg]),
+            tuyaSet: (cfg, dps) => sendMessage('net.tuyaSet', [cfg, dps]),
+            tuyaDiscover: (ms) => sendMessage('net.tuyaDiscover', [ms]),
+          },
+          crypto: {
+            isAvailable: () => sendMessage('crypto.isAvailable', []),
+            aesEcb: (e, k, d) => sendMessage('crypto.aesEcb', [e, k, d]),
+            aesGcm: (e, k, iv, aad, d) => sendMessage('crypto.aesGcm', [e, k, iv, aad || '', d]),
+            hmacSha256: (k, d) => sendMessage('crypto.hmacSha256', [k, d]),
+            md5: (d) => sendMessage('crypto.md5', [d]),
+            crc32: (d) => sendMessage('crypto.crc32', [d]),
+            randomHex: (n) => sendMessage('crypto.randomHex', [n]),
+          },
+          ble: {
+            isAvailable: () => sendMessage('ble.isAvailable', []),
+            scan: (o) => sendMessage('ble.scan', [o || {}]),
+            connect: (a, o) => sendMessage('ble.connect', [a, o || {}]),
+            disconnect: (a) => sendMessage('ble.disconnect', [a]),
+            write: (a, s, c, d, o) => sendMessage('ble.write', [a, s, c, d, o || {}]),
+            read: (a, s, c, o) => sendMessage('ble.read', [a, s, c, o || {}]),
+            notify: (a, s, c, e, o) => sendMessage('ble.notify', [a, s, c, e !== false, o || {}]),
+          },
+          clipboard: {
+            setString: (text) => sendMessage('clipboard.setString', [text]),
+            getString: () => sendMessage('clipboard.getString', []),
           },
           events: {
             on: (event, callback) => {
