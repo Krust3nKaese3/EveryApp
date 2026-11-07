@@ -4,10 +4,13 @@ import * as Haptics from 'expo-haptics';
 import { Accelerometer, Gyroscope } from 'expo-sensors';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import BleManager from 'react-native-ble-manager';
+import { NativeModules } from 'react-native';
 import * as ClassicBluetooth from '../../modules/expo-classic-bluetooth';
 import { BluetoothDevice, HttpRequest, HttpResponse } from '../types';
 import { EventEmitter } from './EventEmitter';
 import { BackgroundService } from '../services/BackgroundService';
+import { getNativeLog, registerTasks, revokeLockGrant, setTile } from '../services/BackgroundTasks';
+import { deliverBackgroundEvent, subscribeBackgroundEvents } from '../services/backgroundEvents';
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -23,26 +26,32 @@ export class NativeCapabilities {
   public eventEmitter: EventEmitter;
   private bluetoothConnectedSub: any;
   private bluetoothDisconnectedSub: any;
+  private unsubscribeBackground: (() => void) | null = null;
 
   constructor(appId: string) {
     this.appId = appId;
     this.eventEmitter = new EventEmitter();
+    this.unsubscribeBackground = subscribeBackgroundEvents((event, data) => {
+      this.eventEmitter.emit(event, data);
+    });
     this.setupBluetoothListeners();
   }
 
   private setupBluetoothListeners() {
     this.bluetoothConnectedSub = ClassicBluetooth.addBluetoothConnectedListener((device) => {
-      this.eventEmitter.emit('bluetooth.connected', device);
+      deliverBackgroundEvent('bluetooth.connected', device);
     });
 
     this.bluetoothDisconnectedSub = ClassicBluetooth.addBluetoothDisconnectedListener((device) => {
-      this.eventEmitter.emit('bluetooth.disconnected', device);
+      deliverBackgroundEvent('bluetooth.disconnected', device);
     });
   }
 
   cleanup() {
     this.bluetoothConnectedSub?.remove();
     this.bluetoothDisconnectedSub?.remove();
+    this.unsubscribeBackground?.();
+    this.unsubscribeBackground = null;
     this.eventEmitter.removeAllListeners();
   }
 
@@ -128,7 +137,12 @@ export class NativeCapabilities {
     },
 
     connect: async (deviceId: string): Promise<void> => {
-      await BleManager.connect(deviceId);
+      await BleManager.connect(deviceId, { autoconnect: false });
+      try {
+        NativeModules.ExpoBackgroundService?.noteBleConnected?.(deviceId);
+      } catch (error: any) {
+        console.error(`FEHLER noteBleConnected ${deviceId}: ${error?.message || error}`);
+      }
     },
 
     disconnect: async (deviceId: string): Promise<void> => {
@@ -222,6 +236,22 @@ export class NativeCapabilities {
 
     isEnabled: async (): Promise<boolean> => {
       return await BackgroundService.isRunning(this.appId);
+    },
+
+    registerTasks: async (tasks: any[]): Promise<any> => {
+      return await registerTasks(this.appId, tasks);
+    },
+
+    setTile: async (slot: number, patch: any): Promise<any> => {
+      return await setTile(this.appId, slot, patch);
+    },
+
+    revokeLock: async (): Promise<void> => {
+      await revokeLockGrant(this.appId);
+    },
+
+    getLog: async (): Promise<string> => {
+      return await getNativeLog();
     },
   };
 

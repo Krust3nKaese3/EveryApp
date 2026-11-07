@@ -1,0 +1,6 @@
+{
+  "name": "expo-background-service",
+  "version": "1.0.0",
+  "main": "index.ts",
+  "description": "EveryApp background runtime: on-demand headless tasks and a foreground service only while interval or BLE notify work is active."
+}

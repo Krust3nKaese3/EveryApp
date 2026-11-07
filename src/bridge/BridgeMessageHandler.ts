@@ -127,6 +127,10 @@ export class BridgeMessageHandler {
             enable: () => sendMessage('background.enable', []),
             disable: () => sendMessage('background.disable', []),
             isEnabled: () => sendMessage('background.isEnabled', []),
+            registerTasks: (tasks) => sendMessage('background.registerTasks', [tasks]),
+            setTile: (slot, patch) => sendMessage('background.setTile', [slot, patch]),
+            revokeLock: () => sendMessage('background.revokeLock', []),
+            getLog: () => sendMessage('background.getLog', []),
           },
           events: {
             on: (event, callback) => {
