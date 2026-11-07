@@ -12,7 +12,6 @@ import android.graphics.PorterDuffColorFilter
 import android.util.Base64
 import android.util.Log
 import androidx.core.content.ContextCompat
-import com.facebook.react.HeadlessJsTaskService
 import org.json.JSONArray
 import org.json.JSONObject
 import java.net.HttpURLConnection
@@ -124,8 +123,7 @@ object UiStore {
       }
     }
     try {
-      ctx.startService(i)
-      HeadlessJsTaskService.acquireWakeLockNow(ctx)
+      HeadlessStart.start(ctx, i)
       Log.i(TAG, "[EveryApp] fired $event $extras")
       return null
     } catch (e: Throwable) {

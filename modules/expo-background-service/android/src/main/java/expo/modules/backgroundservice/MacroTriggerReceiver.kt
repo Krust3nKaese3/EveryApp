@@ -6,7 +6,6 @@ import android.content.Context
 import android.content.Intent
 import android.os.Build
 import android.util.Log
-import com.facebook.react.HeadlessJsTaskService
 
 class MacroTriggerReceiver : BroadcastReceiver() {
   override fun onReceive(context: Context, intent: Intent) {
@@ -37,13 +36,7 @@ class MacroTriggerReceiver : BroadcastReceiver() {
       putExtra("time", System.currentTimeMillis().toDouble())
     }
     try {
-      // Make sure the foreground service is up (e.g. after a crash), then run JS
-      try { EveryAppBackgroundService.start(context) } catch (e: Exception) {
-        NativeLog.add(context, "Vordergrund-Dienst konnte nicht (neu) starten: ${e.javaClass.name}: ${e.message}")
-        Log.w(EveryAppBackgroundService.TAG, "[EveryApp] could not (re)start foreground service: ${e.message}")
-      }
-      context.startService(service)
-      HeadlessJsTaskService.acquireWakeLockNow(context)
+      HeadlessStart.start(context, service)
     } catch (e: Exception) {
       NativeLog.add(context, "FEHLER Trigger-Task (${intent.action}) konnte nicht starten: ${e.javaClass.name}: ${e.message}")
       Log.e(EveryAppBackgroundService.TAG, "[EveryApp] FEHLER: Hintergrund-Task konnte nicht gestartet werden: ${e.javaClass.simpleName}: ${e.message}", e)

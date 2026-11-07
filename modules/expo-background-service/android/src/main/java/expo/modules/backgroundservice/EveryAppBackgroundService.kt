@@ -7,7 +7,6 @@ import android.app.PendingIntent
 import android.app.Service
 import android.content.Context
 import android.content.Intent
-import android.content.pm.ServiceInfo
 import android.os.Build
 import android.os.IBinder
 import android.util.Log
@@ -18,26 +17,45 @@ class EveryAppBackgroundService : Service() {
   override fun onBind(intent: Intent?): IBinder? = null
 
   override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-    Log.i(TAG, "[EveryApp] background service start (flags=$flags)")
-    createChannel(this)
-    try {
-      val type = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) ServiceInfo.FOREGROUND_SERVICE_TYPE_CONNECTED_DEVICE else 0
-      ServiceCompat.startForeground(this, NOTIFICATION_ID, createNotification(), type)
-    } catch (e: Exception) {
-      Log.e(TAG, "[EveryApp] startForeground failed: ${e.message}", e)
+    val snap = ServiceGate.snapshot(this)
+    if (!ServiceGate.needed(snap)) {
+      NativeLog.add(this, ServiceGate.line("onStart-unnötig", snap, false))
+      running = false
       stopSelf()
       return START_NOT_STICKY
     }
+    Log.i(TAG, "[EveryApp] background service start (flags=$flags)")
+    createChannel(this)
+    try {
+      val type = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) ServiceGate.foregroundType(snap) else 0
+      ServiceCompat.startForeground(this, NOTIFICATION_ID, createNotification(snap), type)
+    } catch (e: Exception) {
+      NativeLog.add(this, "FEHLER startForeground: ${e.javaClass.name}: ${e.message}")
+      Log.e(TAG, "[EveryApp] startForeground failed: ${e.message}", e)
+      running = false
+      stopSelf()
+      return START_NOT_STICKY
+    }
+    running = true
     // BLE notify subscriptions (expo-ble-gatt, optional module) – via reflection to avoid a hard module dependency
     try {
       val k = Class.forName("expo.modules.blegatt.BleManager")
       k.getMethod("restoreSubscriptions", Context::class.java, String::class.java).invoke(k.getField("INSTANCE").get(null), this, null)
-    } catch (e: ClassNotFoundException) {} catch (e: Exception) { Log.e(TAG, "[EveryApp] FEHLER BLE-Restore: ${e.message}") }
-    try { WifiWatcher.start(this) } catch (e: Exception) { Log.e(TAG, "[EveryApp] FEHLER WifiWatcher: ${e.message}") }
+    } catch (_: ClassNotFoundException) {} catch (e: Exception) {
+      NativeLog.add(this, "FEHLER BLE-Restore: ${e.javaClass.name}: ${e.message}")
+    }
+    if (snap.interval) {
+      try { HeadlessStart.event(this, "keepalive") } catch (e: Throwable) {
+        NativeLog.add(this, "FEHLER keepalive: ${e.javaClass.name}: ${e.message}")
+      }
+    }
     return START_STICKY
   }
 
-  private fun createNotification(): Notification {
+  private fun createNotification(snap: ServiceGate.Snap): Notification {
+    val reasons = mutableListOf<String>()
+    if (snap.interval) reasons += "Intervall"
+    if (snap.due > 0) reasons += "BLE"
     val launchIntent = packageManager.getLaunchIntentForPackage(applicationContext.packageName)
     val pendingIntent = PendingIntent.getActivity(
       this, 0, launchIntent,
@@ -45,7 +63,7 @@ class EveryAppBackgroundService : Service() {
     )
     return NotificationCompat.Builder(this, CHANNEL_ID)
       .setContentTitle("EveryApp aktiv")
-      .setContentText("Hintergrund-Makros warten auf Trigger")
+      .setContentText(if (reasons.isEmpty()) "Hintergrund-Makros" else reasons.joinToString(", "))
       .setSmallIcon(android.R.drawable.ic_menu_compass)
       .setContentIntent(pendingIntent)
       .setOngoing(true)
@@ -53,10 +71,11 @@ class EveryAppBackgroundService : Service() {
   }
 
   override fun onDestroy() {
-    super.onDestroy()
-    WifiWatcher.stop(this)
+    running = false
+    NativeLog.add(this, "DIENST BEENDET | Vordergrunddienst gestoppt")
     Log.i(TAG, "[EveryApp] background service destroyed")
     stopForeground(STOP_FOREGROUND_REMOVE)
+    super.onDestroy()
   }
 
   companion object {
@@ -65,6 +84,7 @@ class EveryAppBackgroundService : Service() {
     const val PREFS = "everyapp_background"
     const val KEY_ENABLED = "enabled"
     private const val NOTIFICATION_ID = 1
+    @Volatile var running = false
 
     fun createChannel(context: Context) {
       if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -81,7 +101,8 @@ class EveryAppBackgroundService : Service() {
       context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putBoolean(KEY_ENABLED, enabled).apply()
     }
 
-    fun start(context: Context) {
+    /** Called only by ServiceGate when interval or a due/connected bleNotify needs the process. */
+    fun launch(context: Context) {
       createChannel(context)
       val i = Intent(context, EveryAppBackgroundService::class.java)
       if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) context.startForegroundService(i) else context.startService(i)

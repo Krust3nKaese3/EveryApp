@@ -5,6 +5,8 @@ import android.bluetooth.*
 import android.bluetooth.le.ScanCallback
 import android.bluetooth.le.ScanResult
 import android.bluetooth.le.ScanSettings
+import android.app.AlarmManager
+import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.os.Build
@@ -42,8 +44,10 @@ object BleManager {
 
   private val conns = ConcurrentHashMap<String, Conn>()
   private val manualDisconnect = ConcurrentHashMap.newKeySet<String>()
-  private val backoff = ConcurrentHashMap<String, Long>()
-  private val worker: Handler by lazy { Handler(HandlerThread("EveryAppBle").apply { start() }.looper) }
+  private val worker: Handler by lazy { Handler(HandlerThread("EveryAppBle").apply { isDaemon = true; start() }.looper) }
+  private const val MAX_ATTEMPTS = 10
+  private const val BACKOFF_BASE_MS = 2_000L
+  private const val BACKOFF_CAP_MS = 300_000L
 
   // ---------- persisted notify subscriptions (auto re-subscribe) ----------
   private const val PREFS = "everyapp_ble"
@@ -61,22 +65,147 @@ object BleManager {
   }
   fun subscriptions(ctx: Context): List<Map<String, String>> = subs(ctx).map { mapOf("address" to it.optString("address"), "svc" to it.optString("svc"), "chr" to it.optString("chr")) }
 
-  /** Re-establish all persisted subscriptions (called on service start and after a connection drop, with backoff). */
+  private fun meta(ctx: Context): JSONObject =
+    try { JSONObject(ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getString("meta", "{}")) } catch (_: Exception) { JSONObject() }
+  private fun saveMeta(ctx: Context, o: JSONObject) {
+    ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putString("meta", o.toString()).commit()
+  }
+  private fun entry(ctx: Context, addr: String): JSONObject = meta(ctx).optJSONObject(addr.uppercase()) ?: JSONObject()
+  private fun attemptsOf(ctx: Context, addr: String) = entry(ctx, addr).optInt("attempts")
+  private fun nextOf(ctx: Context, addr: String) = entry(ctx, addr).optLong("nextAt")
+
+  /** Addresses with a persisted notify, grouped. */
+  private fun addresses(ctx: Context) = subs(ctx).map { it.optString("address").uppercase() }.distinct()
+
+  fun dueCount(ctx: Context): Int {
+    val now = System.currentTimeMillis()
+    return addresses(ctx).count { addr ->
+      if (manualDisconnect.contains(addr)) false
+      else if (conns[addr]?.connected == true) true
+      else attemptsOf(ctx, addr) < MAX_ATTEMPTS && nextOf(ctx, addr) <= now
+    }
+  }
+  fun waitingCount(ctx: Context): Int {
+    val now = System.currentTimeMillis()
+    return addresses(ctx).count { addr ->
+      conns[addr]?.connected != true && !manualDisconnect.contains(addr) &&
+        attemptsOf(ctx, addr) < MAX_ATTEMPTS && nextOf(ctx, addr) > now
+    }
+  }
+  fun exhaustedCount(ctx: Context): Int =
+    addresses(ctx).count { attemptsOf(ctx, it) >= MAX_ATTEMPTS && conns[it]?.connected != true }
+
+  /** Alarm fired: the attempt is due again. Does not reset the counter. */
+  fun markDue(ctx: Context, addr: String) {
+    val a = addr.uppercase()
+    if (attemptsOf(ctx, a) >= MAX_ATTEMPTS) return
+    val o = meta(ctx)
+    val e = o.optJSONObject(a) ?: JSONObject()
+    e.put("nextAt", 0L)
+    o.put(a, e)
+    saveMeta(ctx, o)
+  }
+
+  private fun resetAttempts(ctx: Context, addr: String) {
+    val a = addr.uppercase()
+    val o = meta(ctx)
+    o.put(a, JSONObject().put("attempts", 0).put("nextAt", 0L))
+    saveMeta(ctx, o)
+    cancelRetry(ctx, a)
+  }
+
+  private fun backoffMs(attempt: Int): Long {
+    val shift = (attempt - 1).coerceIn(0, 16)
+    var d = BACKOFF_BASE_MS
+    repeat(shift) { d = (d * 2).coerceAtMost(BACKOFF_CAP_MS) }
+    return d.coerceAtMost(BACKOFF_CAP_MS)
+  }
+
+  private fun recordFailure(ctx: Context, addr: String, err: String) {
+    val a = addr.uppercase()
+    val n = attemptsOf(ctx, a) + 1
+    val o = meta(ctx)
+    if (n >= MAX_ATTEMPTS) {
+      o.put(a, JSONObject().put("attempts", n).put("nextAt", 0L))
+      saveMeta(ctx, o)
+      cancelRetry(ctx, a)
+      logNative(ctx, "BLE RECONNECT STOPP | Gerät $a Versuch $n/$MAX_ATTEMPTS | $err | kein weiterer Versuch")
+      syncGate(ctx, "ble-exhausted")
+      return
+    }
+    val delay = backoffMs(n)
+    val at = System.currentTimeMillis() + delay
+    o.put(a, JSONObject().put("attempts", n).put("nextAt", at))
+    saveMeta(ctx, o)
+    scheduleRetry(ctx, a, at)
+    logNative(ctx, "BLE RECONNECT | Gerät $a Versuch $n/$MAX_ATTEMPTS fehlgeschlagen: $err | nächster Versuch in ${delay}ms | Dienst wird für die Wartezeit nicht gehalten")
+    syncGate(ctx, "ble-backoff")
+  }
+
+  private fun scheduleRetry(ctx: Context, addr: String, at: Long) {
+    val am = ctx.applicationContext.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+    val pi = retryPi(ctx, addr)
+    try {
+      val exact = Build.VERSION.SDK_INT < 31 || am.canScheduleExactAlarms()
+      if (exact && Build.VERSION.SDK_INT >= 23) am.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, at, pi)
+      else if (Build.VERSION.SDK_INT >= 23) am.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, at, pi)
+      else am.set(AlarmManager.RTC_WAKEUP, at, pi)
+    } catch (e: Throwable) {
+      try { am.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, at, pi) } catch (e2: Throwable) {
+        logNative(ctx, "FEHLER BLE-Alarm $addr: ${e2.javaClass.name}: ${e2.message}")
+      }
+    }
+  }
+
+  private fun cancelRetry(ctx: Context, addr: String) {
+    val am = ctx.applicationContext.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+    try { am.cancel(retryPi(ctx, addr)) } catch (_: Exception) {}
+  }
+
+  private fun retryPi(ctx: Context, addr: String): PendingIntent {
+    val i = Intent().setClassName(ctx.packageName, "expo.modules.backgroundservice.BleRetryReceiver")
+    i.action = "expo.modules.backgroundservice.BLE_RETRY"
+    i.putExtra("address", addr.uppercase())
+    return PendingIntent.getBroadcast(ctx.applicationContext, addr.uppercase().hashCode(), i, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
+  }
+
+  private fun logNative(ctx: Context, text: String) {
+    Log.w(TAG, "[EveryApp] $text")
+    try {
+      val k = Class.forName("expo.modules.backgroundservice.NativeLog")
+      k.getMethod("add", Context::class.java, String::class.java).invoke(k.getField("INSTANCE").get(null), ctx.applicationContext, text)
+    } catch (_: Throwable) {}
+  }
+
+  private fun syncGate(ctx: Context, source: String) {
+    try {
+      val k = Class.forName("expo.modules.backgroundservice.ServiceGate")
+      k.getMethod("sync", Context::class.java, String::class.java).invoke(k.getField("INSTANCE").get(null), ctx.applicationContext, source)
+    } catch (_: ClassNotFoundException) {} catch (e: Throwable) {
+      logNative(ctx, "FEHLER ServiceGate: ${e.javaClass.name}: ${e.message}")
+    }
+  }
+
+  /** Re-establish persisted subscriptions. Waits live in AlarmManager, not on the worker thread. */
   fun restoreSubscriptions(ctx: Context, onlyAddress: String? = null) {
     if (!::app.isInitialized) app = ctx.applicationContext
-    val byAddr = subs(ctx).groupBy { it.optString("address") }.filterKeys { onlyAddress == null || it.equals(onlyAddress, true) }
+    val now = System.currentTimeMillis()
+    val byAddr = subs(ctx).groupBy { it.optString("address").uppercase() }.filterKeys { onlyAddress == null || it.equals(onlyAddress, true) }
     for ((addr, l) in byAddr) {
       if (manualDisconnect.contains(addr)) continue
+      val attempts = attemptsOf(ctx, addr)
+      if (attempts >= MAX_ATTEMPTS) continue
+      val next = nextOf(ctx, addr)
+      if (next > now) continue
       worker.post {
         try {
           for (x in l) notify(ctx, addr, x.optString("svc"), x.optString("chr"), true, 10000, persist = false)
-          backoff.remove(addr)
-          Log.i(TAG, "[EveryApp] BLE re-subscribe $addr ok (${l.size})")
+          resetAttempts(ctx, addr)
+          logNative(ctx, "BLE VERBUNDEN | Gerät $addr | Versuche zurückgesetzt")
+          syncGate(ctx, "ble-connected")
         } catch (e: Exception) {
-          val d = ((backoff[addr] ?: 2000L) * 2).coerceAtMost(300_000L)
-          backoff[addr] = d
-          Log.w(TAG, "[EveryApp] FEHLER BLE re-subscribe $addr: ${e.message} – neuer Versuch in ${d / 1000}s")
-          worker.postDelayed({ restoreSubscriptions(ctx, addr) }, d)
+          if (nextOf(ctx, addr) <= System.currentTimeMillis() && attemptsOf(ctx, addr) < MAX_ATTEMPTS)
+            recordFailure(ctx, addr, "${e.javaClass.name}: ${e.message}")
         }
       }
     }
@@ -124,6 +253,8 @@ object BleManager {
       Log.i(TAG, "[EveryApp] BLE ${g.device.address} state=$newState status=$status")
       if (newState == BluetoothProfile.STATE_CONNECTED && status == BluetoothGatt.GATT_SUCCESS) {
         c.connected = true
+        resetAttempts(app, g.device.address)
+        logNative(app, "BLE VERBUNDEN | Gerät ${g.device.address} | Versuche zurückgesetzt")
         if (!g.discoverServices()) { c.status = -2; c.latch?.countDown() }
       } else {
         c.connected = false; c.servicesReady = false; c.status = if (status == 0) -1 else status
@@ -133,8 +264,10 @@ object BleManager {
         listener?.invoke(mapOf("event" to "bleDisconnected", "address" to g.device.address, "status" to status))
         val addr = g.device.address
         if (!manualDisconnect.contains(addr) && subs(app).any { it.optString("address").equals(addr, true) }) {
-          val d = backoff[addr] ?: 2000L
-          worker.postDelayed({ restoreSubscriptions(app, addr) }, d)
+          if (nextOf(app, addr) <= System.currentTimeMillis() && attemptsOf(app, addr) < MAX_ATTEMPTS)
+            recordFailure(app, addr, "Verbindung getrennt (Status $status)")
+        } else if (manualDisconnect.contains(addr)) {
+          syncGate(app, "ble-manual-disconnect")
         }
       }
     }
@@ -170,8 +303,8 @@ object BleManager {
       i.putExtra("event", "bleNotify"); i.putExtra("address", g.device.address)
       i.putExtra("serviceUuid", ch.service.uuid.toString()); i.putExtra("charUuid", ch.uuid.toString())
       i.putExtra("hex", hex(v)); i.putExtra("time", System.currentTimeMillis().toDouble())
-      app.startService(i)
-    } catch (e: Exception) { Log.e(TAG, "[EveryApp] FEHLER bleNotify-Task: ${e.message}") }
+      if (Build.VERSION.SDK_INT >= 26) app.startForegroundService(i) else app.startService(i)
+    } catch (e: Exception) { logNative(app, "FEHLER bleNotify-Task: ${e.javaClass.name}: ${e.message}") }
   }
 
   private fun <T> op(c: Conn, timeoutMs: Long, what: String, start: (BluetoothGatt) -> Boolean, result: () -> T): T {
@@ -209,6 +342,7 @@ object BleManager {
         try { c.gatt?.requestMtu(185) } catch (_: Exception) {}
         Thread.sleep(300)
       }
+      resetAttempts(ctx, c.address)
       c.lastUsed = System.currentTimeMillis()
       return describe(c)
     } finally { c.latch = null; c.lock.unlock() }
@@ -230,8 +364,11 @@ object BleManager {
     })
 
   fun disconnect(address: String) {
-    manualDisconnect.add(address.uppercase())
-    conns.remove(address.uppercase())?.let { c -> try { c.gatt?.disconnect(); c.gatt?.close() } catch (_: Exception) {}; c.gatt = null }
+    val a = address.uppercase()
+    manualDisconnect.add(a)
+    if (::app.isInitialized) cancelRetry(app, a)
+    conns.remove(a)?.let { c -> try { c.gatt?.disconnect(); c.gatt?.close() } catch (_: Exception) {}; c.gatt = null }
+    if (::app.isInitialized) syncGate(app, "ble-disconnect")
   }
 
   fun connectedAddresses(): List<String> = conns.values.filter { it.connected }.map { it.address }
@@ -265,7 +402,13 @@ object BleManager {
 
   @Suppress("DEPRECATION")
   fun notify(ctx: Context, address: String, svc: String, ch: String, enable: Boolean, timeoutMs: Long, persist: Boolean = true): Boolean {
-    if (persist) setSub(ctx.applicationContext, address, svc, ch, enable)
+    val appCtx = ctx.applicationContext
+    if (persist) {
+      setSub(appCtx, address, svc, ch, enable)
+      if (enable) resetAttempts(appCtx, address)
+      else if (subs(appCtx).none { it.optString("address").equals(address, true) }) cancelRetry(appCtx, address.uppercase())
+      syncGate(appCtx, if (enable) "ble-notify-on" else "ble-notify-off")
+    }
     if (!enable && conns[address.uppercase()]?.connected != true) return true
     val (c, x) = chr(ctx, address, svc, ch, timeoutMs)
     c.gatt!!.setCharacteristicNotification(x, enable)

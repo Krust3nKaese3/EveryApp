@@ -205,8 +205,8 @@ window.EveryAppBridge.vibration.vibrate([100, 50, 100, 50, 200]);
 ```javascript
 // Enable background execution for this mini-app
 await window.EveryAppBridge.background.enable();
-// Starts a foreground service that keeps the mini-app's runtime alive
-// Also prompts user to disable battery optimization
+// Arms background mode. The foreground service stays up only for interval
+// triggers or a connected/due BLE notify. Other triggers use a short headless task.
 
 // Disable background execution
 await window.EveryAppBridge.background.disable();
@@ -217,7 +217,7 @@ const isEnabled = await window.EveryAppBridge.background.isEnabled();
 
 **Background Behavior:**
 - Mini-apps with the `background` permission can keep running when EveryApp is in the background or the screen is off
-- A persistent notification indicates that background apps are active
+- A persistent notification is shown only while an interval or a connected/due BLE notify needs the process
 - The mini-app can continue to:
   - Receive Bluetooth connection events
   - Make HTTP requests

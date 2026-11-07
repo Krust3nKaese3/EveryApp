@@ -22,6 +22,10 @@ export class BackgroundService {
     }
 
     await ExpoBackgroundService.startService();
+    try {
+      const { syncRuntimeNeeds } = require('./BackgroundTasks');
+      await syncRuntimeNeeds();
+    } catch (e) { console.error('[EveryApp][BG] syncRuntimeNeeds', e); }
   }
 
   static async stop(appId: string): Promise<void> {
@@ -38,6 +42,11 @@ export class BackgroundService {
       if (ExpoBackgroundService) {
         await ExpoBackgroundService.stopService();
       }
+    } else {
+      try {
+        const { syncRuntimeNeeds } = require('./BackgroundTasks');
+        await syncRuntimeNeeds();
+      } catch (e) { console.error('[EveryApp][BG] syncRuntimeNeeds', e); }
     }
   }
 

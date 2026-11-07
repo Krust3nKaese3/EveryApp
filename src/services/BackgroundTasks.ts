@@ -56,7 +56,10 @@ type Registry = Record<string, Record<string, BackgroundTask>>;
 async function readRegistry(): Promise<Registry> {
   try { return JSON.parse((await AsyncStorage.getItem(TASKS_KEY)) || '{}'); } catch { return {}; }
 }
-async function writeRegistry(r: Registry) { await AsyncStorage.setItem(TASKS_KEY, JSON.stringify(r)); }
+async function writeRegistry(r: Registry) {
+  await AsyncStorage.setItem(TASKS_KEY, JSON.stringify(r));
+  await syncRuntimeNeeds();
+}
 
 export async function bgLog(appId: string, message: string, level: 'info' | 'error' = 'info') {
   message = maskSecrets(appId, message);
@@ -266,7 +269,33 @@ async function syncTiles() {
   console.log('[EveryApp][BG] tiles', JSON.stringify(slots));
 }
 
-// ---- interval triggers: JS timers, live as long as the process (kept alive by the foreground service) ----
+/**
+ * Tell native which reasons may keep the foreground service up.
+ * Tasks live in AsyncStorage, so the service cannot see them itself.
+ * Wi-Fi is registered as a PendingIntent and does not keep the service.
+ */
+export async function syncRuntimeNeeds(): Promise<void> {
+  const tasks = await activeTasks();
+  let interval = false;
+  let intervalMs = 0;
+  let wifi = false;
+  for (const [, t] of tasks) {
+    for (const tr of t.triggers) {
+      if (tr.type === 'interval') {
+        interval = true;
+        intervalMs = intervalMs === 0 ? tr.ms : Math.min(intervalMs, tr.ms);
+      }
+      if (tr.type === 'wifiChanged') wifi = true;
+    }
+  }
+  const native: any = requireOptionalNativeModule('ExpoBackgroundService');
+  if (native && typeof native.setRuntimeNeeds === 'function') {
+    try { native.setRuntimeNeeds(interval, intervalMs, wifi); }
+    catch (e: any) { console.error('[EveryApp][BG] setRuntimeNeeds', e?.message || e); }
+  }
+}
+
+// ---- interval triggers: JS timers. The foreground service stays up only while an interval task is active. ----
 let timers: any[] = [];
 let restartPending: any = null;
 export function restartTimers() {
@@ -288,6 +317,11 @@ export function restartTimers() {
 
 /** Headless entry point (native extras: event, name, address, time). */
 export async function headlessEntry(data: any) {
+  if (data?.event === 'keepalive') {
+    await debugLog('headless keepalive: Intervall-Timer starten');
+    restartTimers();
+    return;
+  }
   let raw = ''; try { raw = JSON.stringify(data); } catch { raw = String(data); }
   await debugLog(`headless empfangen: ${raw}`);
   const map: Record<string, string> = { 'bluetooth.connected': 'bluetoothConnected', 'bluetooth.disconnected': 'bluetoothDisconnected', boot: 'boot', quickTile: 'quickTile' };

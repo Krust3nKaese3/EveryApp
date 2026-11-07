@@ -1,6 +1,5 @@
 package expo.modules.backgroundservice
 
-import android.content.Intent
 import expo.modules.kotlin.Promise
 import expo.modules.kotlin.modules.Module
 import expo.modules.kotlin.modules.ModuleDefinition
@@ -15,7 +14,7 @@ class ExpoBackgroundServiceModule : Module() {
           promise.reject("NO_CONTEXT", "React context not available", null); return@AsyncFunction
         }
         EveryAppBackgroundService.setEnabled(context, true)
-        EveryAppBackgroundService.start(context)
+        ServiceGate.sync(context, "startService")
         promise.resolve(true)
       } catch (e: Exception) {
         promise.reject("START_SERVICE_FAILED", "${e.javaClass.simpleName}: ${e.message}", e)
@@ -28,7 +27,7 @@ class ExpoBackgroundServiceModule : Module() {
           promise.reject("NO_CONTEXT", "React context not available", null); return@AsyncFunction
         }
         EveryAppBackgroundService.setEnabled(context, false)
-        context.stopService(Intent(context, EveryAppBackgroundService::class.java))
+        ServiceGate.sync(context, "stopService")
         promise.resolve(true)
       } catch (e: Exception) {
         promise.reject("STOP_SERVICE_FAILED", e.message, e)
@@ -83,6 +82,12 @@ class ExpoBackgroundServiceModule : Module() {
       val context = appContext.reactContext ?: return@Function false
       LockScreen.setGranted(context, appId, granted)
       UiStore.tileSlotsFor(context, appId).forEach { EveryAppTileBase.refresh(context, it) }
+      true
+    }
+    Function("setRuntimeNeeds") { interval: Boolean, intervalMs: Double, wifi: Boolean ->
+      val context = appContext.reactContext ?: return@Function false
+      ServiceGate.setNeeds(context, interval, intervalMs.toLong(), wifi)
+      ServiceGate.sync(context, "setRuntimeNeeds")
       true
     }
     Function("isServiceEnabled") {

@@ -16,7 +16,7 @@ module.exports = function withEveryAppConfig(config) {
         'android:name': 'expo.modules.backgroundservice.EveryAppBackgroundService',
         'android:enabled': 'true',
         'android:exported': 'false',
-        'android:foregroundServiceType': 'connectedDevice',
+        'android:foregroundServiceType': 'connectedDevice|dataSync',
       },
     };
 
@@ -26,6 +26,8 @@ module.exports = function withEveryAppConfig(config) {
 
     if (!existingService) {
       mainApplication.service.push(backgroundService);
+    } else {
+      existingService.$['android:foregroundServiceType'] = 'connectedDevice|dataSync';
     }
 
     return config;

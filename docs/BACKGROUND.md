@@ -4,14 +4,17 @@ Any mini-app with the `background` permission can register **background tasks**:
 EveryApp runs the handler in its own (headless) JS engine – also when the mini-app is closed, EveryApp is in the
 background, or EveryApp was swiped away from recents. Tasks are stored per `appId`; one app can never see or remove another app's tasks.
 
-Tasks only run while **background mode is enabled for that app** (`EveryAppBridge.background.enable()`), which starts the
-foreground service (persistent notification "EveryApp aktiv"). It is restarted automatically after reboot.
+Tasks only run while **background mode is enabled for that app** (`EveryAppBridge.background.enable()` / `disable()` / `isEnabled()`).
+`enable()` no longer keeps a foreground service up by itself. The persistent notification "EveryApp aktiv" is shown only
+while a running app has an `interval` trigger, or a BLE notify subscription is connected or due for a retry.
+Bluetooth, boot, tiles, popups and Wi-Fi start a short headless task and let the process end.
+After reboot the same decision runs again (`BootReceiver` → `ServiceGate`).
 
 ## Bridge API (`window.EveryAppBridge.background`)
 
 | Method | Description |
 |---|---|
-| `enable()` / `disable()` / `isEnabled()` | Background mode for this app (foreground service). Asks for notification permission. |
+| `enable()` / `disable()` / `isEnabled()` | Background mode for this app. Asks for notification permission. The foreground service starts only when an interval or a due/connected bleNotify needs it. |
 | `handlesTriggers()` | `true` if this EveryApp version supports background tasks (feature check). |
 | `registerTask(task)` | Register or replace (same `id`) a task. Throws on invalid triggers or syntax errors. |
 | `unregisterTask(id)` | Remove one task. |
@@ -68,8 +71,9 @@ The code runs outside the WebView: **no DOM, no `window`, no access to variables
 Errors thrown by the handler are caught and logged as `FEHLER: Task "<id>" fehlgeschlagen: ...` including the stack.
 
 ## Behaviour and limits
-- Bluetooth: Android's `ACL_CONNECTED/DISCONNECTED` broadcasts, received by a manifest receiver → starts the JS task (Headless JS).
-- `interval`: JS timers in the host; they run as long as the EveryApp process lives (kept alive by the foreground service).
+- Bluetooth: Android's `ACL_CONNECTED/DISCONNECTED` broadcasts, received by a manifest receiver → starts a short headless task (`shortService`). It does not start the long foreground service.
+- `interval`: JS timers in the host. `ServiceGate` keeps the foreground service (`dataSync`) only while at least one active task has an interval. When that service starts it fires headless event `keepalive`, which calls `restartTimers()`.
+- `wifiChanged`: `WifiWatcher` uses `registerNetworkCallback(NetworkRequest, PendingIntent)`. No foreground service. Identical SSID/BSSID is ignored; a real change is emitted at most every 30 seconds. The first sample after install is remembered and not emitted.
 - After **"Force stop"** in the Android settings, nothing runs until EveryApp is opened again (an Android rule).
 - Set battery usage for EveryApp to **"Unrestricted"**, otherwise Android may kill the service.
 - Logcat filter for debugging: `adb logcat | grep -E "EveryApp"`.
@@ -102,8 +106,10 @@ Host API (bridge `background.*`; guarded, saved but not shown on the current APK
   - `wifiChanged {bssid?}` (matches BSSID or SSID) → `{bssid, ssid, rssi, frequency, prevBssid, prevSsid}`, all flattened into `ctx.trigger`
 - Background ctx has `ctx.tile.*`, `ctx.widget.update`, and `ctx.wifi.info()`.
 - Wi-Fi details:
-  - `WifiWatcher.kt` (NetworkCallback with FLAG_INCLUDE_LOCATION_INFO, API 31+) runs while the foreground service runs.
+  - `WifiWatcher.kt` registers a `PendingIntent` network callback while background mode is on and some active task has `wifiChanged`. The callback does not keep the process alive.
+  - Debounce state (last SSID/BSSID, last emit time) is stored in prefs `everyapp_wifi`.
   - It needs ACCESS_FINE_LOCATION plus ACCESS_BACKGROUND_LOCATION. Without them, Android redacts the BSSID and nothing fires; this is logged once as `FEHLER wifiChanged: BSSID verborgen`.
+  - The PendingIntent overload cannot set `FLAG_INCLUDE_LOCATION_INFO`. The receiver reads `WifiInfo` from the active network. If the BSSID is still redacted, the same error line is written to NativeLog.
   - Bridge `network.getWifi()` and `network.requestLocation(background)` handle the two-step prompt.
 - Full Denon and Fritzbox/Repeater examples: EveryMacro MACROS.md.
 
@@ -121,8 +127,8 @@ Host API (bridge `background.*`; guarded, saved but not shown on the current APK
   - `ctx.trigger` gets `{address, serviceUuid, charUuid, hex, bytes, value}`.
 - Permissions: BLUETOOTH_SCAN (neverForLocation) and BLUETOOTH_CONNECT; BLUETOOTH/ADMIN up to API 30.
 - Limits:
-  - A notify subscription lives only as long as the process and connection. After a process kill or a disconnect, the macro has to call `notify` again, for example on `appStart` or an interval.
-  - `onCharacteristicChanged` can fire while the app is in the background. Starting the headless service from there may then be blocked by Android's background-start rules. The foreground service makes this unlikely.
+  - A persisted notify is restored by `BleManager.restoreSubscriptions` when the foreground service starts because the subscription is due or the device is connected.
+  - `onCharacteristicChanged` starts `MacroHeadlessTaskService` with `startForegroundService`. The task promotes itself to a short foreground service, so it can run without the long service.
 
 ### BLE permission and auto re-subscribe
 - Mini-apps must declare `"ble"` in `permissions` in their `everyapp.json`, and the user must grant it.
@@ -130,10 +136,12 @@ Host API (bridge `background.*`; guarded, saved but not shown on the current APK
   - The error is `BLE nicht erlaubt: … "ble" muss in den permissions des Manifests stehen`.
   - When a manifest adds new permissions, EveryApp shows the permission dialog again.
 - `ctx.ble.notify(addr, svc, chr, true)` persists the subscription natively (SharedPreferences `everyapp_ble/subs`).
-  - After a connection drop, it reconnects and re-enables the subscription with backoff (2 s, doubling, max 5 min).
-  - On a (re)start of the foreground service, all subscriptions are re-established.
+  - After a connection drop, it reconnects with backoff (2 s, doubling, max 5 min) and at most 10 attempts. The wait is an `AlarmManager` alarm (`BleRetryReceiver`), not a `Handler` delay, so the process is not kept for the wait.
+  - Attempt count and `nextAttemptAt` are stored in `everyapp_ble/meta` and survive process death. Attempt 10 is the last failure: NativeLog `BLE RECONNECT STOPP`, no further alarm.
+  - A successful connect or re-subscribe resets the counter (`BLE VERBUNDEN`).
+  - While a retry is due or the device is connected, `ServiceGate` keeps the foreground service (`connectedDevice`). During backoff and after the cap it does not.
   - `notify(..., false)` removes the subscription.
-  - `disconnect(addr)` pauses auto-reconnect for that device until the next `connect`/`notify` or a service restart.
+  - `disconnect(addr)` pauses auto-reconnect for that device until the next `connect`/`notify`. A process death clears that pause (the set is in memory), matching the previous behaviour.
 
 ## Quality gates (box, no EAS)
 - `npm run typecheck`, `npm run lint` (eslint flat config, bug-focused), `npm test` (node:test; pure logic in `src/services/triggerMatching.ts` and `src/bridge/permissions.ts`).
