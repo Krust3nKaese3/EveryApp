@@ -20,6 +20,7 @@
     "react-native-webview": "14.0.1"
   },
   "devDependencies": {
+    "@types/node": "^26.6.6",
     "@types/react": "~19.3.0",
     "typescript": "~6.0.3"
   },
@@ -28,7 +29,8 @@
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",
-    "build:android": "eas build --platform android --profile preview"
+    "build:android": "eas build --platform android --profile preview",
+    "test": "node --experimental-strip-types --test src/services/backgroundPolicy.test.ts"
   },
   "private": true
 }

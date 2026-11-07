@@ -20,7 +20,11 @@ export class BackgroundService {
       await AsyncStorage.setItem(BACKGROUND_APPS_KEY, JSON.stringify(runningApps));
     }
 
-    await ExpoBackgroundService.startService();
+    if (typeof ExpoBackgroundService.enableApp === 'function') {
+      await ExpoBackgroundService.enableApp(appId);
+    } else {
+      await ExpoBackgroundService.startService();
+    }
   }
 
   static async stop(appId: string): Promise<void> {
@@ -32,11 +36,11 @@ export class BackgroundService {
     const filtered = runningApps.filter(id => id !== appId);
     await AsyncStorage.setItem(BACKGROUND_APPS_KEY, JSON.stringify(filtered));
 
-    if (filtered.length === 0) {
-      const { ExpoBackgroundService } = NativeModules;
-      if (ExpoBackgroundService) {
-        await ExpoBackgroundService.stopService();
-      }
+    const { ExpoBackgroundService } = NativeModules;
+    if (typeof ExpoBackgroundService?.disableApp === 'function') {
+      await ExpoBackgroundService.disableApp(appId);
+    } else if (filtered.length === 0 && ExpoBackgroundService) {
+      await ExpoBackgroundService.stopService();
     }
   }
 

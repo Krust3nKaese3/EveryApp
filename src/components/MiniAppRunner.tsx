@@ -10,6 +10,7 @@ import { PermissionRequestModal } from './PermissionRequestModal';
 import { BridgeMessageHandler } from '../bridge/BridgeMessageHandler';
 import { NativeCapabilities } from '../bridge/NativeCapabilities';
 import { setupGlobalErrorHandler, removeGlobalErrorHandler } from '../utils/errorHandler';
+import { drainBackgroundEvents, subscribeBackgroundEvents } from '../services/backgroundEvents';
 
 interface MiniAppRunnerProps {
   app: MiniApp;
@@ -25,7 +26,15 @@ export const MiniAppRunner: React.FC<MiniAppRunnerProps> = ({ app, onClose }) =>
   const capabilitiesRef = useRef<NativeCapabilities | null>(null);
   const [error, setError] = useState<{ message: string; stack?: string } | null>(null);
 
+  const injectEvent = (event: string, data: any) => {
+    const payload = JSON.stringify(data ?? {}).replace(/</g, '\\u003c');
+    webViewRef.current?.injectJavaScript(
+      `window.dispatchBridgeEvent(${JSON.stringify(event)}, ${payload}); true;`,
+    );
+  };
+
   useEffect(() => {
+    const unsubscribe = subscribeBackgroundEvents(injectEvent);
     setupGlobalErrorHandler((error, isFatal) => {
       setError({
         message: error.message || 'Unknown error',
@@ -44,6 +53,7 @@ export const MiniAppRunner: React.FC<MiniAppRunnerProps> = ({ app, onClose }) =>
     ScreenOrientation.unlockAsync();
     
     return () => {
+      unsubscribe();
       removeGlobalErrorHandler();
       ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP);
       if (capabilitiesRef.current) {
@@ -221,7 +231,19 @@ export const MiniAppRunner: React.FC<MiniAppRunnerProps> = ({ app, onClose }) =>
           mediaPlaybackRequiresUserAction={false}
           scrollEnabled={false}
           bounces={false}
-          onLoad={() => setLoading(false)}
+          onLoad={() => {
+            setLoading(false);
+            const pending = drainBackgroundEvents(app.id);
+            for (const item of pending) {
+              let data: any = {};
+              try {
+                data = JSON.parse(item.dataJson || '{}');
+              } catch {
+                data = { raw: item.dataJson };
+              }
+              injectEvent(String(item.event || 'unknown'), data);
+            }
+          }}
         />
       )}
 
