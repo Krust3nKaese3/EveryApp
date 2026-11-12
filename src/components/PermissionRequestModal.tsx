@@ -23,6 +23,7 @@ const PERMISSION_DESCRIPTIONS: Record<Permission, string> = {
   sensors: 'Access accelerometer and gyroscope',
   vibration: 'Use device vibration',
   background: 'Run in the background when app is closed',
+  spotify: 'Search the Spotify catalog and control playback in the installed Spotify app',
 };
 
 export const PermissionRequestModal: React.FC<PermissionRequestModalProps> = ({

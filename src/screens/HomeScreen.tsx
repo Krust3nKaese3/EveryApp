@@ -18,6 +18,7 @@ import { MiniAppRunner } from '../components/MiniAppRunner';
 import * as Clipboard from 'expo-clipboard';
 import { Linking } from 'react-native';
 import { parseDeepLink, matchesMiniApp, queueDeepLink } from '../services/deepLinks';
+import { SpotifySettingsModal } from '../components/SpotifySettingsModal';
 
 export const HomeScreen: React.FC = () => {
   const [apps, setApps] = useState<MiniApp[]>([]);
@@ -27,6 +28,7 @@ export const HomeScreen: React.FC = () => {
   const [selectedApp, setSelectedApp] = useState<MiniApp | null>(null);
   const [showFolderModal, setShowFolderModal] = useState(false);
   const [debugLines, setDebugLines] = useState<string[] | null>(null);
+  const [showSpotifySettings, setShowSpotifySettings] = useState(false);
   const openDebugLog = async () => setDebugLines(await readDebugLog());
   const [newFolderName, setNewFolderName] = useState('');
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set());
@@ -230,6 +232,9 @@ export const HomeScreen: React.FC = () => {
             <TouchableOpacity style={[styles.toolbarButton, { marginLeft: 8 }]} onPress={openDebugLog}>
               <Text style={styles.toolbarButtonText}>Debug-Log</Text>
             </TouchableOpacity>
+            <TouchableOpacity style={[styles.toolbarButton, { marginLeft: 8 }]} onPress={() => setShowSpotifySettings(true)}>
+              <Text style={styles.toolbarButtonText}>Spotify</Text>
+            </TouchableOpacity>
           </View>
 
           <FlatList
@@ -267,6 +272,8 @@ export const HomeScreen: React.FC = () => {
               }
             }}
           />
+
+          <SpotifySettingsModal visible={showSpotifySettings} onClose={() => setShowSpotifySettings(false)} />
 
           <Modal visible={debugLines !== null} transparent animationType="slide" onRequestClose={() => setDebugLines(null)}>
             <View style={styles.modalOverlay}>

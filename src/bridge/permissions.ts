@@ -9,5 +9,7 @@ export function checkBridgePermission(category: string, granted: string[]): void
     throw new Error('Raw-Netzwerk nicht erlaubt: Die Mini-App muss "net" in den permissions ihres Manifests (everyapp.json) deklarieren und der Nutzer muss es erlauben');
   if (category === 'ble')
     throw new Error('BLE nicht erlaubt: Die Mini-App muss "ble" in den permissions ihres Manifests (everyapp.json) deklarieren und der Nutzer muss es erlauben');
+  if (category === 'spotify')
+    throw new Error('Spotify nicht erlaubt: Die Mini-App muss "spotify" in den permissions ihres Manifests (everyapp.json) deklarieren und der Nutzer muss es erlauben');
   throw new Error(`Permission denied: ${category}`);
 }
