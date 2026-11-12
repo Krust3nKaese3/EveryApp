@@ -6,7 +6,8 @@
 
 ### v1.0 Capabilities
 
-- **Load Mini-Apps from GitHub**: Add public GitHub repository URLs to fetch and run mini-apps
+- **Load Mini-Apps from GitHub**: Add public GitHub repository URLs to fetch and run mini-apps (typed URL, in-app QR scan, or an EveryApp add-link)
+- **QR install**: Scan a QR code in the app, or open an add-link with the system camera (see below)
 - **Sandboxed WebView Execution**: Each mini-app runs in its own isolated WebView with controlled access to native capabilities
 - **Permission System**: User consent prompts for requested permissions with fine-grained control
 - **Folder Organization**: Create, rename, delete folders and organize apps between them
@@ -25,6 +26,33 @@ Mini-apps can request access to the following through the permission system:
 - **Camera**: Camera access (requires additional UI integration)
 - **Sensors**: Accelerometer and gyroscope data
 - **Vibration**: Haptic feedback
+
+## Adding a mini-app with a QR code
+
+On the home screen, next to **Add**, tap **QR**. The in-app camera accepts:
+
+- an EveryApp add-link (either scheme below)
+- a plain GitHub repository URL (`https://github.com/owner/repo` or the same URL ending in `.git`)
+
+Anything else shows an error and does not install a mini-app. After a successful scan the camera closes so the same code is not added twice. If that repository is already installed, EveryApp says so and can open it.
+
+A plain `https://github.com/...` QR works **only in the in-app scanner**. The system camera treats that as a web link and opens the browser.
+
+### Add-links (system camera and in-app scanner)
+
+The host `add` is reserved (it is not a mini-app name). The GitHub URL is the `url` query parameter, percent-encoded. The same path and query work on both schemes; pick the scheme that opens the app you have installed.
+
+| App | Package | Link |
+| --- | --- | --- |
+| Production **EveryApp** | `com.everyapp.container` | `everyapp://add?url=<encoded https GitHub URL>` |
+| Dev client **SrvEveryApp** | `com.everyapp.container.dev` | `exp+everyapp://add?url=<encoded https GitHub URL>` (preferred; this scheme is what opens the dev client). `everyapp://add?url=…` is also accepted if that build is the one that handles the scheme. |
+
+Example for `https://github.com/Krust3nKaese3/evryGuessTheSong`:
+
+- Dev client (SrvEveryApp): `exp+everyapp://add?url=https%3A%2F%2Fgithub.com%2FKrust3nKaese3%2FevryGuessTheSong`
+- Production EveryApp: `everyapp://add?url=https%3A%2F%2Fgithub.com%2FKrust3nKaese3%2FevryGuessTheSong`
+
+Opening one of those links (app already running, or cold start) runs the same fetch and save as **Add**, including the success and error alerts. Existing mini-app links such as `everyapp://EveryMacro/...` are unchanged. `everyapp://spotify-callback` and the dev-launcher URL `exp+everyapp://expo-development-client/...` are not install links.
 
 ## Mini-App Repository Format
 
@@ -532,7 +560,7 @@ everyapp/
 ### Current Limitations
 
 - **Public repositories only**: No authentication for private repos
-- **Manual URL entry**: No discovery or marketplace UI
+- **No marketplace**: Repos are added by URL, in-app QR scan, or an add-link — there is no discovery UI
 - **Basic error handling**: Network errors may not be fully user-friendly
 - **Camera integration incomplete**: Requires additional native camera UI component
 - **Android only**: iOS support not yet implemented

@@ -171,6 +171,10 @@ Scheme `everyapp` in app.json (nativer Build nötig); Dev-Client-Builds haben zu
 HomeScreen öffnet die passende Mini-App (Manifest-Name/Repo-Name, Groß/Klein, Leerzeichen egal) und liefert den Link als
 `window.addEventListener('everyapp:deeplink', e => e.detail)` → `{miniapp, path, params, url}`; zusätzlich `window.EveryAppLaunch`.
 
+Host `add` ist reserviert (kein Mini-App-Name) und wird vor diesem Flow installiert:
+`everyapp://add?url=<urlencoded https://github.com/owner/repo>` (Produktion) bzw.
+`exp+everyapp://add?url=…` (SrvEveryApp / Dev-Client). Der In-App-QR-Scanner akzeptiert dieselben Links und zusätzlich eine nackte GitHub-URL.
+
 ## Popup-Host (Permission `popup`, nativer Build nötig)
 Transparente Overlay-Activity (`PopupActivity`) mit WebView, Inhalt (HTML/JS) kommt von der Mini-App.
 
