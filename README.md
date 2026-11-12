@@ -58,12 +58,61 @@ Opening one of those links (app already running, or cold start) runs the same fe
 
 ### Directory Structure
 
+A mini-app is still started from `everyapp.json` and its `entrypoint`. Everything else is up to you: one HTML file, or HTML plus scripts, styles, and assets in any folders you want. Paths are relative to the file that contains them (`app.js` next to `index.html`, `assets/buzz.mp3` from that HTML, `url(../img/a.png)` from a stylesheet).
+
 ```
 your-miniapp-repo/
-├── everyapp.json       # Manifest file (required)
-├── index.html          # Entry point (or other HTML file)
-└── icon.png           # App icon (optional)
+├── everyapp.json          # Manifest (required)
+├── index.html             # Entrypoint named by everyapp.json
+├── styles.css             # Optional
+├── app.js                 # Optional
+├── assets/
+│   ├── buzz.mp3
+│   └── icon.png
+└── icon.png               # Optional home-screen icon
 ```
+
+```html
+<link rel="stylesheet" href="styles.css">
+<script src="app.js"></script>
+<img src="assets/icon.png" alt="">
+<audio src="assets/buzz.mp3"></audio>
+```
+
+```javascript
+document.querySelector('audio').src = 'assets/buzz.mp3';
+const levels = await fetch('assets/levels.json').then((res) => res.json());
+new Audio('assets/buzz.mp3');
+```
+
+A classic single-file mini-app (only `everyapp.json` and one HTML file, like evryGuessTheSong or EveryMacro) keeps working with no repository change.
+
+The entrypoint can live in a subfolder (`"entrypoint": "src/index.html"`). Relative URLs in that file are resolved from `src/`, and `../assets/a.png` is allowed as long as it stays inside the mini-app. `file://` URLs are not used and cannot read the rest of the phone. A link to another page (`<a href="page.html">`) opens that HTML file in the same WebView.
+
+EveryApp downloads the folder that contains `everyapp.json` (the repo root when the manifest is there, otherwise the only folder in the repo that has one). Install and update read the public `main` branch. Limits: 500 files, 40 MB total, 15 MB per file. `node_modules` and git symlinks are not installed. Put the mini-app in its own repository, or keep a single `everyapp.json` at the root of a larger one.
+
+After you push new files, refresh the mini-app in EveryApp (⟳) so the new tree is stored on the device.
+
+### Dateien und Ordner (Deutsch)
+
+Eine Mini-App startet weiter über `everyapp.json` und das Feld `entrypoint`. Alles andere darf frei verteilt sein: eine einzelne HTML-Datei, oder HTML plus JavaScript, CSS und Medien in beliebigen Ordnern. Relative Pfade gelten ab der Datei, in der sie stehen.
+
+```
+deine-mini-app/
+├── everyapp.json
+├── index.html
+├── styles.css
+├── app.js
+└── assets/
+    ├── buzz.mp3
+    └── icon.png
+```
+
+Im HTML zum Beispiel `href="styles.css"`, `src="app.js"`, `src="assets/buzz.mp3"`. Im Script funktionieren `fetch('assets/levels.json')`, `img.src = 'assets/icon.png'` und `new Audio('assets/buzz.mp3')`. CSS `url(...)` ist relativ zur CSS-Datei. `../` darf den Ordner der Mini-App nicht verlassen. Die App liest keine anderen Dateien auf dem Gerät.
+
+Bestehende Ein-Datei-Repos müssen nicht geändert werden. Der Einstieg darf in einem Unterordner liegen (`"entrypoint": "src/index.html"`). Ein Link `<a href="seite.html">` öffnet diese HTML-Datei.
+
+EveryApp lädt den Ordner, der `everyapp.json` enthält, vom öffentlichen Branch `main`. Grenzen: 500 Dateien, 40 MB insgesamt, 15 MB pro Datei. `node_modules` und Git-Symlinks werden nicht installiert. Nach dem Push neuer Dateien die Mini-App in EveryApp mit ⟳ aktualisieren.
 
 ### Manifest Format (`everyapp.json`)
 
@@ -532,7 +581,7 @@ everyapp/
 ### Data Flow
 
 1. User adds GitHub repository URL
-2. `GitRepoService` fetches `everyapp.json` manifest and entry HTML
+2. `GitRepoService` downloads the mini-app folder that contains `everyapp.json` (manifest, entrypoint, scripts, styles, and assets)
 3. Files are cached locally using Expo FileSystem
 4. App metadata saved to AsyncStorage
 5. When launched, `MiniAppRunner` loads HTML into WebView
@@ -568,11 +617,11 @@ everyapp/
 - **Android only**: iOS support not yet implemented
 - **Single branch**: Always fetches from `main` branch
 - **No updates**: Apps are cached; changes require re-adding the repository
-- **Limited asset support**: Only HTML and referenced files in manifest are loaded
+- **Mini-app size**: At most 500 files, 40 MB total, and 15 MB per file, from the public `main` branch. `node_modules` is not downloaded
 
 ### Security Considerations
 
-- WebView sandboxing provides basic isolation
+- WebView sandboxing provides basic isolation. Mini-app files are loaded without `file://` access, so a page cannot read arbitrary files outside its own directory
 - Permissions must be explicitly granted by users
 - Mini-apps cannot access other apps' data
 - HTTP requests are not proxied or filtered
