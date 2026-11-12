@@ -232,11 +232,12 @@ object SpotifyRuntime {
           .setCodeVerifier(verifier)
           .build()
         val result = request.execute()
-        if (!result.isSuccess || result.accessToken.isNullOrBlank()) {
+        val accessToken = result.accessToken
+        if (!result.isSuccess || accessToken.isNullOrBlank()) {
           val detail = result.errorDescription ?: result.error ?: "unbekannt"
           throw SpotifyUserException("Spotify-Token-Tausch fehlgeschlagen: $detail")
         }
-        SpotifyTokenStore.save(ctx, result.accessToken, result.refreshToken, result.expiresIn)
+        SpotifyTokenStore.save(ctx, accessToken, result.refreshToken, result.expiresIn)
         SpotifyLog.add(ctx, "PKCE-Token gespeichert (Refresh ${!result.refreshToken.isNullOrBlank()})")
         promise.resolve(mapOf("authorized" to true, "hasRefreshToken" to !result.refreshToken.isNullOrBlank()))
       } catch (e: SpotifyUserException) {
