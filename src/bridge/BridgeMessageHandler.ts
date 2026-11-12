@@ -321,6 +321,10 @@ export class BridgeMessageHandler {
           }
         };
 
+        window.__eaReadAsset = function(url) {
+          return sendMessage('__asset.read', [String(url == null ? '' : url)]);
+        };
+
         setTimeout(() => {
           window.dispatchBridgeEvent('app.start', { timestamp: Date.now() });
         }, 100);

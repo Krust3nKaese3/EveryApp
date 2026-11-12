@@ -11,6 +11,18 @@ import { BridgeMessageHandler } from '../bridge/BridgeMessageHandler';
 import { NativeCapabilities } from '../bridge/NativeCapabilities';
 import { takeDeepLink, onDeepLinkQueued, deepLinkInjection } from '../services/deepLinks';
 import { setupGlobalErrorHandler, removeGlobalErrorHandler } from '../utils/errorHandler';
+import {
+  assetRuntimeSource,
+  assetUri,
+  isStoredRelPath,
+  isTextMime,
+  mimeForPath,
+  normalizeEntrypoint,
+  parentDir,
+  resolveAssetPath,
+  rewriteHtmlAssets,
+  virtualHost,
+} from '../services/miniAppFiles';
 
 interface MiniAppRunnerProps {
   app: MiniApp;
@@ -92,10 +104,27 @@ export const MiniAppRunner: React.FC<MiniAppRunnerProps> = ({ app, onClose }) =>
     onClose();
   };
 
-  const loadApp = async (permissions: Permission[]) => {
+  const baseDirRef = useRef('');
+  const docRef = useRef('');
+
+  const loadApp = async (permissions: Permission[], entryOverride?: string, hash?: string) => {
     try {
-      const entrypointPath = `${app.localPath}${app.manifest.entrypoint}`;
-      const htmlContent = await FileSystem.readAsStringAsync(entrypointPath);
+      const entryRel = entryOverride || normalizeEntrypoint(app.manifest.entrypoint);
+      if (!isStoredRelPath(entryRel)) throw new Error('Entrypoint is outside the mini-app');
+      const entryUri = assetUri(app.localPath, entryRel);
+      if (!entryUri) throw new Error('Entrypoint is outside the mini-app');
+      const entryDir = parentDir(entryRel);
+      baseDirRef.current = entryDir;
+      docRef.current = entryRel;
+      const htmlContent = await FileSystem.readAsStringAsync(entryUri);
+      const cache = new Map<string, Promise<{ mime: string; base64: string; text: string | null } | null>>();
+      const host = virtualHost(app.id);
+      const rewritten = await rewriteHtmlAssets(htmlContent, entryDir, host, (rel) => {
+        if (!isStoredRelPath(rel)) return Promise.resolve(null);
+        const pending = cache.get(rel) || readMiniAppAsset(app.localPath, rel);
+        cache.set(rel, pending);
+        return pending;
+      });
 
       if (!capabilitiesRef.current) {
         capabilitiesRef.current = new NativeCapabilities(app.id);
@@ -103,6 +132,7 @@ export const MiniAppRunner: React.FC<MiniAppRunnerProps> = ({ app, onClose }) =>
       
       const bridgeHandler = new BridgeMessageHandler(app.id, permissions, capabilitiesRef.current);
       const bridgeScript = bridgeHandler.generateBridgeScript();
+      const hashLine = hash ? `location.hash=${JSON.stringify(hash)};` : '';
 
       const fullHtml = `
         <!DOCTYPE html>
@@ -116,8 +146,10 @@ export const MiniAppRunner: React.FC<MiniAppRunnerProps> = ({ app, onClose }) =>
           </style>
         </head>
         <body>
-          <script>${bridgeScript}</script>
-          ${htmlContent}
+          <script>${bridgeScript}
+          ${assetRuntimeSource(host)}
+          ${hashLine}</script>
+          ${rewritten}
         </body>
         </html>
       `;
@@ -134,9 +166,46 @@ export const MiniAppRunner: React.FC<MiniAppRunnerProps> = ({ app, onClose }) =>
     }
   };
 
+  const navigateLocal = async (raw: string) => {
+    const hashAt = raw.indexOf('#');
+    const before = hashAt >= 0 ? raw.slice(0, hashAt) : raw;
+    const hash = hashAt >= 0 ? raw.slice(hashAt) : '';
+    if (!before) {
+      if (hash) webViewRef.current?.injectJavaScript(`location.hash=${JSON.stringify(hash)}; true;`);
+      return;
+    }
+    const rel = resolveAssetPath(before, baseDirRef.current, virtualHost(app.id));
+    if (!rel || !isStoredRelPath(rel) || !/\.html?$/i.test(rel)) return;
+    if (rel === docRef.current) {
+      if (hash) webViewRef.current?.injectJavaScript(`location.hash=${JSON.stringify(hash)}; true;`);
+      return;
+    }
+    await loadApp(grantedPermissions, rel, hash || undefined);
+  };
+
   const handleMessage = async (event: WebViewMessageEvent) => {
     try {
       const message = JSON.parse(event.nativeEvent.data);
+
+      if (message?.type === 'navigate' && typeof message.url === 'string') {
+        await navigateLocal(message.url);
+        return;
+      }
+
+      if (message?.method === '__asset.read') {
+        const rel = resolveAssetPath(String(message.args?.[0] ?? ''), baseDirRef.current, virtualHost(app.id));
+        if (!rel || !isStoredRelPath(rel)) {
+          webViewRef.current?.injectJavaScript(`window.handleBridgeResponse(${JSON.stringify({ id: message.id, success: false, error: 'Asset path is outside the mini-app' })}); true;`);
+          return;
+        }
+        const file = await readMiniAppAsset(app.localPath, rel);
+        const payload = file
+          ? { id: message.id, success: true, result: { mime: file.mime, base64: file.base64 } }
+          : { id: message.id, success: false, error: 'Asset not found' };
+        const json = JSON.stringify(payload).replace(/\u2028/g, '\\u2028').replace(/\u2029/g, '\\u2029');
+        webViewRef.current?.injectJavaScript(`window.handleBridgeResponse(${json}); true;`);
+        return;
+      }
       
       if (!capabilitiesRef.current) {
         capabilitiesRef.current = new NativeCapabilities(app.id);
@@ -234,6 +303,20 @@ export const MiniAppRunner: React.FC<MiniAppRunnerProps> = ({ app, onClose }) =>
           onError={handleWebViewError}
           onHttpError={handleHttpError}
           onRenderProcessGone={handleRenderProcessGone}
+          originWhitelist={['http://*', 'https://*']}
+          allowFileAccess={false}
+          allowFileAccessFromFileURLs={false}
+          allowUniversalAccessFromFileURLs={false}
+          onShouldStartLoadWithRequest={(request) => {
+            const url = request?.url || '';
+            if (/^(file|content):/i.test(url)) return false;
+            const rel = resolveAssetPath(url, baseDirRef.current, virtualHost(app.id));
+            if (rel) {
+              void navigateLocal(url);
+              return false;
+            }
+            return true;
+          }}
           javaScriptEnabled
           domStorageEnabled
           allowsInlineMediaPlayback
@@ -265,6 +348,17 @@ export const MiniAppRunner: React.FC<MiniAppRunnerProps> = ({ app, onClose }) =>
     </View>
   );
 };
+
+async function readMiniAppAsset(localPath: string, rel: string): Promise<{ mime: string; base64: string; text: string | null } | null> {
+  const uri = assetUri(localPath, rel);
+  if (!uri) return null;
+  const info = await FileSystem.getInfoAsync(uri);
+  if (!info.exists || info.isDirectory) return null;
+  const mime = mimeForPath(rel);
+  const base64 = await FileSystem.readAsStringAsync(uri, { encoding: FileSystem.EncodingType.Base64 });
+  const text = isTextMime(mime) ? await FileSystem.readAsStringAsync(uri) : null;
+  return { mime, base64, text };
+}
 
 const styles = StyleSheet.create({
   container: {
