@@ -265,13 +265,15 @@ const isEnabled = await window.EveryAppBridge.background.isEnabled();
 
 Permission: `"spotify"` in `everyapp.json`, granted by the user. Playback uses the **Spotify Android app** (App Remote). The WebView does not stream audio. Search uses the Web API with a PKCE token kept inside EveryApp. There is no client secret in this repo, and new Spotify apps must not rely on `preview_url`.
 
-The Client ID is **not** baked into the build. Enter it in EveryApp under **Spotify** on the home screen (stored in the container, not in mini-app storage). A granted mini-app can read or set the same value. Precedence when several values exist:
+The Client ID is **not** baked into the build. Enter it in EveryApp under **Spotify** on the home screen (stored in the container settings, not in a mini-app repo). It applies immediately. A granted mini-app can read or set the same value. Precedence when several values exist:
 
 1. EveryApp settings (source of truth)
 2. `spotify.setClientId()` from a mini-app
 3. Optional build prefill `expo.extra.spotifyClientId` / `SPOTIFY_CLIENT_ID` (empty is normal)
 
 Changing the Client ID does not require a new native build. The redirect URI, package names and Spotify SDK do.
+
+The same screen has a German walkthrough (**Anleitung**) next to the Client ID field. It covers creating the Dashboard app on a computer ([Spotify Developer Dashboard](https://developer.spotify.com/dashboard)) with **Web API** and **Android SDK** (not the Web Playback SDK), the redirect URI `everyapp://spotify-callback`, empty Bundle IDs (iOS-only; EveryApp is Android-only for now), and the Android package name plus SHA-1 of the **running** variant. Development / SrvEveryApp (`APP_VARIANT=development`, `com.everyapp.container.dev`) uses the debug-keystore SHA-1 `5E:8F:16:06:2E:A3:CD:2C:4A:0D:54:78:76:BA:A6:F3:8C:AB:F6:25`. Production / EveryApp (`com.everyapp.container`) has no signing SHA-1 in this repo — read it from the signing certificate or the EAS Android credentials, and do not reuse the debug fingerprint. The phone still needs the Spotify app and a Premium login to start a specific track. The API and SDK themselves cost nothing extra. Same steps, in German, in [SPOTIFY.md](SPOTIFY.md).
 
 ```javascript
 const status = await EveryAppBridge.spotify.isAvailable();

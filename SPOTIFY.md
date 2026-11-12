@@ -6,27 +6,34 @@ Es gibt **kein Client-Secret** in diesem Repo. Die Client ID ist öffentlich und
 
 ## Einmalig im Spotify Dashboard
 
-1. App anlegen: [Spotify Developer Dashboard](https://developer.spotify.com/dashboard).
-2. Redirect-URI eintragen: `everyapp://spotify-callback`
-3. Android-Paketnamen eintragen:
-   - `com.everyapp.container` (EveryApp)
-   - `com.everyapp.container.dev` (SrvEveryApp, Dev-Client)
-4. Dazu den **SHA1 der Signatur**, mit der die APK signiert ist. Den Fingerprint nicht raten und nicht erfinden.
-   - Lokaler Debug-Keystore, nachdem so ein Build existiert:
+Am Computer geht das leichter als auf dem Handy: [Spotify Developer Dashboard](https://developer.spotify.com/dashboard). Die Client ID fügst du danach in EveryApp ein. Dieselben Schritte, mit den Werten der gerade laufenden App, stehen in EveryApp auf dem Startbildschirm unter **Spotify** hinter dem Knopf **Anleitung**.
+
+1. App anlegen und **Web API** sowie **Android SDK** auswählen. Nicht das Web Playback SDK.
+2. Redirect-URI exakt: `everyapp://spotify-callback`
+3. **Bundle IDs** leer lassen. Das Feld ist nur für iOS. EveryApp ist vorerst nur Android.
+4. Unter **Android Packages** gibt es keine eigene „SHA“-Überschrift. Zwei Felder stehen nebeneinander: links **Package name**, rechts **Package SHA1 fingerprint**, danach Add bzw. Save. So sieht die Zeile im Dashboard aus:
+
+   ![Android Packages im Spotify Developer Dashboard: links Package name, rechts Package SHA1 fingerprint](assets/spotify-tutorial/android-packages-sha1.png)
+
+   Das Bild ist die Spotify-Oberfläche, nicht EveryApp. EveryApp ist kein offizielles Spotify-Produkt.
+
+5. Paketname und SHA-1 müssen zur **gerade laufenden** Variante passen. Nichts raten und den Debug-Fingerabdruck nicht für die Produktions-App verwenden.
+   - Development / **SrvEveryApp** (`APP_VARIANT=development`, Paket `com.everyapp.container.dev`): SHA-1 des Debug-Keystores der aktuellen SrvEveryApp-APK ist `5E:8F:16:06:2E:A3:CD:2C:4A:0D:54:78:76:BA:A6:F3:8C:AB:F6:25`. Im Dashboard-Feld steht die Form mit Doppelpunkten. Ohne Doppelpunkte ist derselbe Wert gültig.
+   - Production / **EveryApp** (`com.everyapp.container`): den Paketnamen eintragen. Der SHA-1 dieser Signatur liegt nicht im Repo. Vom Signaturzertifikat oder aus den EAS-Android-Credentials dieses Builds lesen.
+   - Den lokalen Debug-Keystore kannst du selbst prüfen, sobald so ein Build existiert:
 
      ```bash
      keytool -list -v -keystore ~/.android/debug.keystore -alias androiddebugkey -storepass android -keypass android
      ```
 
-   - EAS-Build: SHA1 im Expo-Dashboard unter den Android-Credentials des jeweiligen Profils (development / preview / production) ablesen, sobald die Credentials angelegt sind.
-5. Die Client ID kopieren. Sie kommt **nicht** in den Quellcode, wenn du sie nicht als optionalen Prefill setzen willst.
+6. Die Client ID kopieren (32 Hex-Zeichen). Sie kommt **nicht** in den Quellcode, wenn du sie nicht als optionalen Prefill setzen willst. Ein Client Secret gibt es in diesem Repo nicht.
 
 ## In EveryApp
 
 1. APK installieren (dieser Stand enthält Auth- und App-Remote-SDK, Redirect und Paketnamen).
-2. Spotify-App auf dem Gerät installieren und mit dem Premium-Account anmelden. Einen einzelnen Track (`spotify:track:…`) abspielen geht nur mit Premium.
-3. In EveryApp auf dem Startbildschirm **Spotify** öffnen, Client ID einfügen, speichern.
-4. Dafür ist **kein neuer Build** nötig. `login`, `connect` und `play` lesen die gespeicherte ID bei jedem Aufruf.
+2. Spotify-App auf dem Gerät installieren und mit dem Premium-Account anmelden. Einen einzelnen Track (`spotify:track:…`) abspielen geht nur mit Premium. API und SDK kosten nichts extra.
+3. In EveryApp auf dem Startbildschirm **Spotify** öffnen, Client ID einfügen, speichern. Die **Anleitung** neben dem Feld zeigt Redirect-URI, Paketname und SHA-1 für diese Installation.
+4. Dafür ist **kein neuer Build** nötig. Die ID liegt in den Container-Einstellungen von EveryApp, nicht im Mini-App-Repo. `login`, `connect` und `play` lesen die gespeicherte ID bei jedem Aufruf.
 
 Ohne gespeicherte ID kommt:
 

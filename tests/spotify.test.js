@@ -5,10 +5,16 @@ const {
   MISSING_SPOTIFY_CLIENT_ID,
   BAD_SPOTIFY_CLIENT_ID,
   SPOTIFY_REDIRECT_URI,
+  SPOTIFY_DASHBOARD_URL,
+  DEVELOPMENT_ANDROID_PACKAGE,
+  PRODUCTION_ANDROID_PACKAGE,
+  DEVELOPMENT_DEBUG_SHA1,
   normalizeSpotifyClientId,
   normalizeSpotifySearch,
   resolveSpotifyClientId,
   shapeSpotifyClientId,
+  androidPackageFromExpoConstants,
+  spotifyAndroidDashboardTarget,
 } = require('../src/services/spotifyClientId.ts');
 
 const SETTINGS = 'a'.repeat(32);
@@ -47,6 +53,44 @@ test('client id format', () => {
   assert.throws(() => normalizeSpotifyClientId(''), new RegExp(MISSING_SPOTIFY_CLIENT_ID));
   assert.throws(() => normalizeSpotifyClientId('not-a-client-id'), new RegExp(BAD_SPOTIFY_CLIENT_ID));
   assert.strictEqual(SPOTIFY_REDIRECT_URI, 'everyapp://spotify-callback');
+});
+
+test('dashboard package and sha-1 follow the running variant', () => {
+  assert.strictEqual(SPOTIFY_DASHBOARD_URL, 'https://developer.spotify.com/dashboard');
+  assert.strictEqual(DEVELOPMENT_ANDROID_PACKAGE, 'com.everyapp.container.dev');
+  assert.strictEqual(PRODUCTION_ANDROID_PACKAGE, 'com.everyapp.container');
+  assert.strictEqual(DEVELOPMENT_DEBUG_SHA1, '5E:8F:16:06:2E:A3:CD:2C:4A:0D:54:78:76:BA:A6:F3:8C:AB:F6:25');
+
+  const dev = spotifyAndroidDashboardTarget(DEVELOPMENT_ANDROID_PACKAGE);
+  assert.strictEqual(dev.variant, 'development');
+  assert.strictEqual(dev.appName, 'SrvEveryApp');
+  assert.strictEqual(dev.packageName, DEVELOPMENT_ANDROID_PACKAGE);
+  assert.strictEqual(dev.sha1, DEVELOPMENT_DEBUG_SHA1);
+
+  const prod = spotifyAndroidDashboardTarget(PRODUCTION_ANDROID_PACKAGE);
+  assert.strictEqual(prod.variant, 'production');
+  assert.strictEqual(prod.appName, 'EveryApp');
+  assert.strictEqual(prod.packageName, PRODUCTION_ANDROID_PACKAGE);
+  assert.strictEqual(prod.sha1, null);
+
+  const unknown = spotifyAndroidDashboardTarget('com.example.other');
+  assert.strictEqual(unknown.variant, 'unknown');
+  assert.strictEqual(unknown.packageName, 'com.example.other');
+  assert.strictEqual(unknown.sha1, null);
+  assert.strictEqual(spotifyAndroidDashboardTarget('  ').sha1, null);
+  assert.strictEqual(spotifyAndroidDashboardTarget(null).packageName, null);
+
+  assert.strictEqual(
+    androidPackageFromExpoConstants({ expoConfig: { android: { package: DEVELOPMENT_ANDROID_PACKAGE } } }),
+    DEVELOPMENT_ANDROID_PACKAGE,
+  );
+  assert.strictEqual(
+    androidPackageFromExpoConstants({
+      manifest2: { extra: { expoClient: { android: { package: PRODUCTION_ANDROID_PACKAGE } } } },
+    }),
+    PRODUCTION_ANDROID_PACKAGE,
+  );
+  assert.strictEqual(androidPackageFromExpoConstants({}), null);
 });
 
 test('search request normalization', () => {
