@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -17,8 +17,9 @@ import { GitRepoService } from '../services/GitRepoService';
 import { MiniAppRunner } from '../components/MiniAppRunner';
 import * as Clipboard from 'expo-clipboard';
 import { Linking } from 'react-native';
-import { parseDeepLink, matchesMiniApp, queueDeepLink } from '../services/deepLinks';
+import { classifyDeepLink, githubRepoKey, isGitHubRepoUrl, matchesMiniApp, queueDeepLink, repoUrlFromQr } from '../services/deepLinks';
 import { SpotifySettingsModal } from '../components/SpotifySettingsModal';
+import { CameraView, useCameraPermissions } from 'expo-camera';
 
 export const HomeScreen: React.FC = () => {
   const [apps, setApps] = useState<MiniApp[]>([]);
@@ -32,17 +33,76 @@ export const HomeScreen: React.FC = () => {
   const openDebugLog = async () => setDebugLines(await readDebugLog());
   const [newFolderName, setNewFolderName] = useState('');
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set());
+  const [scanning, setScanning] = useState(false);
+  const [permission, requestPermission] = useCameraPermissions();
+  const scanLock = useRef(false);
+  const gate = useRef<Promise<void>>(Promise.resolve());
+  const enqueue = (task: () => Promise<void>) => {
+    const next = gate.current.then(task, task);
+    gate.current = next.then(() => undefined, () => undefined);
+  };
 
-  // Deep links everyapp://<miniapp>/<path>?query → open that mini-app and deliver the link as an event.
+  const performAdd = async (raw: string, source: 'field' | 'link') => {
+    const trimmed = raw.trim();
+    if (!trimmed) {
+      Alert.alert('Error', 'Please enter a repository URL');
+      return;
+    }
+    if (source === 'link' && !isGitHubRepoUrl(trimmed)) {
+      Alert.alert('Add-Link', 'Der Add-Link enthält keine gültige GitHub-URL (https://github.com/besitzer/repo).');
+      return;
+    }
+    setLoading(true);
+    try {
+      const key = githubRepoKey(trimmed);
+      if (key) {
+        const existing = (await StorageService.getApps()).find((a) => githubRepoKey(a.repoUrl) === key);
+        if (existing) {
+          Alert.alert('Bereits installiert', `${existing.manifest.name} ist schon installiert.`, [
+            { text: 'OK', style: 'cancel' },
+            { text: 'Öffnen', onPress: () => setSelectedApp(existing) },
+          ]);
+          return;
+        }
+      }
+      const app = await GitRepoService.fetchRepo(trimmed);
+      await StorageService.saveApp(app);
+      await loadData();
+      if (source === 'field') setRepoUrl('');
+      Alert.alert('Success', `Added ${app.manifest.name}`);
+    } catch (error: any) {
+      Alert.alert('Error', error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+  const performAddRef = useRef(performAdd);
+  performAddRef.current = performAdd;
+
+  // everyapp://add?url=… (and exp+everyapp://add?url=…) installs a repo.
+  // Other everyapp://<miniapp>/… links open that mini-app. Handled before the mini-app flow.
   useEffect(() => {
-    const handle = async (url?: string | null) => {
-      const link = url ? parseDeepLink(url) : null;
-      if (!link) return;
-      const all = await StorageService.getApps();
-      const target = all.find((a) => matchesMiniApp(link, a));
-      if (!target) { Alert.alert('Deep-Link', `Mini-App "${link.miniapp}" ist nicht installiert.\n\n${url}`); return; }
-      queueDeepLink(target.id, link);
-      setSelectedApp((cur) => (cur && cur.id === target.id ? cur : target));
+    const recent = { url: '', at: 0 };
+    const handle = (url?: string | null) => {
+      if (!url) return;
+      const now = Date.now();
+      if (recent.url === url && now - recent.at < 2500) return;
+      recent.url = url;
+      recent.at = now;
+      enqueue(async () => {
+        const classified = classifyDeepLink(url);
+        if (classified.type === 'ignore') return;
+        if (classified.type === 'add') {
+          await performAddRef.current(classified.repoUrl, 'link');
+          return;
+        }
+        const link = classified.link;
+        const all = await StorageService.getApps();
+        const target = all.find((a) => matchesMiniApp(link, a));
+        if (!target) { Alert.alert('Deep-Link', `Mini-App "${link.miniapp}" ist nicht installiert.\n\n${url}`); return; }
+        queueDeepLink(target.id, link);
+        setSelectedApp((cur) => (cur && cur.id === target.id ? cur : target));
+      });
     };
     Linking.getInitialURL().then(handle).catch(() => {});
     const sub = Linking.addEventListener('url', (e) => { handle(e.url); });
@@ -60,24 +120,41 @@ export const HomeScreen: React.FC = () => {
     setFolders(loadedFolders);
   };
 
-  const handleAddRepo = async () => {
-    if (!repoUrl.trim()) {
-      Alert.alert('Error', 'Please enter a repository URL');
+  const handleAddRepo = () => {
+    enqueue(() => performAdd(repoUrl, 'field'));
+  };
+
+  const openScanner = async () => {
+    let granted = permission?.granted === true;
+    if (!granted) {
+      const res = await requestPermission();
+      granted = res.granted;
+    }
+    if (!granted) {
+      Alert.alert(
+        'Kamera',
+        'Ohne Kamerazugriff kann EveryApp keinen QR-Code scannen. Erlaube die Kamera in den Einstellungen.',
+        [
+          { text: 'Abbrechen', style: 'cancel' },
+          { text: 'Einstellungen', onPress: () => { Linking.openSettings().catch(() => {}); } },
+        ],
+      );
       return;
     }
+    scanLock.current = false;
+    setScanning(true);
+  };
 
-    setLoading(true);
-    try {
-      const app = await GitRepoService.fetchRepo(repoUrl.trim());
-      await StorageService.saveApp(app);
-      await loadData();
-      setRepoUrl('');
-      Alert.alert('Success', `Added ${app.manifest.name}`);
-    } catch (error: any) {
-      Alert.alert('Error', error.message);
-    } finally {
-      setLoading(false);
+  const handleBarcode = (result: { data: string }) => {
+    if (scanLock.current) return;
+    scanLock.current = true;
+    setScanning(false);
+    const parsed = repoUrlFromQr(result.data);
+    if (!parsed.ok) {
+      Alert.alert('QR-Code', parsed.message);
+      return;
     }
+    enqueue(() => performAdd(parsed.repoUrl, 'link'));
   };
 
   const handleCreateFolder = async () => {
@@ -220,6 +297,14 @@ export const HomeScreen: React.FC = () => {
             >
               <Text style={styles.buttonText}>{loading ? 'Adding...' : 'Add'}</Text>
             </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.qrButton, loading && styles.buttonDisabled]}
+              onPress={openScanner}
+              disabled={loading}
+              accessibilityLabel="QR-Code scannen"
+            >
+              <Text style={styles.buttonText}>QR</Text>
+            </TouchableOpacity>
           </View>
 
           <View style={styles.toolbarContainer}>
@@ -298,6 +383,31 @@ export const HomeScreen: React.FC = () => {
                     <Text style={styles.modalButtonText}>Schließen</Text>
                   </TouchableOpacity>
                 </View>
+              </View>
+            </View>
+          </Modal>
+
+          <Modal visible={scanning} animationType="slide" onRequestClose={() => setScanning(false)}>
+            <View style={styles.scannerScreen}>
+              {scanning ? (
+                <CameraView
+                  style={styles.scannerCamera}
+                  facing="back"
+                  barcodeScannerSettings={{ barcodeTypes: ['qr'] }}
+                  onBarcodeScanned={handleBarcode}
+                  onMountError={() => {
+                    setScanning(false);
+                    Alert.alert('Kamera', 'Die Kamera konnte nicht gestartet werden.');
+                  }}
+                />
+              ) : null}
+              <View style={styles.scannerHint}>
+                <Text style={styles.scannerHintText}>
+                  QR-Code mit GitHub-Link oder EveryApp-Add-Link scannen
+                </Text>
+                <TouchableOpacity style={styles.scannerCancel} onPress={() => setScanning(false)}>
+                  <Text style={styles.scannerCancelText}>Abbrechen</Text>
+                </TouchableOpacity>
               </View>
             </View>
           </Modal>
@@ -395,6 +505,51 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     borderRadius: 8,
     justifyContent: 'center',
+    minHeight: 48,
+  },
+  qrButton: {
+    backgroundColor: '#1565C0',
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+    minHeight: 48,
+    minWidth: 56,
+    marginLeft: 8,
+  },
+  scannerScreen: {
+    flex: 1,
+    backgroundColor: '#000',
+  },
+  scannerCamera: {
+    flex: 1,
+  },
+  scannerHint: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 36,
+    alignItems: 'center',
+    paddingHorizontal: 24,
+  },
+  scannerHintText: {
+    color: 'white',
+    fontSize: 16,
+    textAlign: 'center',
+    marginBottom: 16,
+  },
+  scannerCancel: {
+    backgroundColor: 'white',
+    paddingHorizontal: 28,
+    paddingVertical: 14,
+    borderRadius: 8,
+    minWidth: 160,
+  },
+  scannerCancelText: {
+    textAlign: 'center',
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1565C0',
   },
   buttonDisabled: {
     backgroundColor: '#ccc',
