@@ -67,6 +67,7 @@ your-miniapp-repo/
 - `sensors` - Accelerometer and gyroscope readings
 - `vibration` - Haptic feedback
 - `background` - Background execution with foreground service
+- `spotify` - Search Spotify and control playback in the installed Spotify app (not free; the user must grant it). Setup: [SPOTIFY.md](SPOTIFY.md)
 
 ## Bridge API Reference
 
@@ -232,6 +233,59 @@ const isEnabled = await window.EveryAppBridge.background.isEnabled();
 - Android displays a persistent foreground service notification
 - Battery optimization prompt will appear on first enable
 
+### Spotify API
+
+Permission: `"spotify"` in `everyapp.json`, granted by the user. Playback uses the **Spotify Android app** (App Remote). The WebView does not stream audio. Search uses the Web API with a PKCE token kept inside EveryApp. There is no client secret in this repo, and new Spotify apps must not rely on `preview_url`.
+
+The Client ID is **not** baked into the build. Enter it in EveryApp under **Spotify** on the home screen (stored in the container, not in mini-app storage). A granted mini-app can read or set the same value. Precedence when several values exist:
+
+1. EveryApp settings (source of truth)
+2. `spotify.setClientId()` from a mini-app
+3. Optional build prefill `expo.extra.spotifyClientId` / `SPOTIFY_CLIENT_ID` (empty is normal)
+
+Changing the Client ID does not require a new native build. The redirect URI, package names and Spotify SDK do.
+
+```javascript
+const status = await EveryAppBridge.spotify.isAvailable();
+// { installed, connected, authorized, premium }  premium is null until known
+
+await EveryAppBridge.spotify.setClientId(clientIdFromTheUser);
+const id = await EveryAppBridge.spotify.getClientId();
+// { clientId, source: 'settings'|'bridge'|'prefill'|'none', settingsClientId, bridgeClientId, prefillClientId }
+// If source is 'settings', setClientId is stored but does not override the settings field.
+
+await EveryAppBridge.spotify.login();   // Authorization Code + PKCE, opens Spotify or the browser
+await EveryAppBridge.spotify.connect();  // App Remote; may show Spotify's auth view
+
+const found = await EveryAppBridge.spotify.search('yellow submarine', { types: ['track'], limit: 5 });
+const uri = found.tracks.items[0].uri;
+await EveryAppBridge.spotify.play(uri, { positionMs: 15000 }); // needs Premium for a track URI
+await EveryAppBridge.spotify.seek(40000);
+await EveryAppBridge.spotify.pause();
+await EveryAppBridge.spotify.resume();
+await EveryAppBridge.spotify.skipNext();
+await EveryAppBridge.spotify.skipPrevious();
+await EveryAppBridge.spotify.stop(); // pause and seek to 0 (App Remote has no separate stop)
+const state = await EveryAppBridge.spotify.getPlayerState();
+// { connected, paused, positionMs, playbackSpeed, canSeek, track: { uri, name, artist, artists, album, durationMs } }
+
+await EveryAppBridge.spotify.getMe();                 // { id, displayName, product, premium }
+await EveryAppBridge.spotify.getMyPlaylists({ limit: 20 });
+await EveryAppBridge.spotify.getSavedTracks({ limit: 20 });
+
+await EveryAppBridge.spotify.disconnect();
+await EveryAppBridge.spotify.logout(); // forgets the Web API token; does not remove the Client ID
+
+EveryAppBridge.events.on('spotify.connected', (data) => console.log('connected', data));
+EveryAppBridge.events.on('spotify.disconnected', (data) => console.log('disconnected', data));
+EveryAppBridge.events.on('spotify.player', (state) => console.log(state.track && state.track.name, state.positionMs));
+EveryAppBridge.events.on('spotify.error', (err) => console.log(err.message));
+```
+
+`EveryAppBridge.media.*` still sends generic media keys and is unchanged. It cannot start a specific Spotify URI.
+
+If no Client ID is saved, `login`, `connect`, `play` and `search` reject with: `Keine Spotify Client ID hinterlegt. Bitte in den EveryApp-Einstellungen eintragen.` Other readable German errors cover: Spotify not installed, auth cancelled, not Premium, connection dropped, and Web API rate limits. The access token is not given to the mini-app.
+
 ### Events API
 
 ```javascript
@@ -258,6 +312,7 @@ window.EveryAppBridge.events.off('app.start', callback);
 - `app.start` - Fired when the mini-app runtime starts (no permission required)
 - `bluetooth.connected` - Classic Bluetooth device connected (requires `bluetooth` permission)
 - `bluetooth.disconnected` - Classic Bluetooth device disconnected (requires `bluetooth` permission)
+- `spotify.connected` / `spotify.disconnected` / `spotify.player` / `spotify.error` - Spotify App Remote (requires `spotify` permission to call the API; events arrive on the same event bus)
 
 ## EveryMacro Use Case
 

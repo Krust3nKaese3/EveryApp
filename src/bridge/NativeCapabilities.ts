@@ -18,7 +18,29 @@ import * as Ble from '../../modules/expo-ble-gatt';
 import * as RawNet from '../../modules/expo-raw-net';
 import { makeTuyaLocal, discover as tuyaDiscover } from '../services/TuyaLocal';
 import { sendMediaKey } from '../../modules/expo-media-control';
+import { subscribeSpotify } from '../../modules/expo-spotify';
 import { SecretStore } from '../services/SecretStore';
+import {
+  getSpotifyClientId,
+  setSpotifyBridgeClientId,
+  spotifyConnect,
+  spotifyDisconnect,
+  spotifyGetMe,
+  spotifyGetMyPlaylists,
+  spotifyGetPlayerState,
+  spotifyGetSavedTracks,
+  spotifyIsAvailable,
+  spotifyLogin,
+  spotifyLogout,
+  spotifyPause,
+  spotifyPlay,
+  spotifyResume,
+  spotifySearch,
+  spotifySeek,
+  spotifySkipNext,
+  spotifySkipPrevious,
+  spotifyStop,
+} from '../services/spotifySettings';
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -34,11 +56,16 @@ export class NativeCapabilities {
   public eventEmitter: EventEmitter;
   private bluetoothConnectedSub: any;
   private bluetoothDisconnectedSub: any;
+  private stopSpotify: (() => void) | null = null;
 
   constructor(appId: string) {
     this.appId = appId;
     this.eventEmitter = new EventEmitter();
     this.setupBluetoothListeners();
+    this.stopSpotify = subscribeSpotify((event, data) => {
+      if (event !== 'spotify.player') console.log('[EveryApp] spotify event', event, data?.message || data?.reason || '');
+      this.eventEmitter.emit(event, data);
+    });
   }
 
   private setupBluetoothListeners() {
@@ -57,6 +84,8 @@ export class NativeCapabilities {
   }
 
   cleanup() {
+    this.stopSpotify?.();
+    this.stopSpotify = null;
     this.bluetoothConnectedSub?.remove();
     this.bluetoothDisconnectedSub?.remove();
     this.eventEmitter.removeAllListeners();
@@ -359,6 +388,28 @@ export class NativeCapabilities {
     md5: async (d: string) => RawNet.nativeCrypto.md5(d),
     crc32: async (d: string) => RawNet.nativeCrypto.crc32(d),
     randomHex: async (n: number) => RawNet.nativeCrypto.randomHex(n),
+  };
+
+  spotify = {
+    isAvailable: () => spotifyIsAvailable(),
+    login: () => spotifyLogin(),
+    logout: () => spotifyLogout(),
+    connect: () => spotifyConnect(),
+    disconnect: () => spotifyDisconnect(),
+    play: (uri: string, options?: { positionMs?: number }) => spotifyPlay(uri, options?.positionMs),
+    pause: () => spotifyPause(),
+    resume: () => spotifyResume(),
+    stop: () => spotifyStop(),
+    skipNext: () => spotifySkipNext(),
+    skipPrevious: () => spotifySkipPrevious(),
+    seek: (positionMs: number) => spotifySeek(positionMs),
+    getPlayerState: () => spotifyGetPlayerState(),
+    search: (query: string, options?: { types?: string[]; limit?: number; offset?: number }) => spotifySearch(query, options),
+    getMe: () => spotifyGetMe(),
+    getMyPlaylists: (options?: { limit?: number }) => spotifyGetMyPlaylists(options?.limit ?? 20),
+    getSavedTracks: (options?: { limit?: number }) => spotifyGetSavedTracks(options?.limit ?? 20),
+    setClientId: (clientId: string) => setSpotifyBridgeClientId(clientId),
+    getClientId: () => getSpotifyClientId(),
   };
 
   media = {

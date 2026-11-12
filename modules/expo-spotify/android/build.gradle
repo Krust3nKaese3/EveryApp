@@ -1,0 +1,29 @@
+plugins {
+  id 'com.android.library'
+  id 'expo-module-gradle-plugin'
+}
+
+group = 'expo.modules.spotify'
+version = '0.1.0'
+
+expoModule {
+  v2 true
+}
+
+android {
+  namespace "expo.modules.spotify"
+  defaultConfig {
+    versionCode 1
+    versionName "0.1.0"
+  }
+}
+
+dependencies {
+  implementation 'androidx.core:core-ktx:1.13.1'
+  // Latest auth library on Maven Central (5.0.0, 2026-07). Authorization Code + PKCE.
+  // The redirect intent-filter is NOT inside this AAR anymore; plugins/withSpotify.js adds it.
+  implementation 'com.spotify.android:auth:5.0.0'
+  // App Remote 0.8.0 is not on Maven Central. See libs/SOURCE.txt.
+  implementation files('libs/spotify-app-remote-release-0.8.0.aar')
+  implementation 'com.google.code.gson:gson:2.10.1'
+}

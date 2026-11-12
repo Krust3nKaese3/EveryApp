@@ -1,0 +1,12 @@
+spotify-app-remote-release-0.8.0.aar
+Source: https://github.com/spotify/android-sdk/raw/master/app-remote-lib/spotify-app-remote-release-0.8.0.aar
+Upstream: spotify/android-sdk release v0.8.0-appremote_v2.1.0-auth
+sha256: b5a6dd880eaf01f63a871cba9ef7af77c341f8a94ffc8fdf2e9021f9a9d4c198
+License header inside the AAR: Apache-2.0
+
+Maven Central publishes com.spotify.android:auth and auth-store only (checked 2026-11).
+There is no com.spotify.android:app-remote artifact. Spotify's own getting-started guide
+distributes App Remote as this AAR. Do not replace it with a guessed Maven coordinate.
+
+Auth (not vendored, resolved from Maven Central): com.spotify.android:auth:5.0.0
+Gson is required by App Remote and is not bundled in the AAR.

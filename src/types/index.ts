@@ -19,7 +19,8 @@ export type Permission =
   | 'ble'
   | 'net'
   | 'popup'
-  | 'tiles';
+  | 'tiles'
+  | 'spotify';
 
 export interface MiniApp {
   id: string;

@@ -55,12 +55,14 @@
         }
       ],
       "./plugins/withBleManager.js",
-      "./plugins/withEveryAppConfig.js"
+      "./plugins/withEveryAppConfig.js",
+      "./plugins/withSpotify.js"
     ],
     "extra": {
       "eas": {
         "projectId": "5c71baaf-8aca-4641-8ba7-c7d02f238288"
-      }
+      },
+      "spotifyClientId": ""
     },
     "owner": "krust3nkaese",
     "scheme": "everyapp"
