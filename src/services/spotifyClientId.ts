@@ -1,6 +1,100 @@
-/** Pure Spotify helpers (no native). Precedence and wording are mirrored in the Kotlin module. */
+/** Spotify Client-ID helpers. Precedence and wording are mirrored in the Kotlin module. */
 
 export const SPOTIFY_REDIRECT_URI = 'everyapp://spotify-callback';
+
+export const SPOTIFY_DASHBOARD_URL = 'https://developer.spotify.com/dashboard';
+
+/** Production package from app.json. app.config.js keeps this when APP_VARIANT is not "development". */
+export const PRODUCTION_ANDROID_PACKAGE = 'com.everyapp.container';
+
+/** SrvEveryApp. app.config.js appends ".dev" when APP_VARIANT=development. */
+export const DEVELOPMENT_ANDROID_PACKAGE = 'com.everyapp.container.dev';
+
+/**
+ * Public SHA-1 of the debug keystore used to sign the current SrvEveryApp APK.
+ * Colon form, as the Dashboard field "Package SHA1 fingerprint" shows it.
+ * The same fingerprint without colons is also accepted. Not a secret.
+ * The production signing SHA-1 is not in this repo.
+ */
+export const DEVELOPMENT_DEBUG_SHA1 = '5E:8F:16:06:2E:A3:CD:2C:4A:0D:54:78:76:BA:A6:F3:8C:AB:F6:25';
+
+export type SpotifyAndroidVariant = 'development' | 'production' | 'unknown';
+
+export interface SpotifyAndroidDashboardTarget {
+  variant: SpotifyAndroidVariant;
+  appName: string;
+  /** null when the running package could not be read. */
+  packageName: string | null;
+  /**
+   * Colon-form SHA-1 to paste, or null when this build's signing fingerprint
+   * is not stored in the repo (production, or an unrecognized package).
+   */
+  sha1: string | null;
+}
+
+/**
+ * Package name + SHA-1 for the Spotify Dashboard "Android packages" row.
+ * Matches the running variant: development gets the known debug fingerprint,
+ * production never receives that debug value.
+ */
+export function spotifyAndroidDashboardTarget(packageName: unknown): SpotifyAndroidDashboardTarget {
+  const pkg = String(packageName ?? '').trim();
+  if (pkg === DEVELOPMENT_ANDROID_PACKAGE) {
+    return { variant: 'development', appName: 'SrvEveryApp', packageName: pkg, sha1: DEVELOPMENT_DEBUG_SHA1 };
+  }
+  if (pkg === PRODUCTION_ANDROID_PACKAGE) {
+    return { variant: 'production', appName: 'EveryApp', packageName: pkg, sha1: null };
+  }
+  return { variant: 'unknown', appName: 'EveryApp', packageName: pkg || null, sha1: null };
+}
+
+type ExpoPackageConstants = {
+  expoConfig?: { android?: { package?: string | null } | null } | null;
+  manifest?: { android?: { package?: string | null } | null } | null;
+  manifest2?: { extra?: { expoClient?: { android?: { package?: string | null } | null } | null } | null } | null;
+};
+
+/** android.package written by app.config.js (APP_VARIANT → com.everyapp.container or .dev). */
+export function androidPackageFromExpoConstants(constants: ExpoPackageConstants | null | undefined): string | null {
+  const candidates = [
+    constants?.expoConfig?.android?.package,
+    constants?.manifest2?.extra?.expoClient?.android?.package,
+    constants?.manifest?.android?.package,
+  ];
+  for (const value of candidates) {
+    const pkg = String(value ?? '').trim();
+    if (pkg) return pkg;
+  }
+  return null;
+}
+
+function readNativeApplicationId(): string | null {
+  try {
+    // Already part of the Expo SDK. The id is the package of the APK that is running.
+    const mod = require('expo-application');
+    const id = mod?.applicationId ?? mod?.default?.applicationId;
+    const pkg = String(id ?? '').trim();
+    return pkg || null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Package of the app that is open now.
+ * Prefer the native applicationId (the variant app.config.js baked into this APK).
+ * Fall back to the same android.package field in the Expo config.
+ */
+export function readRunningAndroidPackage(): string | null {
+  const nativeId = readNativeApplicationId();
+  if (nativeId) return nativeId;
+  try {
+    const Constants = require('expo-constants').default;
+    return androidPackageFromExpoConstants(Constants);
+  } catch {
+    return null;
+  }
+}
 
 export const MISSING_SPOTIFY_CLIENT_ID =
   'Keine Spotify Client ID hinterlegt. Bitte in den EveryApp-Einstellungen eintragen.';
