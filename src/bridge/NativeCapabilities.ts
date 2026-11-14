@@ -42,6 +42,14 @@ import {
   spotifySkipPrevious,
   spotifyStop,
 } from '../services/spotifySettings';
+import {
+  broadcastMultiplayer,
+  hostMultiplayer,
+  joinMultiplayer,
+  leaveMultiplayer,
+  sendMultiplayer,
+  showMultiplayerQr,
+} from '../services/multiplayer/session';
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -89,6 +97,7 @@ export class NativeCapabilities {
     this.stopSpotify = null;
     this.bluetoothConnectedSub?.remove();
     this.bluetoothDisconnectedSub?.remove();
+    void leaveMultiplayer(this.appId);
     this.eventEmitter.removeAllListeners();
   }
 
@@ -417,6 +426,17 @@ export class NativeCapabilities {
         throw new Error(`Zwischenablage-Fehler (expo-clipboard): ${e?.message || e}`);
       }
     },
+  };
+
+  multiplayer = {
+    host: (opts?: { maxPlayers?: number; name?: string }) =>
+      hostMultiplayer(this.appId, (event, data) => this.eventEmitter.emit(event, data), opts),
+    join: (input: string | { scan?: boolean; payload?: string; qrPayload?: string; name?: string }) =>
+      joinMultiplayer(this.appId, (event, data) => this.eventEmitter.emit(event, data), input),
+    send: (data: unknown, opts?: { to?: string }) => sendMultiplayer(this.appId, data, opts),
+    broadcast: (data: unknown) => broadcastMultiplayer(this.appId, data),
+    leave: () => leaveMultiplayer(this.appId),
+    showQr: () => showMultiplayerQr(this.appId),
   };
 
   events = {

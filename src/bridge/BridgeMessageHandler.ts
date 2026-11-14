@@ -279,6 +279,22 @@ export class BridgeMessageHandler {
             setString: (text) => sendMessage('clipboard.setString', [text]),
             getString: () => sendMessage('clipboard.getString', []),
           },
+          multiplayer: {
+            host: (opts) => sendMessage('multiplayer.host', opts ? [opts] : []),
+            join: (input) => sendMessage('multiplayer.join', [input]),
+            send: (data, opts) => sendMessage('multiplayer.send', opts ? [data, opts] : [data]),
+            broadcast: (data) => sendMessage('multiplayer.broadcast', [data]),
+            leave: () => sendMessage('multiplayer.leave', []),
+            showQr: () => sendMessage('multiplayer.showQr', []),
+            onMessage: (callback) => {
+              window.EveryAppBridge.events.on('multiplayer.message', callback);
+              return () => window.EveryAppBridge.events.off('multiplayer.message', callback);
+            },
+            onPlayersChanged: (callback) => {
+              window.EveryAppBridge.events.on('multiplayer.players', callback);
+              return () => window.EveryAppBridge.events.off('multiplayer.players', callback);
+            },
+          },
           events: {
             on: (event, callback) => {
               if (!eventListeners[event]) {

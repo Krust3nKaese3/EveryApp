@@ -25,7 +25,8 @@ export type Permission =
   | 'network'
   | 'media'
   | 'secrets'
-  | 'crypto';
+  | 'crypto'
+  | 'multiplayer';
 
 /** catalog: curated list. developer: signed-in owner's repo. free: confirmed foreign add (flag off). */
 export type MiniAppOrigin = 'catalog' | 'developer' | 'free';

@@ -234,6 +234,42 @@ function storageKeyArg(args: unknown[]): unknown[] {
   return [assertStorageKey(args[0])];
 }
 
+const MP_ROOM_RATE: RateRule = { max: 8, windowMs: 60_000 };
+const MP_SEND_RATE: RateRule = { max: 80, windowMs: 10_000 };
+
+function multiplayerHost(args: unknown[]): unknown[] {
+  exact(args, 0, 1);
+  const raw = args[0] == null ? {} : plainObject(args[0], 'Raum', 2000);
+  return [{
+    maxPlayers: raw.maxPlayers == null ? undefined : num(raw.maxPlayers, 'maxPlayers', 2, 16, true),
+    name: raw.name == null ? undefined : str(raw.name, 'Name', 24),
+  }];
+}
+
+function multiplayerJoin(args: unknown[]): unknown[] {
+  exact(args, 1, 1);
+  if (typeof args[0] === 'string') return [str(args[0], 'QR', 2000)];
+  const raw = plainObject(args[0], 'Beitritt', 4000);
+  return [{
+    scan: raw.scan == null ? undefined : bool(raw.scan, 'Scan'),
+    payload: raw.payload == null ? undefined : str(raw.payload, 'QR', 2000),
+    qrPayload: raw.qrPayload == null ? undefined : str(raw.qrPayload, 'QR', 2000),
+    name: raw.name == null ? undefined : str(raw.name, 'Name', 24),
+  }];
+}
+
+function multiplayerSend(args: unknown[]): unknown[] {
+  exact(args, 1, 2);
+  const data = boundedJson(args[0], 'Nachricht', 32 * 1024);
+  const raw = optObject(args[1], 'Ziel', 500) || {};
+  return [data, { to: raw.to == null ? undefined : str(raw.to, 'Empfänger', 64) }];
+}
+
+function multiplayerBroadcast(args: unknown[]): unknown[] {
+  exact(args, 1, 1);
+  return [boundedJson(args[0], 'Nachricht', 32 * 1024)];
+}
+
 const BRIDGE_METHODS: Record<string, MethodSpec> = {
   'storage.get': method({ category: 'storage', action: 'get', rate: STORAGE_RATE, validate: storageKeyArg }),
   'storage.set': method({ category: 'storage', action: 'set', rate: STORAGE_RATE, validate: storageSet }),
@@ -364,6 +400,13 @@ const BRIDGE_METHODS: Record<string, MethodSpec> = {
 
   'clipboard.setString': method({ category: 'clipboard', action: 'setString', validate: (a) => (exact(a, 1, 1), [str(a[0], 'Text', 64_000)]) }),
   'clipboard.getString': method({ category: 'clipboard', action: 'getString', validate: none }),
+
+  'multiplayer.host': method({ category: 'multiplayer', action: 'host', rate: MP_ROOM_RATE, validate: multiplayerHost }),
+  'multiplayer.join': method({ category: 'multiplayer', action: 'join', rate: MP_ROOM_RATE, validate: multiplayerJoin }),
+  'multiplayer.send': method({ category: 'multiplayer', action: 'send', rate: MP_SEND_RATE, validate: multiplayerSend }),
+  'multiplayer.broadcast': method({ category: 'multiplayer', action: 'broadcast', rate: MP_SEND_RATE, validate: multiplayerBroadcast }),
+  'multiplayer.leave': method({ category: 'multiplayer', action: 'leave', rate: MP_ROOM_RATE, validate: none }),
+  'multiplayer.showQr': method({ category: 'multiplayer', action: 'showQr', validate: none }),
 };
 
 export function bridgeMethod(name: string): MethodSpec | null {
@@ -383,6 +426,8 @@ export const BRIDGE_EVENTS: Record<string, Permission | null> = {
   'spotify.disconnected': 'spotify',
   'spotify.player': 'spotify',
   'spotify.error': 'spotify',
+  'multiplayer.message': 'multiplayer',
+  'multiplayer.players': 'multiplayer',
 };
 
 export type ParsedMessage =
