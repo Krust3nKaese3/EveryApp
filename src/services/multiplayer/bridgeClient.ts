@@ -37,3 +37,14 @@ export interface MultiplayerBridge {
   leave(): Promise<{ left: boolean }>;
   showQr(): Promise<{ roomCode: string; qrPayload: string }>;
 }
+
+export const MULTIPLAYER_BRIDGE_METHODS = [
+  'host',
+  'join',
+  'send',
+  'broadcast',
+  'onMessage',
+  'onPlayersChanged',
+  'leave',
+  'showQr',
+] as const;

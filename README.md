@@ -2,6 +2,10 @@
 
 **EveryApp** is an Android container app that runs mini-apps loaded on demand from public Git repositories, without requiring app store deployments. Built with React Native, Expo, and TypeScript.
 
+## Mini-App bauen
+
+Wer eine Mini-App in einem eigenen Repository schreibt, gibt der KI diesen Einstieg: [llms.txt](llms.txt). Der Guide [docs/MINIAPP_AI_GUIDE.md](docs/MINIAPP_AI_GUIDE.md) erklärt Manifest, Bridge und Mehrspieler. Die Vorlage ist [examples/multiplayer-lobby/](examples/multiplayer-lobby/). Am PC testen zwei Browser-Tabs mit [examples/multiplayer-mock/everyapp-mock.js](examples/multiplayer-mock/everyapp-mock.js).
+
 ## Features
 
 ### v1.0 Capabilities

@@ -76,7 +76,7 @@ WLAN-Adressen (`wlan0`, `en0`) haben Vorrang. Ein Hotspot ohne WLAN-Client (typi
 
 - Der Host hört auf TCP (`react-native-tcp-socket`), Port wird vom System vergeben.
 - Etwa alle 3 Sekunden ein Ping. Antwortet jemand 10 Sekunden nicht, gilt die Verbindung als weg.
-- Dieselbe Spieler-Id kann sich etwa 20 Sekunden lang wieder anmelden. Danach ist der Platz frei.
+- Dieselbe Spieler-Id kann sich etwa 20 Sekunden lang wieder anmelden. Dafür gibt der Host nur diesem Spieler ein Geheimnis, das nicht in der Spielerliste steht. Die Mini-App sieht es nicht.
 - Während der Unterbrechung werden Spielnachrichten nicht gepuffert. Die Mini-App schickt den Spielstand nach dem Wiederverbinden selbst.
 - Pro Gerät nur ein Raum. Schließt die Mini-App, endet der Raum.
 
@@ -93,3 +93,5 @@ Diese Funktion steckt nicht in Expo Go und nicht in einem älteren EveryApp-Buil
 Bonjour sucht den Raum nicht. Der QR-Code ist die Einladung. Der Eintrag hilft iOS, die Frage nach dem lokalen Netz überhaupt zu zeigen. Die Adressliste liest das Modul `expo-network-info`, auf iOS erst mit diesem Build.
 
 Diesen Build hier nicht starten, bevor er gewollt ist. Bis dahin antwortet die API auf Deutsch, dass ein neuer Entwicklungs-Build fehlt.
+
+Was ein Gerät im selben WLAN trotzdem kann, steht in [MULTIPLAYER_SECURITY.md](MULTIPLAYER_SECURITY.md). Für Mini-App-Autoren, die einer KI nur einen Link geben: [MINIAPP_AI_GUIDE.md](MINIAPP_AI_GUIDE.md) und [llms.txt](../llms.txt).

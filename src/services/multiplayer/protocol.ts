@@ -17,6 +17,16 @@ export const MP_LIMITS = {
   heartbeatMs: 3_000,
   timeoutMs: 10_000,
   reconnectGraceMs: 20_000,
+  handshakeMs: 5_000,
+  maxPending: 8,
+  maxMessagesPer10s: 80,
+  maxInboundPer10s: 100,
+  messageWindowMs: 10_000,
+  maxFramesPerChunk: 32,
+  maxFailedHellos: 30,
+  failureWindowMs: 60_000,
+  lockoutMs: 30_000,
+  maxQrChars: 2048,
 };
 
 export interface PlayerView {
@@ -34,6 +44,8 @@ export interface HelloFrame {
   token: string;
   name: string;
   playerId?: string;
+  /** Nur beim Wiederverbinden. Steht nicht in der Spielerliste. */
+  secret?: string;
 }
 
 export interface MsgFrame {
@@ -48,7 +60,7 @@ export interface MsgFrame {
 
 export type WireFrame =
   | HelloFrame
-  | { t: 'welcome'; playerId: string; players: PlayerView[] }
+  | { t: 'welcome'; playerId: string; secret: string; players: PlayerView[] }
   | { t: 'players'; players: PlayerView[] }
   | MsgFrame
   | { t: 'ping'; ts: number }
@@ -92,6 +104,7 @@ function asFrame(value: unknown): WireFrame | null {
     if (row.v !== 1) return null;
     if (!short(row.appId, 200) || !short(row.room, 8) || !short(row.token, 64) || !short(row.name, 64)) return null;
     if (row.playerId != null && !short(row.playerId, 64)) return null;
+    if (row.secret != null && !short(row.secret, 64)) return null;
     return {
       t: 'hello',
       v: 1,
@@ -100,13 +113,14 @@ function asFrame(value: unknown): WireFrame | null {
       token: row.token,
       name: row.name,
       playerId: typeof row.playerId === 'string' ? row.playerId : undefined,
+      secret: typeof row.secret === 'string' ? row.secret : undefined,
     };
   }
   if (row.t === 'welcome') {
-    if (!short(row.playerId, 64) || !Array.isArray(row.players)) return null;
+    if (!short(row.playerId, 64) || !short(row.secret, 64) || !Array.isArray(row.players)) return null;
     const players = asPlayers(row.players);
     if (!players) return null;
-    return { t: 'welcome', playerId: row.playerId, players };
+    return { t: 'welcome', playerId: row.playerId, secret: row.secret, players };
   }
   if (row.t === 'players') {
     if (!Array.isArray(row.players)) return null;
@@ -197,6 +211,6 @@ function sanitize(value: unknown, depth: number): unknown {
 
 export function playerName(value: unknown): string {
   const raw = typeof value === 'string' ? value : '';
-  const cleaned = raw.replace(/[\u0000-\u001f]/g, '').trim().slice(0, MP_LIMITS.maxNameChars);
+  const cleaned = raw.replace(/[\u0000-\u001f<>&"'`]/g, '').trim().slice(0, MP_LIMITS.maxNameChars);
   return cleaned || 'Spieler';
 }

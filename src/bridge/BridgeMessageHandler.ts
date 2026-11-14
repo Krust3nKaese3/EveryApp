@@ -2,6 +2,7 @@ import { checkBridgePermission, permissionDecision } from './permissions';
 import { Permission } from '../types';
 import { NativeCapabilities } from './NativeCapabilities';
 import { BRIDGE_EVENTS, RATE_LIMIT_ERROR, bridgeMethod, parseBridgeMessage, takeRate } from './allowlist';
+import { scriptJson } from './scriptJson';
 
 export type ConsentAsk = (category: Permission) => Promise<boolean>;
 
@@ -90,7 +91,7 @@ export class BridgeMessageHandler {
       const inject = this.inject;
       const fn = (data: any) => {
         console.log('[EveryApp] event -> webview', event, JSON.stringify(data));
-        inject?.(`window.dispatchBridgeEvent && window.dispatchBridgeEvent(${JSON.stringify(event)}, ${JSON.stringify(data ?? null)}); true;`);
+        inject?.(`window.dispatchBridgeEvent && window.dispatchBridgeEvent(${scriptJson(event)}, ${scriptJson(data)}); true;`);
       };
       caps.__forwarded[event] = fn;
       this.capabilities.eventEmitter.on(event, fn);

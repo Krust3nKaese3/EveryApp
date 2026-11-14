@@ -5,6 +5,7 @@ import { MP_LIMITS, PlayerView, assertPayload, decodeFrames, encodeFrame, player
 import { decodeJoinUrl, encodeJoinUrl, type JoinTarget } from './qr';
 import { GameRoom, type RelayResult } from './room';
 import { tcpTransport, type MpLink, type MpServer, type MpTransport } from './transport';
+import { HelloGuard } from './guard';
 
 export interface MpUiState {
   mode: 'host' | 'scan';
@@ -42,12 +43,21 @@ interface LiveSession {
   dropStarted: number;
   welcomed: boolean;
   giveUp: boolean;
+  secret: string;
+  sockets: Set<MpLink>;
+  handshakeTimers: Set<ReturnType<typeof setTimeout>>;
 }
 
 let live: LiveSession | null = null;
 let ui: MpUiState | null = null;
 const uiListeners = new Set<UiListener>();
 let scanDeferred: { resolve: (text: string) => void; reject: (error: Error) => void } | null = null;
+const helloGuard = new HelloGuard();
+
+export async function resetMultiplayerForTests(): Promise<void> {
+  helloGuard.reset();
+  await leaveMultiplayer();
+}
 
 function setUi(next: MpUiState | null): void {
   ui = next;
@@ -131,6 +141,9 @@ export async function leaveMultiplayer(appId?: string): Promise<{ left: boolean 
     }
   }
   session.links.forEach((link) => link.close());
+  session.sockets.forEach((link) => link.close());
+  session.handshakeTimers.forEach((timer) => clearTimeout(timer));
+  session.handshakeTimers.clear();
   session.guestLink?.close();
   session.server?.close();
   live = null;
@@ -148,12 +161,13 @@ function pump(session: LiveSession, link: MpLink, onFrame: (frame: WireFrame) =>
   link.onData((chunk) => {
     buffer += chunk;
     if (buffer.length > MP_LIMITS.maxFrameBytes * 4) {
+      buffer = '';
       link.close();
       return;
     }
     const decoded = decodeFrames(buffer);
     buffer = decoded.rest;
-    if (decoded.error) {
+    if (decoded.error || decoded.frames.length > MP_LIMITS.maxFramesPerChunk) {
       link.close();
       return;
     }
@@ -162,26 +176,59 @@ function pump(session: LiveSession, link: MpLink, onFrame: (frame: WireFrame) =>
 }
 
 function bindHostLink(session: LiveSession, link: MpLink): void {
+  const now = Date.now();
+  const cap = MP_LIMITS.maxPending + (session.room?.maxPlayers ?? MP_LIMITS.defaultPlayers);
+  if (helloGuard.isLocked(now) || session.sockets.size >= cap) {
+    link.close();
+    return;
+  }
+  session.sockets.add(link);
   let playerId = '';
+  let inbound: number[] = [];
+  const handshake = setTimeout(() => {
+    session.handshakeTimers.delete(handshake);
+    if (!playerId) link.close();
+  }, MP_LIMITS.handshakeMs);
+  session.handshakeTimers.add(handshake);
+  const allowInbound = (at: number) => {
+    inbound = inbound.filter((stamp) => at - stamp < MP_LIMITS.messageWindowMs);
+    if (inbound.length >= MP_LIMITS.maxInboundPer10s) return false;
+    inbound.push(at);
+    return true;
+  };
   pump(session, link, (frame) => {
     if (!session.room || session.leaving) return;
-    const now = Date.now();
+    const at = Date.now();
+    if (!allowInbound(at)) {
+      link.close();
+      return;
+    }
     if (frame.t === 'hello') {
       if (playerId) return;
       const admitted = session.room.admit(
-        { appId: frame.appId, room: frame.room, token: frame.token, name: frame.name, playerId: frame.playerId },
-        now,
+        {
+          appId: frame.appId,
+          room: frame.room,
+          token: frame.token,
+          name: frame.name,
+          playerId: frame.playerId,
+          secret: frame.secret,
+        },
+        at,
       );
       if (!admitted.ok) {
+        helloGuard.recordFailure(at);
         link.send(encodeFrame({ t: 'error', code: admitted.code, message: admitted.message }));
         link.close();
         return;
       }
       playerId = admitted.player.id;
+      clearTimeout(handshake);
+      session.handshakeTimers.delete(handshake);
       const previous = session.links.get(playerId);
       if (previous && previous !== link) previous.close();
       session.links.set(playerId, link);
-      link.send(encodeFrame({ t: 'welcome', playerId, players: session.room.players() }));
+      link.send(encodeFrame({ t: 'welcome', playerId, secret: admitted.secret, players: session.room.players() }));
       publishPlayers(session);
       return;
     }
@@ -190,12 +237,12 @@ function bindHostLink(session: LiveSession, link: MpLink): void {
       return;
     }
     if (frame.t === 'ping') {
-      session.room.seen(playerId, now);
+      session.room.seen(playerId, at);
       link.send(encodeFrame({ t: 'pong', ts: frame.ts }));
       return;
     }
     if (frame.t === 'pong') {
-      session.room.seen(playerId, now);
+      session.room.seen(playerId, at);
       return;
     }
     if (frame.t === 'leave') {
@@ -207,17 +254,21 @@ function bindHostLink(session: LiveSession, link: MpLink): void {
     }
     if (frame.t !== 'msg') return;
     try {
-      // Absender ist der Socket, nicht das Feld from. all geht an alle anderen, to an eine Id, sonst nur an den Host.
       const result = frame.all
-        ? session.room.broadcast(playerId, frame.data)
-        : session.room.relay(playerId, frame.data, frame.to);
+        ? session.room.broadcast(playerId, frame.data, at)
+        : session.room.relay(playerId, frame.data, frame.to, at);
       deliver(session, result);
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Nachricht abgelehnt.';
-      link.send(encodeFrame({ t: 'error', code: 'msg', message }));
+      const rate = /zu viele/i.test(message);
+      link.send(encodeFrame({ t: 'error', code: rate ? 'rate' : 'msg', message }));
+      if (rate) link.close();
     }
   });
   link.onClose(() => {
+    clearTimeout(handshake);
+    session.handshakeTimers.delete(handshake);
+    session.sockets.delete(link);
     if (!session.room || !playerId) return;
     if (session.links.get(playerId) !== link) return;
     session.links.delete(playerId);
@@ -263,33 +314,47 @@ export async function hostMultiplayer(
     now: Date.now(),
   });
   const ip = await transport.localIpv4();
-  const server = await transport.listen((link) => {
-    if (live) bindHostLink(live, link);
-  });
-  const qrPayload = encodeJoinUrl({ v: 1, host: ip, port: server.port, room: room.roomCode, token: room.token, appId });
-  live = {
-    appId,
-    role: 'host',
-    room,
-    selfId: room.hostId,
-    name: playerName(opts?.name),
-    roomCode: room.roomCode,
-    qrPayload,
-    target: null,
-    emit,
-    links: new Map(),
-    guestLink: null,
-    server,
-    timer: null,
-    reconnectTimer: null,
-    leaving: false,
-    lastHeard: Date.now(),
-    dropStarted: 0,
-    welcomed: true,
-    giveUp: false,
-  };
+  let server: MpServer | null = null;
+  try {
+    server = await transport.listen((link) => {
+      if (!live || live.leaving) {
+        link.close();
+        return;
+      }
+      bindHostLink(live, link);
+    });
+    const qrPayload = encodeJoinUrl({ v: 1, host: ip, port: server.port, room: room.roomCode, token: room.token, appId });
+    live = {
+      appId,
+      role: 'host',
+      room,
+      selfId: room.hostId,
+      name: playerName(opts?.name),
+      roomCode: room.roomCode,
+      qrPayload,
+      target: null,
+      emit,
+      links: new Map(),
+      guestLink: null,
+      server,
+      timer: null,
+      reconnectTimer: null,
+      leaving: false,
+      lastHeard: Date.now(),
+      dropStarted: 0,
+      welcomed: true,
+      giveUp: false,
+      secret: '',
+      sockets: new Set(),
+      handshakeTimers: new Set(),
+    };
+  } catch (error) {
+    server?.close();
+    throw error;
+  }
+  if (!live) throw new Error('Der Raum ist nicht gestartet.');
   startHeartbeat(live);
-  setUi({ mode: 'host', qrPayload, roomCode: room.roomCode });
+  setUi({ mode: 'host', qrPayload: live.qrPayload, roomCode: live.roomCode });
   emit('multiplayer.players', { players: room.players(), selfId: room.hostId, roomCode: room.roomCode });
   return snapshot(live);
 }
@@ -314,18 +379,24 @@ async function openGuest(session: LiveSession, transport: MpTransport): Promise<
   let buffer = '';
   let opened = false;
   await new Promise<void>((resolve, reject) => {
+    const clock: { timer?: ReturnType<typeof setTimeout> } = {};
     const fail = (error: Error) => {
       if (opened) return;
       opened = true;
+      if (clock.timer) clearTimeout(clock.timer);
       link.close();
       reject(error);
     };
-    const timer = setTimeout(() => fail(new Error('Der Host antwortet nicht.')), 8000);
+    clock.timer = setTimeout(() => fail(new Error('Der Host antwortet nicht.')), 8000);
     link.onData((chunk) => {
       buffer += chunk;
+      if (buffer.length > MP_LIMITS.maxFrameBytes * 4) {
+        fail(new Error('Der Host hat zu viele Daten geschickt.'));
+        return;
+      }
       const decoded = decodeFrames(buffer);
       buffer = decoded.rest;
-      if (decoded.error) {
+      if (decoded.error || decoded.frames.length > MP_LIMITS.maxFramesPerChunk) {
         fail(new Error('Der Host hat ungültige Daten geschickt.'));
         return;
       }
@@ -333,8 +404,9 @@ async function openGuest(session: LiveSession, transport: MpTransport): Promise<
         session.lastHeard = Date.now();
         if (frame.t === 'welcome' && !opened) {
           opened = true;
-          clearTimeout(timer);
+          clearTimeout(clock.timer);
           session.selfId = frame.playerId;
+          session.secret = frame.secret;
           session.welcomed = true;
           session.dropStarted = 0;
           session.emit('multiplayer.players', { players: frame.players, selfId: frame.playerId, roomCode: session.roomCode });
@@ -342,7 +414,7 @@ async function openGuest(session: LiveSession, transport: MpTransport): Promise<
           return;
         }
         if (frame.t === 'error' && !opened) {
-          clearTimeout(timer);
+          clearTimeout(clock.timer);
           session.giveUp = frame.code === 'auth' || frame.code === 'app' || frame.code === 'full' || frame.code === 'player';
           fail(new Error(frame.message));
           return;
@@ -369,7 +441,8 @@ async function openGuest(session: LiveSession, transport: MpTransport): Promise<
       room: target.room,
       token: target.token,
       name: session.name,
-      playerId: session.selfId || undefined,
+      playerId: session.selfId && session.secret ? session.selfId : undefined,
+      secret: session.selfId && session.secret ? session.secret : undefined,
     };
     link.send(encodeFrame(hello));
   });
@@ -421,6 +494,9 @@ export async function joinMultiplayer(
     dropStarted: 0,
     welcomed: false,
     giveUp: false,
+    secret: '',
+    sockets: new Set(),
+    handshakeTimers: new Set(),
   };
   live = session;
   startHeartbeat(session);
