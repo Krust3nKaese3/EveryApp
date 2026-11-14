@@ -3,6 +3,7 @@
  * Nachrichten bleiben in dieser Mini-App und in diesem Token.
  */
 import { MP_LIMITS, PlayerView, assertPayload, playerName } from './protocol';
+import { sameSecret } from './guard';
 
 const CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 
@@ -12,15 +13,18 @@ export interface AdmitInput {
   token: string;
   name: string;
   playerId?: string;
+  secret?: string;
 }
 
 export type AdmitResult =
-  | { ok: true; player: PlayerView; resumed: boolean }
+  | { ok: true; player: PlayerView; secret: string; resumed: boolean }
   | { ok: false; code: string; message: string };
 
 interface Member extends PlayerView {
+  secret: string;
   lastSeen: number;
   disconnectedAt: number | null;
+  stamps: number[];
 }
 
 export interface RelayResult {
@@ -60,11 +64,13 @@ export class GameRoom {
     this.token = hex(this.random, 8);
     this.members.push({
       id: this.freshId(),
+      secret: hex(this.random, 8),
       name: playerName(opts.hostName),
       host: true,
       connected: true,
       lastSeen: opts.now,
       disconnectedAt: null,
+      stamps: [],
     });
   }
 
@@ -77,30 +83,38 @@ export class GameRoom {
   }
 
   admit(input: AdmitInput, now: number): AdmitResult {
-    if (input.appId !== this.appId) return { ok: false, code: 'app', message: 'Dieser Raum gehört zu einer anderen Mini-App.' };
-    if (input.room !== this.roomCode || input.token !== this.token) {
+    const roomOk = sameSecret(input.room, this.roomCode);
+    const tokenOk = sameSecret(input.token, this.token);
+    const appOk = sameSecret(input.appId, this.appId);
+    if (!roomOk || !tokenOk || !appOk) {
       return { ok: false, code: 'auth', message: 'Raumcode oder Token passt nicht.' };
     }
     if (input.playerId) {
       const existing = this.members.find((member) => member.id === input.playerId);
-      if (!existing || existing.host) return { ok: false, code: 'player', message: 'Unbekannter Spieler.' };
+      const known = existing && !existing.host ? existing.secret : '0000000000000000';
+      const secretOk = sameSecret(input.secret || '', known) && !!existing && !existing.host;
+      if (!secretOk || !existing || existing.host) {
+        return { ok: false, code: 'auth', message: 'Raumcode oder Token passt nicht.' };
+      }
       if (existing.connected) return { ok: false, code: 'busy', message: 'Dieser Spieler ist schon verbunden.' };
       existing.connected = true;
       existing.disconnectedAt = null;
       existing.lastSeen = now;
-      return { ok: true, player: viewOf(existing), resumed: true };
+      return { ok: true, player: viewOf(existing), secret: existing.secret, resumed: true };
     }
     if (this.members.length >= this.maxPlayers) return { ok: false, code: 'full', message: 'Der Raum ist voll.' };
     const member: Member = {
       id: this.freshId(),
+      secret: hex(this.random, 8),
       name: playerName(input.name),
       host: false,
       connected: true,
       lastSeen: now,
       disconnectedAt: null,
+      stamps: [],
     };
     this.members.push(member);
-    return { ok: true, player: viewOf(member), resumed: false };
+    return { ok: true, player: viewOf(member), secret: member.secret, resumed: false };
   }
 
   seen(playerId: string, now: number): void {
@@ -147,9 +161,10 @@ export class GameRoom {
     return { changed, drop };
   }
 
-  relay(fromId: string, data: unknown, to?: string): RelayResult {
+  relay(fromId: string, data: unknown, to?: string, now = Date.now()): RelayResult {
     const from = this.members.find((member) => member.id === fromId && member.connected);
     if (!from) throw new Error('Du bist nicht in diesem Raum.');
+    if (!this.takeMessage(from, now)) throw new Error('Zu viele Nachrichten.');
     const clean = assertPayload(data);
     let targets: Member[];
     if (to) {
@@ -167,9 +182,10 @@ export class GameRoom {
     return { seq: this.seq, from: from.id, data: clean, targets: targets.map((member) => member.id) };
   }
 
-  broadcast(fromId: string, data: unknown): RelayResult {
+  broadcast(fromId: string, data: unknown, now = Date.now()): RelayResult {
     const from = this.members.find((member) => member.id === fromId && member.connected);
     if (!from) throw new Error('Du bist nicht in diesem Raum.');
+    if (!this.takeMessage(from, now)) throw new Error('Zu viele Nachrichten.');
     const clean = assertPayload(data);
     const targets = this.members.filter((member) => member.connected && member.id !== from.id);
     this.seq += 1;
@@ -182,6 +198,13 @@ export class GameRoom {
       if (!this.members.some((member) => member.id === id)) return id;
     }
     return hex(this.random, 8);
+  }
+
+  private takeMessage(member: Member, now: number): boolean {
+    member.stamps = member.stamps.filter((stamp) => now - stamp < MP_LIMITS.messageWindowMs);
+    if (member.stamps.length >= MP_LIMITS.maxMessagesPer10s) return false;
+    member.stamps.push(now);
+    return true;
   }
 }
 

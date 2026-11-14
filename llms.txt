@@ -1,0 +1,23 @@
+# EveryApp für Mini-App-Autoren
+
+> Einstieg für eine KI, die eine Mini-App in einem anderen Repository schreibt. Die Mini-App wird in EveryApp geladen. Sie spricht nur über `window.EveryAppBridge`.
+
+## Zuerst lesen
+
+- [Guide für KIs](https://raw.githubusercontent.com/Krust3nKaese3/EveryApp/main/docs/MINIAPP_AI_GUIDE.md): Aufbau, Berechtigungen, Bridge, Mehrspieler, Fehler, kopierbarer Auftrag.
+- [Bridge-API](https://raw.githubusercontent.com/Krust3nKaese3/EveryApp/main/docs/BRIDGE_API.md): erlaubte Methoden und Grenzen.
+- [Mehrspieler](https://raw.githubusercontent.com/Krust3nKaese3/EveryApp/main/docs/MULTIPLAYER.md): Host, QR, Events, 32 KiB.
+- [Mehrspieler-Sicherheit](https://raw.githubusercontent.com/Krust3nKaese3/EveryApp/main/docs/MULTIPLAYER_SECURITY.md): was das WLAN nicht leistet.
+
+## Vorlage
+
+- [Lobby](https://raw.githubusercontent.com/Krust3nKaese3/EveryApp/main/examples/multiplayer-lobby/index.html): Name, Host, Beitritt, Liste, Runde, Zähler, Abstimmung.
+- [Spielregeln](https://raw.githubusercontent.com/Krust3nKaese3/EveryApp/main/examples/multiplayer-lobby/logic.js)
+- [App-Skript](https://raw.githubusercontent.com/Krust3nKaese3/EveryApp/main/examples/multiplayer-lobby/app.js)
+- [Manifest](https://raw.githubusercontent.com/Krust3nKaese3/EveryApp/main/examples/multiplayer-lobby/everyapp.json)
+- [Browser-Attrappe](https://raw.githubusercontent.com/Krust3nKaese3/EveryApp/main/examples/multiplayer-mock/everyapp-mock.js): zwei Tabs, ein Raum, kein Handy.
+
+## Optional
+
+- [Hintergrund](https://raw.githubusercontent.com/Krust3nKaese3/EveryApp/main/docs/BACKGROUND.md)
+- [Store-Hinweise](https://raw.githubusercontent.com/Krust3nKaese3/EveryApp/main/docs/APP_REVIEW.md): kein Rechtsrat.

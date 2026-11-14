@@ -1,0 +1,24 @@
+# Sicherheit des lokalen Mehrspielers
+
+Stand nach der Prüfung des TCP-Servers, des Protokolls und der Bridge. Das Netz ist das gemeinsame WLAN oder der Hotspot. Es gibt kein TLS. Wer den Funk mithört, liest mit.
+
+Bewertung: hoch, mittel, niedrig. „Behoben“ heißt, der beschriebene Angriff funktioniert so nicht mehr. Das Rest-Risiko bleibt.
+
+| Bedrohung | Bewertung | Maßnahme | Rest-Risiko |
+| --- | --- | --- | --- |
+| Port-Scan im WLAN findet den Server | niedrig | Kein Banner. Ohne gültiges Hello binnen 5 Sekunden wird die Verbindung geschlossen. | Der offene Port ist im lokalen Netz sichtbar. Das ist nötig, damit Gäste verbinden können. |
+| Verbindung ohne Token oder mit geratenem Raumcode | mittel, behoben | Raumcode, Token und Mini-App-Id werden immer vollständig und ohne frühen Abbruch verglichen. Dieselbe Fehlermeldung für alle drei. | Der Raumcode hat vier Zeichen und steht auf dem Bildschirm. Ohne das 16-stellige Hex-Token aus dem QR-Code reicht er nicht. |
+| Brute-Force des Tokens | niedrig, entschärft | 64 Bit. Nach 30 fehlgeschlagenen Hellos in einer Minute sperrt der Host 30 Sekunden lang neue Verbindungen. | Ein Mithörer sieht das Token im Klartext und muss nicht raten. |
+| Viele Verbindungen, große oder zerstückelte Nachrichten | hoch, behoben | Höchstens 8 wartende Verbindungen plus die Spielerplätze. Rahmen über 40 KiB und Puffer über 160 KiB beenden die Verbindung. Höchstens 32 Rahmen pro Stück, 100 Rahmen und 80 Spielnachrichten in 10 Sekunden. Danach Ende. | Ein lautes Gerät kann die 8 Warteplätze für 5 Sekunden belegen. Der Raum selbst bleibt für die schon verbundenen Spieler nutzbar. |
+| Spieler-Id oder Name fälschen, sich als Host ausgeben | hoch, behoben | Der Host nimmt die Id vom Socket, nicht aus dem Feld `from`. Die Host-Rolle entsteht nur beim Öffnen. Ein Name wird von Steuerzeichen und `<>&"'` befreit. Wiederverbinden braucht ein Geheimnis, das nur in der Willkommen-Nachricht an diesen Spieler steht, nicht in der Liste. | Ein anderer Spieler sieht die Ids in der Liste, aber nicht das Geheimnis. Ein Mithörer sieht das Geheimnis auf der Leitung. |
+| Reconnect übernimmt eine fremde Id | hoch, behoben | Ohne das Geheimnis dieser Id antwortet der Host mit demselben Auth-Fehler wie bei einem falschen Token. Ein besetzter Platz bleibt besetzt, wenn das Geheimnis stimmt. | In den 20 Sekunden Karenzzeit kann jemand mit dem mitgehörten Geheimnis den Platz nehmen. |
+| Namen oder Daten als HTML in der WebView | mittel, behoben | Die Bridge setzt Ereignisse als JSON ein und maskiert `<`, `>`, `&` und die Zeilentrenner U+2028/U+2029. Die Lobby-Vorlage schreibt nur `textContent`. | Eine Mini-App, die `innerHTML` benutzt, kann sich selbst öffnen. Der Guide verbietet das. |
+| Nachricht an eine andere Mini-App | mittel, behoben | Falsche App-Id fällt in denselben Auth-Fehler. Die Sitzung gehört zu einer App. `leave` einer anderen App lässt den Server stehen. | Es gibt nur eine Sitzung pro Gerät. Zwei Spiele gleichzeitig teilen sich keinen Raum. |
+| QR mit öffentlicher IP, DNS-Namen, Port 0, Sonderport, führenden Nullen, Metadaten-Adresse, zu langem Text | mittel, behoben | Nur private IPv4 ohne führende Nullen. `169.254.169.254` ist ausgeschlossen. Port nur als Dezimalzahl von 1024 bis 65535. Einladung höchstens 2048 Zeichen. App-Id ohne Steuerzeichen und ohne `<>`. | Link-lokale Adressen außer der Metadaten-Adresse bleiben erlaubt, weil manche Hotspots sie nutzen. |
+| Host greift Gäste an | mittel, teilweise | Gäste begrenzen Puffer und Rahmenzahl und prüfen JSON. | Der Host ist die Autorität. Er kann falsche Spielstände schicken. Wer dem Host nicht traut, sollte nicht beitreten. |
+| Server bleibt nach Verlassen oder App-Wechsel offen | mittel, behoben | `leave` schließt den Server, alle angenommenen Sockets und die Handshake-Timer. Eine Verbindung, die danach noch ankommt, wird sofort geschlossen. Schließt die Mini-App, ruft der Container `leave` auf. | Wenn der Prozess abstürzt, schließt das Betriebssystem die Sockets. Ein hängender Timer überlebt `leave` nicht. |
+| Klartext im WLAN | hoch, offen | Keine Maßnahme im Protokoll. Dokumentiert, damit Spiele keine Geheimnisse durch den Raum schicken. | Jede Person im selben Funk kann Token, Geheimnis und Spielnachrichten lesen und sich danach als dieser Spieler melden. Ein TLS-Zertifikat ohne gemeinsame Vertrauensstelle würde die Gäste nur mit einer Warnung belasten und ist nicht eingebaut. |
+
+Die Mini-App sieht das Wiederverbindungs-Geheimnis nicht. Sie merkt nur `connected` und dieselbe `playerId`.
+
+Geprüft ohne nativen Build. Die Socket-Schicht ist mit einer Ersatzverbindung getestet, nicht auf einem Gerät.

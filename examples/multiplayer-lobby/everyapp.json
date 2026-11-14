@@ -1,0 +1,7 @@
+{
+  "name": "Mehrspieler-Lobby",
+  "version": "1.0.0",
+  "description": "Vorlage: Name, Host oder Beitritt, Lobby, Runde mit Zähler und Abstimmung.",
+  "entrypoint": "index.html",
+  "permissions": ["multiplayer"]
+}

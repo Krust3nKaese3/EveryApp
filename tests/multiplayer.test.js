@@ -70,7 +70,7 @@ test('Raum nimmt nur dieselbe Mini-App auf und leitet gezielt weiter', () => {
   assert.strictEqual(room.players()[0].host, true);
   const deniedApp = room.admit({ appId: 'song', room: room.roomCode, token: room.token, name: 'Bea' }, 1);
   assert.strictEqual(deniedApp.ok, false);
-  assert.strictEqual(deniedApp.code, 'app');
+  assert.strictEqual(deniedApp.code, 'auth');
   const deniedToken = room.admit({ appId: 'wolf', room: room.roomCode, token: '0000000000000000', name: 'Bea' }, 1);
   assert.strictEqual(deniedToken.code, 'auth');
   const bea = room.admit({ appId: 'wolf', room: room.roomCode, token: room.token, name: 'Bea' }, 1);
@@ -94,9 +94,17 @@ test('Kurze Trennung behält den Platz, die Karenzzeit gibt ihn frei', () => {
   const room = new GameRoom({ appId: 'song', maxPlayers: 4, hostName: 'Host', now: 0, random: rng(3) });
   const guest = room.admit({ appId: 'song', room: room.roomCode, token: room.token, name: 'Bea' }, 0);
   assert.strictEqual(guest.ok, true);
+  assert.ok(!JSON.stringify(room.players()).includes(guest.secret));
   assert.strictEqual(room.disconnect(guest.player.id, 1000), true);
   assert.strictEqual(room.players().find((player) => player.id === guest.player.id).connected, false);
-  const again = room.admit({ appId: 'song', room: room.roomCode, token: room.token, name: 'Jemand', playerId: guest.player.id }, 5000);
+  const stolen = room.admit({
+    appId: 'song', room: room.roomCode, token: room.token, name: 'Fremd', playerId: guest.player.id, secret: '0123456789abcdef',
+  }, 2000);
+  assert.strictEqual(stolen.code, 'auth');
+  assert.strictEqual(room.players().find((player) => player.id === guest.player.id).connected, false);
+  const again = room.admit({
+    appId: 'song', room: room.roomCode, token: room.token, name: 'Jemand', playerId: guest.player.id, secret: guest.secret,
+  }, 5000);
   assert.strictEqual(again.ok && again.resumed, true);
   assert.strictEqual(again.player.name, 'Bea');
   room.disconnect(guest.player.id, 5000);
@@ -107,8 +115,8 @@ test('Kurze Trennung behält den Platz, die Karenzzeit gibt ihn frei', () => {
   assert.strictEqual(late.changed, true);
   assert.ok(!room.players().some((player) => player.id === guest.player.id));
   assert.strictEqual(room.admit({
-    appId: 'song', room: room.roomCode, token: room.token, name: 'Bea', playerId: guest.player.id,
-  }, 99999).code, 'player');
+    appId: 'song', room: room.roomCode, token: room.token, name: 'Bea', playerId: guest.player.id, secret: guest.secret,
+  }, 99999).code, 'auth');
 });
 
 test('Stille Verbindung wird nach dem Timeout getrennt', () => {
