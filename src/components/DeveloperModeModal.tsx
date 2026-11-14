@@ -4,6 +4,9 @@ import * as Clipboard from 'expo-clipboard';
 import { GithubSession } from '../services/GithubSession';
 import { githubOAuthClientId } from '../services/developerMode';
 
+const TOKEN_INFO =
+  'Ein persönliches Token ist ein langes Passwort, das du selbst auf GitHub erzeugst. Du brauchst es nur, wenn die Anmeldung mit Code nicht klappt. Erzeugen: GitHub → Settings → Developer settings → Personal access tokens → Fine-grained token, nur Lesezugriff auf deine Repositories (Contents: Read-only). Das Token bleibt nur auf diesem Gerät gespeichert.';
+
 interface DeveloperModeModalProps {
   visible: boolean;
   onClose: () => void;
@@ -154,16 +157,28 @@ export const DeveloperModeModal: React.FC<DeveloperModeModalProps> = ({ visible,
               </View>
             ) : null}
             {clientId ? (
-              <TouchableOpacity style={styles.primary} disabled={busy} onPress={() => { void startDevice(); }}>
-                <Text style={styles.primaryText}>Mit GitHub anmelden</Text>
-              </TouchableOpacity>
+              <>
+                <Text style={styles.label}>Normal: Anmeldung mit Code</Text>
+                <TouchableOpacity style={styles.primary} disabled={busy} onPress={() => { void startDevice(); }}>
+                  <Text style={styles.primaryText}>Mit GitHub anmelden</Text>
+                </TouchableOpacity>
+              </>
             ) : (
               <Text style={styles.hint}>
-                Die Geräte-Anmeldung ist in diesem Build nicht eingerichtet (EXPO_PUBLIC_GITHUB_CLIENT_ID).
-                Ein persönliches Token funktioniert trotzdem.
+                Die Anmeldung mit Code ist in diesem Build nicht eingerichtet (EXPO_PUBLIC_GITHUB_CLIENT_ID).
+                Die Alternative ist ein persönliches Token.
               </Text>
             )}
-            <Text style={styles.label}>Persönliches Token</Text>
+            <View style={styles.labelRow}>
+              <Text style={styles.labelInRow}>Alternative: persönliches Token</Text>
+              <TouchableOpacity
+                onPress={() => Alert.alert('Persönliches Token', TOKEN_INFO)}
+                accessibilityLabel="Erklärung zum persönlichen Token"
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              >
+                <Text style={styles.infoButton}>ⓘ</Text>
+              </TouchableOpacity>
+            </View>
             <TextInput
               style={styles.input}
               value={tokenDraft}
@@ -173,8 +188,8 @@ export const DeveloperModeModal: React.FC<DeveloperModeModalProps> = ({ visible,
               secureTextEntry
               placeholder="ghp_… oder github_pat_…"
             />
-            <TouchableOpacity style={styles.primary} disabled={busy || !tokenDraft.trim()} onPress={() => { void savePat(); }}>
-              <Text style={styles.primaryText}>Token auf diesem Gerät speichern</Text>
+            <TouchableOpacity style={styles.tokenSave} disabled={busy || !tokenDraft.trim()} onPress={() => { void savePat(); }}>
+              <Text style={styles.tokenSaveText}>Token auf diesem Gerät speichern</Text>
             </TouchableOpacity>
             {login ? (
               <TouchableOpacity style={styles.danger} disabled={busy} onPress={() => { void signOut(); }}>
@@ -210,9 +225,14 @@ const styles = StyleSheet.create({
   link: { color: '#1565C0', fontWeight: '600' },
   hint: { fontSize: 13, color: '#555', marginBottom: 8 },
   label: { fontSize: 13, fontWeight: '600', marginTop: 8, marginBottom: 4 },
+  labelRow: { flexDirection: 'row', alignItems: 'center', marginTop: 16, marginBottom: 4 },
+  labelInRow: { fontSize: 13, fontWeight: '600', flex: 1 },
+  infoButton: { fontSize: 20, color: '#1565C0', fontWeight: '700', paddingLeft: 8 },
   input: { borderWidth: 1, borderColor: '#ddd', borderRadius: 8, padding: 12, marginBottom: 8 },
   primary: { backgroundColor: '#2196F3', borderRadius: 8, padding: 12, marginTop: 8 },
   primaryText: { color: 'white', textAlign: 'center', fontWeight: '700' },
+  tokenSave: { borderWidth: 1, borderColor: '#2196F3', borderRadius: 8, padding: 12, marginTop: 8 },
+  tokenSaveText: { color: '#1565C0', textAlign: 'center', fontWeight: '700' },
   danger: { borderRadius: 8, padding: 12, marginTop: 8, backgroundColor: '#f3e5e5' },
   dangerText: { color: '#b71c1c', textAlign: 'center', fontWeight: '700' },
   secondary: { padding: 12, marginTop: 8 },
