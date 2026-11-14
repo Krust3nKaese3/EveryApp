@@ -2,8 +2,9 @@
  * Catalog, blocklist, foreign-repo warning, and the report mailbox.
  * Fetching lives in remoteLists.ts. These functions stay free of React Native.
  */
-import { MiniApp } from '../types';
+import { MiniApp, MiniAppOrigin } from '../types';
 import { githubRepoKey } from './deepLinks';
+import { normalizeLogin, OWN_REPO_MESSAGE, SIGN_IN_MESSAGE, urlOwnedBy } from './developerMode';
 
 export const REPORT_EMAIL = 'manueldiliberto1@gmail.com';
 
@@ -20,7 +21,7 @@ export const FOREIGN_WARNING_MESSAGE =
   'Füge sie nur hinzu, wenn du dem Repository vertraust.';
 
 export const CATALOG_ONLY_MESSAGE =
-  'In dieser Version kannst du nur Mini-Apps aus dem Katalog installieren. Freie GitHub-Links und QR-Codes sind deaktiviert.';
+  'In dieser Version kannst du nur Mini-Apps aus dem Katalog installieren. Eigene Repositories gehen nur im Entwicklermodus, nachdem du dich mit deinem GitHub-Konto angemeldet hast.';
 
 export interface CatalogApp {
   name: string;
@@ -116,14 +117,23 @@ export function blockReasonFor(appId: string, repoUrl: string, list: BlocklistFi
 }
 
 export type AddDecision =
-  | { type: 'install' }
+  | { type: 'install'; origin: Extract<MiniAppOrigin, 'catalog'> }
+  | { type: 'install-own' }
   | { type: 'confirm-foreign'; message: string }
   | { type: 'reject'; title: string; message: string }
   | { type: 'blocked'; title: string; message: string };
 
 export function decideAdd(
   repoUrl: string,
-  opts: { catalog: CatalogFile; blocklist: BlocklistFile; catalogOnly: boolean; appId?: string },
+  opts: {
+    catalog: CatalogFile;
+    blocklist: BlocklistFile;
+    catalogOnly: boolean;
+    appId?: string;
+    /** Ignored unless catalogOnly. Android (flag off) keeps the free-add flow. */
+    developerMode?: boolean;
+    signedInLogin?: string | null;
+  },
 ): AddDecision {
   const trimmed = (repoUrl || '').trim();
   if (!githubRepoKey(trimmed)) {
@@ -133,11 +143,20 @@ export function decideAdd(
   if (blocked) {
     return { type: 'blocked', title: 'Mini-App gesperrt', message: blocked };
   }
-  if (catalogEntryFor(trimmed, opts.catalog)) return { type: 'install' };
-  if (opts.catalogOnly) {
+  if (catalogEntryFor(trimmed, opts.catalog)) return { type: 'install', origin: 'catalog' };
+  if (!opts.catalogOnly) {
+    return { type: 'confirm-foreign', message: `${FOREIGN_WARNING_MESSAGE}\n\n${trimmed}` };
+  }
+  if (!opts.developerMode) {
     return { type: 'reject', title: 'Nur Katalog', message: CATALOG_ONLY_MESSAGE };
   }
-  return { type: 'confirm-foreign', message: `${FOREIGN_WARNING_MESSAGE}\n\n${trimmed}` };
+  if (!normalizeLogin(opts.signedInLogin)) {
+    return { type: 'reject', title: 'Anmeldung nötig', message: SIGN_IN_MESSAGE };
+  }
+  if (!urlOwnedBy(opts.signedInLogin, trimmed)) {
+    return { type: 'reject', title: 'Nur eigene Repositories', message: OWN_REPO_MESSAGE };
+  }
+  return { type: 'install-own' };
 }
 
 /** New files replace the installed copy. Storage keys stay tied to the existing app id. */
@@ -148,6 +167,8 @@ export function mergeUpdatedApp(previous: MiniApp, fresh: MiniApp): MiniApp {
     addedAt: previous.addedAt,
     folderId: previous.folderId,
     repoUrl: previous.repoUrl,
+    origin: previous.origin,
+    ownerLogin: previous.ownerLogin,
   };
 }
 

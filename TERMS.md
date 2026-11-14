@@ -24,7 +24,7 @@ Unter „Empfohlen“ kannst du gelistete Mini-Apps mit einem Tipp installieren.
 
 Installierst du eine Adresse, die nicht im Katalog steht (Eingabe, QR-Code oder Link), weist EveryApp dich vorher darauf hin, nur vertrauenswürdige Quellen hinzuzufügen, und nennt, worauf die Mini-App nach Zustimmung zugreifen kann. Die Installation braucht dann eine ausdrückliche Bestätigung.
 
-Builds mit `EXPO_PUBLIC_CATALOG_ONLY=1` (Profil `production-catalog`) lassen freie GitHub-Links nicht zu. Dort ist nur der Katalog installierbar. Das ist für einen späteren iOS-Build nach Apples Richtlinie 4.7 vorgesehen.
+Builds mit `EXPO_PUBLIC_CATALOG_ONLY=1` (Profil `production-catalog`) lassen freie GitHub-Links nicht zu. Dort gibt es den Katalog und einen freiwilligen Entwicklermodus. Im Entwicklermodus meldest du dich mit deinem GitHub-Konto an (Geräte-Anmeldung oder persönliches Token, nur auf diesem Gerät gespeichert). Danach lassen sich nur Repositories laden, deren Besitzer dieses Konto ist. Fremde Links, QR-Codes und Add-Links werden abgelehnt. Die Zugehörigkeit wird beim Hinzufügen, beim Aktualisieren und beim Öffnen erneut bei GitHub geprüft. Abmelden schaltet diese Mini-Apps aus. Das ist für einen späteren iOS-Build vorgesehen. Builds ohne diese Einstellung behalten die freie Installation mit Warnung.
 
 ## Berechtigungen
 

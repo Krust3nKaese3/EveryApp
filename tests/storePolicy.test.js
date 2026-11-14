@@ -100,14 +100,18 @@ test('update keeps identity and does not select storage keys', () => {
     addedAt: 10,
     folderId: 'folder-1',
     commitSha: 'b'.repeat(40),
+    origin: 'developer',
+    ownerLogin: 'Ada',
   };
-  const fresh = { ...previous, addedAt: 99, folderId: null, localPath: 'file:///new/', commitSha: sha, manifest: { ...previous.manifest, version: '1.1.0' } };
+  const fresh = { ...previous, addedAt: 99, folderId: null, localPath: 'file:///new/', commitSha: sha, origin: 'free', ownerLogin: 'other', manifest: { ...previous.manifest, version: '1.1.0' } };
   const merged = mergeUpdatedApp(previous, fresh);
   assert.strictEqual(merged.id, previous.id);
   assert.strictEqual(merged.addedAt, 10);
   assert.strictEqual(merged.folderId, 'folder-1');
   assert.strictEqual(merged.commitSha, sha);
   assert.strictEqual(merged.manifest.version, '1.1.0');
+  assert.strictEqual(merged.origin, 'developer');
+  assert.strictEqual(merged.ownerLogin, 'Ada');
   assert.deepStrictEqual(storageKeysTouchedByUpdate(), []);
   assert.ok(versionLine('1.1.0', sha, sha).includes(sha.slice(0, 7)));
   assert.strictEqual(updateStatus(sha, sha), 'current');

@@ -11,7 +11,7 @@ import {
   ScrollView,
 } from 'react-native';
 import { readDebugLog, clearDebugLog } from '../services/DebugLog';
-import { MiniApp, Folder } from '../types';
+import { MiniApp, Folder, MiniAppOrigin } from '../types';
 import { StorageService } from '../services/StorageService';
 import { GitRepoService } from '../services/GitRepoService';
 import { MiniAppRunner } from '../components/MiniAppRunner';
@@ -26,6 +26,7 @@ import { bundledBlocklistFile, bundledCatalogFile, loadPolicyLists } from '../se
 import {
   REPORT_EMAIL,
   blockReasonFor,
+  catalogEntryFor,
   decideAdd,
   isCatalogOnlyBuild,
   reportMailto,
@@ -34,6 +35,9 @@ import {
   type CatalogFile,
 } from '../services/storePolicy';
 import { updateStatus, versionLine } from '../services/githubPin';
+import { installedAppAccess } from '../services/developerMode';
+import { GithubSession } from '../services/GithubSession';
+import { DeveloperModeModal } from '../components/DeveloperModeModal';
 
 function confirmForeign(message: string): Promise<boolean> {
   return new Promise((resolve) => {
@@ -53,6 +57,9 @@ export const HomeScreen: React.FC = () => {
   const [infoApp, setInfoApp] = useState<MiniApp | null>(null);
   const [legalDoc, setLegalDoc] = useState<'privacy' | 'terms' | null>(null);
   const catalogOnly = isCatalogOnlyBuild();
+  const [devMode, setDevMode] = useState(false);
+  const [githubLogin, setGithubLogin] = useState<string | null>(null);
+  const [showDeveloper, setShowDeveloper] = useState(false);
   const dismissedUpdates = useRef<Set<string>>(new Set());
   const [repoUrl, setRepoUrl] = useState('');
   const [loading, setLoading] = useState(false);
@@ -82,7 +89,13 @@ export const HomeScreen: React.FC = () => {
       Alert.alert('Add-Link', 'Der Add-Link enthält keine gültige GitHub-URL (https://github.com/besitzer/repo).');
       return;
     }
-    const decision = decideAdd(trimmed, { catalog, blocklist, catalogOnly });
+    const decision = decideAdd(trimmed, {
+      catalog,
+      blocklist,
+      catalogOnly,
+      developerMode: devMode,
+      signedInLogin: githubLogin,
+    });
     if (decision.type === 'reject' || decision.type === 'blocked') {
       Alert.alert(decision.title, decision.message);
       return;
@@ -109,7 +122,20 @@ export const HomeScreen: React.FC = () => {
         Alert.alert('Mini-App gesperrt', blockedNow);
         return;
       }
-      const app = await GitRepoService.fetchRepo(trimmed);
+      let downloadToken: string | undefined;
+      let origin: MiniAppOrigin = 'free';
+      let ownerLogin: string | undefined;
+      if (decision.type === 'install-own') {
+        const confirmed = await GithubSession.confirmOwnership(trimmed);
+        downloadToken = confirmed.token;
+        origin = 'developer';
+        ownerLogin = confirmed.login;
+      } else if (decision.type === 'install') {
+        origin = decision.origin;
+      }
+      const app = await GitRepoService.fetchRepo(trimmed, downloadToken ? { token: downloadToken } : undefined);
+      app.origin = origin;
+      if (ownerLogin) app.ownerLogin = ownerLogin;
       const blockedId = blockReasonFor(app.id, app.repoUrl, blocklist);
       if (blockedId) {
         await GitRepoService.deleteApp(app);
@@ -121,6 +147,7 @@ export const HomeScreen: React.FC = () => {
       if (source === 'field') setRepoUrl('');
       Alert.alert('Hinzugefügt', `${app.manifest.name} wurde hinzugefügt.`);
     } catch (error: any) {
+      await refreshSession();
       Alert.alert('Fehler', error.message);
     } finally {
       setLoading(false);
@@ -166,7 +193,29 @@ export const HomeScreen: React.FC = () => {
       setCatalog(lists.catalog);
       setBlocklist(lists.blocklist);
     }).catch(() => {});
+    void refreshSession();
   }, []);
+
+  const refreshSession = async () => {
+    if (!catalogOnly) {
+      setDevMode(false);
+      setGithubLogin(null);
+      return;
+    }
+    const session = await GithubSession.load();
+    setDevMode(session.developerMode);
+    setGithubLogin(session.login);
+  };
+
+  const accessFor = (
+    app: MiniApp,
+    session?: { developerMode: boolean; signedInLogin: string | null },
+  ) => installedAppAccess(app, {
+    catalogOnly,
+    developerMode: session ? session.developerMode : devMode,
+    signedInLogin: session ? session.signedInLogin : githubLogin,
+    inCatalog: !!catalogEntryFor(app.repoUrl, catalog),
+  });
 
   const loadData = async () => {
     const loadedApps = await StorageService.getApps();
@@ -177,12 +226,21 @@ export const HomeScreen: React.FC = () => {
   };
 
   const checkUpdates = async (installed: MiniApp[]) => {
+    const session = catalogOnly ? await GithubSession.load() : { developerMode: false, login: null as string | null };
     const found: Record<string, string> = {};
     for (const app of installed) {
+      const access = accessFor(app, { developerMode: session.developerMode, signedInLogin: session.login });
+      if (!access.allowed) continue;
       try {
-        found[app.id] = await GitRepoService.latestCommit(app.repoUrl);
+        if (access.verifyOwnership) {
+          const confirmed = await GithubSession.confirmOwnership(app.repoUrl);
+          found[app.id] = await GitRepoService.latestCommit(app.repoUrl, { token: confirmed.token });
+        } else {
+          found[app.id] = await GitRepoService.latestCommit(app.repoUrl);
+        }
       } catch {
         // Offline or GitHub rate limit: the installed copy stays usable.
+        // Developer-mode apps still re-check ownership when opened.
       }
     }
     if (Object.keys(found).length > 0) setLatestSha((current) => ({ ...current, ...found }));
@@ -294,15 +352,26 @@ export const HomeScreen: React.FC = () => {
   const [refreshingId, setRefreshingId] = useState<string | null>(null);
 
   const handleRefreshApp = async (app: MiniApp) => {
+    const access = accessFor(app);
+    if (!access.allowed) {
+      Alert.alert('Entwicklermodus', access.reason);
+      return null;
+    }
     setRefreshingId(app.id);
     try {
-      const fresh = await GitRepoService.fetchRepo(app.repoUrl);
+      let token: string | undefined;
+      if (access.verifyOwnership) {
+        const confirmed = await GithubSession.confirmOwnership(app.repoUrl);
+        token = confirmed.token;
+      }
+      const fresh = await GitRepoService.fetchRepo(app.repoUrl, token ? { token } : undefined);
       const merged = mergeUpdatedApp(app, fresh);
       await StorageService.saveApp(merged);
       if (merged.commitSha) setLatestSha((current) => ({ ...current, [app.id]: merged.commitSha as string }));
       await loadData();
       return merged;
     } catch (error: any) {
+      await refreshSession();
       Alert.alert('Aktualisierung fehlgeschlagen', error.message);
       return null;
     } finally {
@@ -316,10 +385,26 @@ export const HomeScreen: React.FC = () => {
       Alert.alert('Mini-App gesperrt', reason);
       return;
     }
+    const access = accessFor(app);
+    if (!access.allowed) {
+      Alert.alert('Entwicklermodus', access.reason);
+      return;
+    }
+    let authToken: string | undefined;
+    if (access.verifyOwnership) {
+      try {
+        const confirmed = await GithubSession.confirmOwnership(app.repoUrl);
+        authToken = confirmed.token;
+      } catch (error: any) {
+        await refreshSession();
+        Alert.alert('Entwicklermodus', error.message || 'Die Zugehörigkeit konnte nicht geprüft werden.');
+        return;
+      }
+    }
     let latest: string | undefined = latestSha[app.id];
     if (!latest) {
       try {
-        latest = await GitRepoService.latestCommit(app.repoUrl);
+        latest = await GitRepoService.latestCommit(app.repoUrl, authToken ? { token: authToken } : undefined);
         const resolved = latest;
         setLatestSha((current) => ({ ...current, [app.id]: resolved }));
       } catch {
@@ -373,23 +458,26 @@ export const HomeScreen: React.FC = () => {
 
   const renderApp = (app: MiniApp) => {
     const blocked = blockReasonFor(app.id, app.repoUrl, blocklist);
+    const access = accessFor(app);
+    const locked = blocked || (!access.allowed ? access.reason : null);
     const latest = latestSha[app.id];
     const status = updateStatus(app.commitSha, latest);
     return (
       <TouchableOpacity
         key={app.id}
-        style={[styles.appItem, blocked ? styles.appBlocked : null]}
+        style={[styles.appItem, locked ? styles.appBlocked : null]}
         onPress={() => { void openApp(app); }}
         onLongPress={() => setActionApp(app)}
       >
         <View style={{ flexDirection: 'row', alignItems: 'center' }}>
           <View style={{ flex: 1 }}>
             <Text style={styles.appName}>{app.manifest.name}</Text>
-            <Text style={styles.appDesc}>{blocked ? `Gesperrt: ${blocked}` : app.manifest.description}</Text>
+            <Text style={styles.appDesc}>{locked ? (blocked ? `Gesperrt: ${blocked}` : locked) : app.manifest.description}</Text>
             <Text style={styles.appVersion}>{versionLine(app.manifest.version, app.commitSha, latest)}</Text>
-            {status === 'available' && !blocked ? <Text style={styles.updateHint}>Update verfügbar</Text> : null}
+            {app.origin === 'developer' && !locked ? <Text style={styles.appVersion}>Eigenes Repository</Text> : null}
+            {status === 'available' && !locked ? <Text style={styles.updateHint}>Update verfügbar</Text> : null}
           </View>
-          {!blocked ? (
+          {!locked ? (
             <TouchableOpacity
               onPress={() => { void handleRefreshApp(app); }}
               disabled={refreshingId === app.id}
@@ -425,11 +513,52 @@ export const HomeScreen: React.FC = () => {
           </View>
 
           {catalogOnly ? (
-            <View style={styles.catalogOnlyNote}>
-              <Text style={styles.catalogOnlyText}>
-                In dieser Version kannst du nur Mini-Apps aus dem Katalog installieren.
-              </Text>
-            </View>
+            devMode && githubLogin ? (
+              <View>
+                <View style={styles.catalogOnlyNote}>
+                  <Text style={styles.catalogOnlyText}>
+                    Entwicklermodus, angemeldet als {githubLogin}. Nur Repositories, deren Besitzer dieses Konto ist.
+                  </Text>
+                  <TouchableOpacity onPress={() => setShowDeveloper(true)}>
+                    <Text style={styles.devLink}>Entwicklermodus</Text>
+                  </TouchableOpacity>
+                </View>
+                <View style={styles.inputContainer}>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Eigenes Repository, z. B. https://github.com/mein-name/repo"
+                    value={repoUrl}
+                    onChangeText={setRepoUrl}
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                  />
+                  <TouchableOpacity
+                    style={[styles.addButton, loading && styles.buttonDisabled]}
+                    onPress={handleAddRepo}
+                    disabled={loading}
+                  >
+                    <Text style={styles.buttonText}>{loading ? 'Lädt…' : 'Hinzufügen'}</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.qrButton, loading && styles.buttonDisabled]}
+                    onPress={openScanner}
+                    disabled={loading}
+                    accessibilityLabel="QR-Code scannen"
+                  >
+                    <Text style={styles.buttonText}>QR</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            ) : (
+              <View style={styles.catalogOnlyNote}>
+                <Text style={styles.catalogOnlyText}>
+                  In dieser Version kannst du Mini-Apps aus dem Katalog installieren. Eigene Repositories nur im Entwicklermodus.
+                </Text>
+                <TouchableOpacity onPress={() => setShowDeveloper(true)}>
+                  <Text style={styles.devLink}>Entwicklermodus</Text>
+                </TouchableOpacity>
+              </View>
+            )
           ) : (
             <View style={styles.inputContainer}>
               <TextInput
@@ -635,6 +764,11 @@ export const HomeScreen: React.FC = () => {
         onDelete={handleDeleteApp}
       />
       <LegalModal document={legalDoc} onClose={() => setLegalDoc(null)} />
+      <DeveloperModeModal
+        visible={showDeveloper}
+        onClose={() => setShowDeveloper(false)}
+        onChanged={() => { void refreshSession(); }}
+      />
 
       <Modal visible={!!actionApp} transparent animationType="fade" onRequestClose={() => setActionApp(null)}>
         <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setActionApp(null)}>
@@ -695,6 +829,11 @@ const styles = StyleSheet.create({
   catalogOnlyText: {
     color: '#333',
     fontSize: 14,
+  },
+  devLink: {
+    color: '#1565C0',
+    fontWeight: '700',
+    marginTop: 8,
   },
   inputContainer: {
     flexDirection: 'row',
