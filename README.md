@@ -26,7 +26,8 @@
 - `catalog/blocklist.json` disables listed `appId`s or repos for everyone and shows `reason`.
 - Privacy and terms: [PRIVACY.md](PRIVACY.md), [TERMS.md](TERMS.md), linked in the app as „Datenschutz“ and „Nutzung“. Replace every „BITTE AUSFÜLLEN“ placeholder (legal name, address, contact) before store submission. Catalog age ratings are recommendations and need a check too.
 - Delete removes that mini-app’s files, `@miniapp_<appId>_` keys, secrets, permissions, and caches. Update keeps storage.
-- Bridge allowlist: [docs/BRIDGE_API.md](docs/BRIDGE_API.md).
+- Bridge allowlist: [docs/BRIDGE_API.md](docs/BRIDGE_API.md). Local multiplayer for mini-apps: [docs/MULTIPLAYER.md](docs/MULTIPLAYER.md).
+- **Mehrspieler**: Ein Handy ist Host im selben WLAN oder Hotspot, die anderen treten per QR bei. Nur mit der Berechtigung `multiplayer`. Braucht einen neuen nativen Build.
 
 ### Supported Native Capabilities
 
@@ -47,7 +48,7 @@ On the home screen, next to **Add**, tap **QR**. The in-app camera accepts:
 - an EveryApp add-link (either scheme below)
 - a plain GitHub repository URL (`https://github.com/owner/repo` or the same URL ending in `.git`)
 
-Anything else shows an error and does not install a mini-app. After a successful scan the camera closes so the same code is not added twice. If that repository is already installed, EveryApp says so and can open it.
+Anything else shows an error and does not install a mini-app. A multiplayer invite (`everyapp-mp://…`) is not an install link; the game scanner reads it. After a successful scan the camera closes so the same code is not added twice. If that repository is already installed, EveryApp says so and can open it.
 
 A plain `https://github.com/...` QR works **only in the in-app scanner**. The system camera treats that as a web link and opens the browser.
 

@@ -73,6 +73,10 @@ export const PERMISSION_INFO: Record<Permission, { title: string; description: s
     title: 'Kryptografie',
     description: 'Verschlüsselung und Prüfsummen auf dem Gerät berechnen',
   },
+  multiplayer: {
+    title: 'Mehrspieler',
+    description: 'Einen Spielraum im selben WLAN oder Hotspot öffnen und Nachrichten nur an Mitspieler dieser Mini-App senden',
+  },
 };
 
 export const ALL_PERMISSIONS = Object.keys(PERMISSION_INFO) as Permission[];

@@ -12,6 +12,8 @@ import { BridgeMessageHandler } from '../bridge/BridgeMessageHandler';
 import { NativeCapabilities } from '../bridge/NativeCapabilities';
 import { takeDeepLink, onDeepLinkQueued, deepLinkInjection } from '../services/deepLinks';
 import { setupGlobalErrorHandler, removeGlobalErrorHandler } from '../utils/errorHandler';
+import { MultiplayerOverlay } from './MultiplayerOverlay';
+import { cancelMpScan, dismissMpUi, leaveMultiplayer, submitMpScan, subscribeMpUi, type MpUiState } from '../services/multiplayer/session';
 import {
   assetRuntimeSource,
   assetUri,
@@ -38,6 +40,7 @@ export const MiniAppRunner: React.FC<MiniAppRunnerProps> = ({ app, onClose }) =>
   const [installPermissions, setInstallPermissions] = useState<Permission[]>([]);
   const [runtimeConsent, setRuntimeConsent] = useState<Permission[] | null>(null);
   const [grantedPermissions, setGrantedPermissions] = useState<Permission[]>([]);
+  const [mpUi, setMpUi] = useState<MpUiState | null>(null);
   const grantedRef = useRef<Permission[]>([]);
   const deniedRef = useRef<Permission[]>([]);
   const consentChain = useRef<Promise<unknown>>(Promise.resolve());
@@ -83,8 +86,11 @@ export const MiniAppRunner: React.FC<MiniAppRunnerProps> = ({ app, onClose }) =>
       if (capabilitiesRef.current) {
         capabilitiesRef.current.cleanup();
       }
+      void leaveMultiplayer(app.id);
     };
   }, []);
+
+  useEffect(() => subscribeMpUi(setMpUi), []);
 
   const declaredPermissions = () => (app.manifest.permissions || []).filter(isPermission);
 
@@ -415,6 +421,13 @@ export const MiniAppRunner: React.FC<MiniAppRunnerProps> = ({ app, onClose }) =>
         denyLabel="Nicht erlauben"
         onGrant={() => { void finishConsent(true); }}
         onDeny={() => { void finishConsent(false); }}
+      />
+      <MultiplayerOverlay
+        state={mpUi}
+        onDone={dismissMpUi}
+        onLeave={() => { void leaveMultiplayer(app.id); }}
+        onScanned={submitMpScan}
+        onCancel={cancelMpScan}
       />
     </View>
   );

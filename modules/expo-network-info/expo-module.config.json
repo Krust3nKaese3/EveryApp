@@ -1,4 +1,5 @@
 {
-  "platforms": ["android"],
-  "android": { "modules": ["expo.modules.networkinfo.ExpoNetworkInfoModule"] }
+  "platforms": ["android", "apple"],
+  "android": { "modules": ["expo.modules.networkinfo.ExpoNetworkInfoModule"] },
+  "apple": { "modules": ["ExpoNetworkInfoModule"] }
 }

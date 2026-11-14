@@ -66,5 +66,27 @@ class ExpoNetworkInfoModule : Module() {
         "interfaceName" to lp?.interfaceName
       )
     }
+
+    // Alle IPv4-Adressen außer Loopback. Die JS-Schicht wählt WLAN vor Hotspot.
+    AsyncFunction("getLanCandidates") {
+      val out = mutableListOf<Map<String, String>>()
+      val ifaces = java.net.NetworkInterface.getNetworkInterfaces()
+      if (ifaces != null) {
+        while (ifaces.hasMoreElements()) {
+          val iface = ifaces.nextElement()
+          if (iface.isUp && !iface.isLoopback) {
+            val addresses = iface.inetAddresses
+            while (addresses.hasMoreElements()) {
+              val addr = addresses.nextElement()
+              if (addr is Inet4Address && !addr.isLoopbackAddress) {
+                val host = addr.hostAddress
+                if (host != null) out.add(mapOf("name" to iface.name, "ip" to host))
+              }
+            }
+          }
+        }
+      }
+      out
+    }
   }
 }

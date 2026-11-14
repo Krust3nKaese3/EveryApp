@@ -20,7 +20,24 @@ module.exports = ({ config }) => {
     android: {
       ...config.android,
       package: IS_DEV ? `${config.android.package}.dev` : config.android.package,
+      // Lokaler Mehrspieler: Internet (Sockets) plus Netzstatus, um die WLAN-Adresse zu lesen.
+      permissions: ['INTERNET', 'ACCESS_NETWORK_STATE', 'ACCESS_WIFI_STATE'].reduce((list, name) => {
+        const next = Array.isArray(list) ? list.slice() : [];
+        if (!next.includes(name)) next.push(name);
+        return next;
+      }, config.android && config.android.permissions),
     },
+    ios: {
+      ...config.ios,
+      infoPlist: {
+        ...(config.ios && config.ios.infoPlist),
+        // Abfrage für Verbindungen im lokalen Netz. Der QR-Code ist die Einladung, Bonjour löst auf iOS oft erst die Systemfrage aus.
+        NSLocalNetworkUsageDescription:
+          'EveryApp verbindet Mitspieler im selben WLAN oder Hotspot, ohne Internet. Der QR-Code enthält die lokale Adresse.',
+        NSBonjourServices: ['_everyapp._tcp'],
+      },
+    },
+    plugins: [...(config.plugins || []), 'with-react-native-tcp-socket'],
     // Optional prefill only. Empty is normal; the settings screen is the source of truth.
     extra: {
       ...config.extra,
