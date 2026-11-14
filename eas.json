@@ -10,18 +10,25 @@
         "buildType": "apk"
       },
       "env": {
-        "APP_VARIANT": "development"
+        "APP_VARIANT": "development",
+        "EXPO_PUBLIC_GITHUB_CLIENT_ID": "Ov23liZBUKxpmryUJW1a"
       }
     },
     "preview": {
       "distribution": "internal",
       "android": {
         "buildType": "apk"
+      },
+      "env": {
+        "EXPO_PUBLIC_GITHUB_CLIENT_ID": "Ov23liZBUKxpmryUJW1a"
       }
     },
     "production": {
       "android": {
         "buildType": "apk"
+      },
+      "env": {
+        "EXPO_PUBLIC_GITHUB_CLIENT_ID": "Ov23liZBUKxpmryUJW1a"
       }
     },
     "production-catalog": {
@@ -30,7 +37,8 @@
       },
       "env": {
         "CATALOG_ONLY": "1",
-        "EXPO_PUBLIC_CATALOG_ONLY": "1"
+        "EXPO_PUBLIC_CATALOG_ONLY": "1",
+        "EXPO_PUBLIC_GITHUB_CLIENT_ID": "Ov23liZBUKxpmryUJW1a"
       }
     }
   },

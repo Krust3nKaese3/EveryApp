@@ -67,20 +67,28 @@ export function normalizeAccessToken(raw: string): string {
   return token;
 }
 
-/** Empty, or a placeholder the builder has not replaced, means device flow is unavailable. */
+/** Public OAuth App client id. Device Flow is enabled. Not a client secret. */
+export const DEFAULT_GITHUB_CLIENT_ID = 'Ov23liZBUKxpmryUJW1a';
+
+/** Empty, or a placeholder the builder has not replaced, means "use the default". */
 export function configuredGithubClientId(value: string | undefined | null): string {
   const id = String(value || '').trim();
   if (!id || /bitte/i.test(id) || id.toLowerCase() === 'unset') return '';
   return id;
 }
 
+/** Env wins when it is a real client id. Otherwise the public default above. */
+export function resolveGithubClientId(value: string | undefined | null): string {
+  return configuredGithubClientId(value) || DEFAULT_GITHUB_CLIENT_ID;
+}
+
 /**
  * Metro inlines only a direct `process.env.EXPO_PUBLIC_…` read.
- * Create a GitHub OAuth App, enable Device Flow, and set this before the iOS build.
- * A personal access token works without it. Never put a client secret in the app.
+ * app.config.js sets the same default when the variable is unset, and eas.json sets it on every profile.
+ * A personal access token still works. Never put a client secret in the app.
  */
 export function githubOAuthClientId(): string {
-  return configuredGithubClientId(process.env.EXPO_PUBLIC_GITHUB_CLIENT_ID);
+  return resolveGithubClientId(process.env.EXPO_PUBLIC_GITHUB_CLIENT_ID);
 }
 
 export interface DeviceStart {
