@@ -23,6 +23,15 @@
       "android": {
         "buildType": "apk"
       }
+    },
+    "production-catalog": {
+      "android": {
+        "buildType": "app-bundle"
+      },
+      "env": {
+        "CATALOG_ONLY": "1",
+        "EXPO_PUBLIC_CATALOG_ONLY": "1"
+      }
     }
   },
   "submit": {

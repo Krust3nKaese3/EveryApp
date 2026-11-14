@@ -21,13 +21,14 @@ const SETTINGS = 'a'.repeat(32);
 const BRIDGE = 'b'.repeat(32);
 const PREFILL = 'c'.repeat(32);
 
-test('spotify permission is not free', () => {
-  assert.ok(FREE_CATEGORIES.includes('media'));
+test('spotify and media need a per-app grant', () => {
+  assert.ok(!FREE_CATEGORIES.includes('media'));
   assert.ok(!FREE_CATEGORIES.includes('spotify'));
   assert.throws(() => checkBridgePermission('spotify', []), /Spotify nicht erlaubt/);
   assert.throws(() => checkBridgePermission('spotify', ['media']), /"spotify"/);
   assert.doesNotThrow(() => checkBridgePermission('spotify', ['spotify']));
-  assert.doesNotThrow(() => checkBridgePermission('media', []));
+  assert.throws(() => checkBridgePermission('media', []), /Permission denied: media/);
+  assert.doesNotThrow(() => checkBridgePermission('media', ['media']));
 });
 
 test('client id precedence: settings, then mini-app, then prefill', () => {

@@ -1,0 +1,5 @@
+{
+  "version": 1,
+  "notice": "Gesperrte Mini-Apps gelten für alle Installationen. Eintrag: appId und/oder repo (owner/name oder https://github.com/owner/name) plus reason. Leere Liste sperrt nichts.",
+  "entries": []
+}

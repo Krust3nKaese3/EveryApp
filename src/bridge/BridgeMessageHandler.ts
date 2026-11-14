@@ -1,34 +1,82 @@
-import { checkBridgePermission } from './permissions';
+import { checkBridgePermission, permissionDecision } from './permissions';
 import { Permission } from '../types';
 import { NativeCapabilities } from './NativeCapabilities';
+import { BRIDGE_EVENTS, RATE_LIMIT_ERROR, bridgeMethod, parseBridgeMessage, takeRate } from './allowlist';
+
+export type ConsentAsk = (category: Permission) => Promise<boolean>;
 
 export class BridgeMessageHandler {
   private appId: string;
   private grantedPermissions: Permission[];
+  private deniedPermissions: Permission[];
   private capabilities: NativeCapabilities;
   private inject?: (js: string) => void;
+  private ask?: ConsentAsk;
 
-  constructor(appId: string, grantedPermissions: Permission[], capabilities: NativeCapabilities, inject?: (js: string) => void) {
+  constructor(
+    appId: string,
+    grantedPermissions: Permission[],
+    capabilities: NativeCapabilities,
+    inject?: (js: string) => void,
+    consent?: { denied: Permission[]; ask?: ConsentAsk },
+  ) {
     this.inject = inject;
     this.appId = appId;
     this.grantedPermissions = grantedPermissions;
+    this.deniedPermissions = consent?.denied || [];
+    this.ask = consent?.ask;
     this.capabilities = capabilities;
   }
 
   async handleMessage(message: any): Promise<any> {
-    const { id, method, args, type } = message;
+    const parsed = parseBridgeMessage(message);
+    if (parsed.kind === 'reject') return { id: parsed.id, success: false, error: parsed.error };
 
-    if (type === 'event') {
-      this.handleEventSubscription(message);
-      return { id, success: true };
+    if (parsed.kind === 'event') {
+      try {
+        const needed = BRIDGE_EVENTS[parsed.event];
+        if (needed) await this.ensurePermission(needed);
+        this.handleEventSubscription({ event: parsed.event, action: parsed.action });
+        return { id: parsed.id, success: true };
+      } catch (error: any) {
+        return { id: parsed.id, success: false, error: error.message };
+      }
     }
 
+    const spec = bridgeMethod(parsed.method);
+    if (!spec) return { id: parsed.id, success: false, error: `Unbekannte Methode: ${parsed.method}` };
+    let args: unknown[];
     try {
-      const result = await this.executeMethod(method, args);
-      return { id, success: true, result };
+      args = spec.validate(parsed.args);
     } catch (error: any) {
-      return { id, success: false, error: error.message };
+      return { id: parsed.id, success: false, error: error.message || 'Ungültige Argumente.' };
     }
+    if (!takeRate(this.appId, parsed.method, spec.rate)) {
+      return { id: parsed.id, success: false, error: RATE_LIMIT_ERROR };
+    }
+    try {
+      await this.ensurePermission(spec.category);
+      const result = await this.executeCapabilityMethod(spec.category, spec.action, args);
+      return { id: parsed.id, success: true, result };
+    } catch (error: any) {
+      return { id: parsed.id, success: false, error: error.message };
+    }
+  }
+
+  private async ensurePermission(category: string): Promise<void> {
+    const decision = permissionDecision(category, this.grantedPermissions, this.deniedPermissions);
+    if (decision === 'allow') return;
+    if (decision === 'deny') {
+      throw new Error(`„${category}“ ist für diese Mini-App nicht erlaubt. Du kannst das in den App-Infos ändern.`);
+    }
+    if (!this.ask) {
+      checkBridgePermission(category, this.grantedPermissions);
+      return;
+    }
+    const ok = await this.ask(category as Permission);
+    if (!ok) throw new Error(`„${category}“ wurde nicht erlaubt.`);
+    if (!this.grantedPermissions.includes(category as Permission)) this.grantedPermissions.push(category as Permission);
+    this.deniedPermissions = this.deniedPermissions.filter((item) => item !== category);
   }
 
   private handleEventSubscription(message: any) {
@@ -53,35 +101,13 @@ export class BridgeMessageHandler {
     }
   }
 
-  private async executeMethod(method: string, args: any[]): Promise<any> {
-    const parts = method.split('.');
-    const category = parts[0];
-    const action = parts.slice(1).join('.');
-
-    if (category === 'events') {
-      return this.handleEventsMethod(action, args);
-    }
-
-    checkBridgePermission(category, this.grantedPermissions as string[]);
-
-    return await this.executeCapabilityMethod(category, action, args);
-  }
-
-  private handleEventsMethod(action: string, args: any[]): any {
-    return null;
-  }
-
-  private async executeCapabilityMethod(category: string, action: string, args: any[]): Promise<any> {
+  private async executeCapabilityMethod(category: string, action: string, args: unknown[]): Promise<any> {
     const handler = (this.capabilities as any)[category];
-    if (!handler || typeof handler !== 'object') {
-      throw new Error(`Category not found: ${category}`);
+    if (!handler || typeof handler !== 'object' || !Object.prototype.hasOwnProperty.call(handler, action)) {
+      throw new Error(`Unbekannte Methode: ${category}.${action}`);
     }
-
     const method = handler[action];
-    if (!method || typeof method !== 'function') {
-      throw new Error(`Method not found: ${category}.${action}`);
-    }
-
+    if (typeof method !== 'function') throw new Error(`Unbekannte Methode: ${category}.${action}`);
     return await method.apply(handler, args);
   }
 
@@ -201,7 +227,6 @@ export class BridgeMessageHandler {
             isAvailable: () => sendMessage('network.isAvailable', []),
             getInfo: () => sendMessage('network.getInfo', []),
             getWifi: () => sendMessage('network.getWifi', []),
-            requestLocation: (bg) => sendMessage('network.requestLocation', [!!bg]),
           },
           popup: {
             open: (spec) => sendMessage('popup.open', [spec]),

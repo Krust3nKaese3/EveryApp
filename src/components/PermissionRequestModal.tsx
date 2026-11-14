@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { View, Text, Modal, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import { Permission } from '../types';
+import { PERMISSION_INFO } from '../bridge/permissionInfo';
 
 interface PermissionRequestModalProps {
   visible: boolean;
@@ -8,23 +9,11 @@ interface PermissionRequestModalProps {
   requestedPermissions: Permission[];
   onGrant: () => void;
   onDeny: () => void;
+  title?: string;
+  intro?: string;
+  grantLabel?: string;
+  denyLabel?: string;
 }
-
-const PERMISSION_DESCRIPTIONS: Record<Permission, string> = {
-  storage: 'Store data locally on your device',
-  http: 'Make network requests to external servers',
-  bluetooth: 'Scan and connect to Bluetooth devices',
-  popup: 'Popup windows (overlay opened from Quick Tiles/widgets, shows mini-app HTML)',
-  tiles: 'Change Quick Settings tiles (icon, label, subtitle, state)',
-  net: 'Raw local network (TCP/UDP sockets, e.g. Tuya lamps on port 6668)',
-  ble: 'Bluetooth Low Energy (GATT): scan, connect, read/write devices like LED strips',
-  notifications: 'Send you notifications',
-  camera: 'Access your camera',
-  sensors: 'Access accelerometer and gyroscope',
-  vibration: 'Use device vibration',
-  background: 'Run in the background when app is closed',
-  spotify: 'Search the Spotify catalog and control playback in the installed Spotify app',
-};
 
 export const PermissionRequestModal: React.FC<PermissionRequestModalProps> = ({
   visible,
@@ -32,6 +21,10 @@ export const PermissionRequestModal: React.FC<PermissionRequestModalProps> = ({
   requestedPermissions,
   onGrant,
   onDeny,
+  title = 'Berechtigungen',
+  intro = 'Diese Mini-App möchte folgende Gerätefunktionen nutzen. Ohne Zustimmung bleibt der Zugriff aus. Du kannst jede Berechtigung später in den App-Infos widerrufen.',
+  grantLabel = 'Erlauben',
+  denyLabel = 'Ablehnen',
 }) => {
   return (
     <Modal
@@ -42,20 +35,18 @@ export const PermissionRequestModal: React.FC<PermissionRequestModalProps> = ({
     >
       <View style={styles.overlay}>
         <View style={styles.container}>
-          <Text style={styles.title}>Permission Request</Text>
+          <Text style={styles.title}>{title}</Text>
           <Text style={styles.appName}>{appName}</Text>
-          <Text style={styles.description}>
-            This mini-app requests the following permissions:
-          </Text>
+          <Text style={styles.description}>{intro}</Text>
           
           <ScrollView style={styles.permissionList}>
             {requestedPermissions.map((permission) => (
               <View key={permission} style={styles.permissionItem}>
                 <Text style={styles.permissionIcon}>✓</Text>
                 <View style={styles.permissionText}>
-                  <Text style={styles.permissionName}>{permission.toUpperCase()}</Text>
+                  <Text style={styles.permissionName}>{PERMISSION_INFO[permission]?.title || permission}</Text>
                   <Text style={styles.permissionDesc}>
-                    {PERMISSION_DESCRIPTIONS[permission]}
+                    {PERMISSION_INFO[permission]?.description || permission}
                   </Text>
                 </View>
               </View>
@@ -64,10 +55,10 @@ export const PermissionRequestModal: React.FC<PermissionRequestModalProps> = ({
 
           <View style={styles.buttonContainer}>
             <TouchableOpacity style={styles.denyButton} onPress={onDeny}>
-              <Text style={styles.denyButtonText}>Deny</Text>
+              <Text style={styles.denyButtonText}>{denyLabel}</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.grantButton} onPress={onGrant}>
-              <Text style={styles.grantButtonText}>Allow</Text>
+              <Text style={styles.grantButtonText}>{grantLabel}</Text>
             </TouchableOpacity>
           </View>
         </View>

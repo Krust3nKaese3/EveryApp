@@ -70,6 +70,17 @@ export const SecretStore = {
     await writeIndex(appId, (await readIndex(appId)).filter((x) => x !== k));
     if (cache[appId]) delete cache[appId][k];
   },
+  /** Removes every secret of this mini-app, including the secure-store copies and the in-memory mask cache. */
+  async purge(appId: string) {
+    const keys = await readIndex(appId);
+    for (const k of keys) {
+      if (Secure) { try { await Secure.deleteValueWithKeyAsync(secureKey(appId, k), {}); } catch {} }
+      await AsyncStorage.removeItem(liteKey(appId, k));
+    }
+    await AsyncStorage.removeItem(indexKey(appId));
+    delete cache[appId];
+    delete migrated[appId];
+  },
   /** Keys only, never values. */
   async list(appId: string): Promise<string[]> { await migrate(appId); return readIndex(appId); },
   async getAll(appId: string): Promise<Record<string, string>> {

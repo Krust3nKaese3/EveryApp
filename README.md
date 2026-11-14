@@ -15,6 +15,17 @@
 - **Full-Screen Support**: Orientation unlocking for games and immersive experiences
 - **Performance Optimized**: WebView configured for 60 FPS rendering suitable for Canvas/WebGL games
 
+## Store readiness
+
+- **Empfohlen:** `catalog/catalog.json` (name, repo URL, description, age rating). Fetched from the latest `main` commit, with the copy in the app as fallback. One tap installs it.
+- Repositories that are not in the catalog (typed URL, QR, add-link) require the warning „Nur vertrauenswürdige Quellen hinzufügen…“ and an explicit confirmation.
+- `EXPO_PUBLIC_CATALOG_ONLY=1` (mirrored from `CATALOG_ONLY` in `app.config.js` as `extra.catalogOnly`) disables free GitHub links. The EAS profile `production-catalog` sets it for a later iOS build. Do not start that build unless you mean to.
+- **Melden** opens a prefilled email to `manueldiliberto1@gmail.com`. There is no report server.
+- `catalog/blocklist.json` disables listed `appId`s or repos for everyone and shows `reason`.
+- Privacy and terms: [PRIVACY.md](PRIVACY.md), [TERMS.md](TERMS.md), linked in the app as „Datenschutz“ and „Nutzung“. Replace every „BITTE AUSFÜLLEN“ placeholder (legal name, address, contact) before store submission. Catalog age ratings are recommendations and need a check too.
+- Delete removes that mini-app’s files, `@miniapp_<appId>_` keys, secrets, permissions, and caches. Update keeps storage.
+- Bridge allowlist: [docs/BRIDGE_API.md](docs/BRIDGE_API.md).
+
 ### Supported Native Capabilities
 
 Mini-apps can request access to the following through the permission system:
@@ -91,7 +102,7 @@ The entrypoint can live in a subfolder (`"entrypoint": "src/index.html"`). Relat
 
 EveryApp downloads the folder that contains `everyapp.json` (the repo root when the manifest is there, otherwise the only folder in the repo that has one). Install and update read the public `main` branch. Limits: 500 files, 40 MB total, 15 MB per file. `node_modules` and git symlinks are not installed. Put the mini-app in its own repository, or keep a single `everyapp.json` at the root of a larger one.
 
-After you push new files, refresh the mini-app in EveryApp (⟳) so the new tree is stored on the device.
+After you push new files, refresh the mini-app in EveryApp (⟳). Refresh resolves the latest commit of `main` via the GitHub API and downloads `raw.githubusercontent.com/<owner>/<repo>/<commit-sha>/…`. The previous URL under `/main/` stays on GitHub’s CDN for several minutes and ignores a `?t=` cache buster, which is why a refresh used to keep the old files while delete-and-install could see a newer copy. The mini-app’s storage (for example a saved game) is kept. The row shows the installed commit and, when a newer one exists, that an update is available. Opening the container checks for that in the background.
 
 ### Dateien und Ordner (Deutsch)
 
@@ -112,7 +123,7 @@ Im HTML zum Beispiel `href="styles.css"`, `src="app.js"`, `src="assets/buzz.mp3"
 
 Bestehende Ein-Datei-Repos müssen nicht geändert werden. Der Einstieg darf in einem Unterordner liegen (`"entrypoint": "src/index.html"`). Ein Link `<a href="seite.html">` öffnet diese HTML-Datei.
 
-EveryApp lädt den Ordner, der `everyapp.json` enthält, vom öffentlichen Branch `main`. Grenzen: 500 Dateien, 40 MB insgesamt, 15 MB pro Datei. `node_modules` und Git-Symlinks werden nicht installiert. Nach dem Push neuer Dateien die Mini-App in EveryApp mit ⟳ aktualisieren.
+EveryApp lädt den Ordner, der `everyapp.json` enthält, vom öffentlichen Branch `main`. Grenzen: 500 Dateien, 40 MB insgesamt, 15 MB pro Datei. `node_modules` und Git-Symlinks werden nicht installiert. Nach dem Push neuer Dateien die Mini-App in EveryApp mit ⟳ aktualisieren. Die App ermittelt dafür den aktuellen Commit von `main` und lädt die Dateien über diese Commit-SHA, nicht über die gecachte Adresse `/main/`. Der Speicher der Mini-App (Spielstand) bleibt erhalten.
 
 ### Manifest Format (`everyapp.json`)
 
@@ -163,7 +174,7 @@ await window.EveryAppBridge.storage.set('key', 'value');
 await window.EveryAppBridge.storage.remove('key');
 ```
 
-**Note:** Storage is scoped per mini-app. Keys are automatically prefixed to prevent conflicts.
+**Note:** Storage is scoped per mini-app. Keys are prefixed with `@miniapp_<appId>_`. Values are text, at most 256 KiB. The allowed method list, rate limits, and the explicit absence of file system, contacts, and location are documented in [docs/BRIDGE_API.md](docs/BRIDGE_API.md).
 
 ### HTTP API
 
