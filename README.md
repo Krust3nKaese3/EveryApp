@@ -20,7 +20,7 @@
 - **Empfohlen:** `catalog/catalog.json` (name, repo URL, description, age rating). Fetched from the latest `main` commit, with the copy in the app as fallback. One tap installs it.
 - Repositories that are not in the catalog (typed URL, QR, add-link) require the warning „Nur vertrauenswürdige Quellen hinzufügen…“ and an explicit confirmation.
 - `EXPO_PUBLIC_CATALOG_ONLY=1` (mirrored from `CATALOG_ONLY` in `app.config.js` as `extra.catalogOnly`) disables free GitHub links. On that build, **Entwicklermodus** can load only repositories owned by the signed-in GitHub account (device flow or a personal token kept in the on-device secret store). Add, update, and open re-check ownership. Signing out disables those apps. The EAS profile `production-catalog` sets the flag for a later iOS build. Android builds leave the flag off and keep the free-add flow. Do not start that build unless you mean to.
-- Device flow needs a GitHub OAuth App client id in `EXPO_PUBLIC_GITHUB_CLIENT_ID` (no client secret). Leave it empty until you create the OAuth App and enable Device Flow. A personal token works without it.
+- Device flow is configured. The public GitHub OAuth client id is `Ov23liZBUKxpmryUJW1a` (Device Flow enabled, no client secret). Metro and every EAS profile use it when `EXPO_PUBLIC_GITHUB_CLIENT_ID` is unset; set that variable to override it. A personal token still works.
 - Review notes for the two areas: [docs/APP_REVIEW.md](docs/APP_REVIEW.md). That file is not legal advice.
 - **Melden** opens a prefilled email to `manueldiliberto1@gmail.com`. There is no report server.
 - `catalog/blocklist.json` disables listed `appId`s or repos for everyone and shows `reason`.

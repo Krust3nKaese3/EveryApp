@@ -5,6 +5,11 @@ const IS_DEV = process.env.APP_VARIANT === 'development';
 const flagOn = (value) => ['1', 'true', 'yes'].includes(String(value || '').trim().toLowerCase());
 const CATALOG_ONLY = flagOn(process.env.CATALOG_ONLY) || flagOn(process.env.EXPO_PUBLIC_CATALOG_ONLY);
 if (CATALOG_ONLY) process.env.EXPO_PUBLIC_CATALOG_ONLY = process.env.EXPO_PUBLIC_CATALOG_ONLY || '1';
+// Public GitHub OAuth client id (Device Flow). Not a secret. Metro inherits this when the env var is unset.
+const DEFAULT_GITHUB_CLIENT_ID = 'Ov23liZBUKxpmryUJW1a';
+if (!String(process.env.EXPO_PUBLIC_GITHUB_CLIENT_ID || '').trim()) {
+  process.env.EXPO_PUBLIC_GITHUB_CLIENT_ID = DEFAULT_GITHUB_CLIENT_ID;
+}
 
 module.exports = ({ config }) => {
   const fromEnv = process.env.SPOTIFY_CLIENT_ID;
@@ -21,7 +26,7 @@ module.exports = ({ config }) => {
       ...config.extra,
       spotifyClientId: fromEnv || fromConfig || '',
       catalogOnly: CATALOG_ONLY,
-      githubClientId: process.env.EXPO_PUBLIC_GITHUB_CLIENT_ID || '',
+      githubClientId: process.env.EXPO_PUBLIC_GITHUB_CLIENT_ID || DEFAULT_GITHUB_CLIENT_ID,
     },
   };
 };

@@ -9,7 +9,7 @@ Stand: 14. November 2026
 Der Build mit `EXPO_PUBLIC_CATALOG_ONLY=1` (EAS-Profil `production-catalog`, vorgesehen für iOS) hat zwei getrennte Bereiche.
 
 1. **Katalog („Empfohlen“).** Jede Person kann die gelisteten Mini-Apps installieren und öffnen, ohne GitHub-Anmeldung. Quelle ist `catalog/catalog.json` (Name, Repository, Beschreibung, Altersempfehlung). Eine Sperrliste kann Einträge für alle deaktivieren. „Melden“ öffnet eine E-Mail. Es gibt keinen EveryApp-Server.
-2. **Entwicklermodus.** Freiwillig, in den Einstellungen einzuschalten. Danach ist eine Anmeldung mit dem eigenen GitHub-Konto nötig: OAuth Device Flow, wenn `EXPO_PUBLIC_GITHUB_CLIENT_ID` im Build gesetzt ist, oder ein persönliches Token. Das Token liegt nur auf dem Gerät (Secret Store). EveryApp schickt es ausschließlich als `Authorization` an GitHub.
+2. **Entwicklermodus.** Freiwillig, in den Einstellungen einzuschalten. Danach ist eine Anmeldung mit dem eigenen GitHub-Konto nötig. Der OAuth Device Flow ist eingerichtet: die öffentliche Client-ID `Ov23liZBUKxpmryUJW1a` gilt, wenn `EXPO_PUBLIC_GITHUB_CLIENT_ID` nicht gesetzt ist (Metro und alle EAS-Profile). Ein Client Secret gibt es nicht. Ein persönliches Token geht ebenfalls. Das Token liegt nur auf dem Gerät (Secret Store). EveryApp schickt es ausschließlich als `Authorization` an GitHub.
 
 Ohne das Flag (Android) bleibt die bisherige freie Installation mit der Warnung „Nur vertrauenswürdige Quellen hinzufügen…“. Der Entwicklermodus ersetzt diesen Weg nicht.
 
@@ -68,7 +68,7 @@ EveryApp has two areas in the `EXPO_PUBLIC_CATALOG_ONLY=1` build (the iOS build)
 
 **Catalog.** Anyone can install the curated mini-apps listed under “Empfohlen” without a GitHub login. The list is `catalog/catalog.json` (name, repository, description, age recommendation). A remote blocklist can disable an entry for every install. “Melden” opens a prefilled email to the developer. There is no EveryApp account server.
 
-**Developer mode.** The user turns it on in settings. They then sign in with their own GitHub account, either the OAuth device flow (only if this build was given `EXPO_PUBLIC_GITHUB_CLIENT_ID`; there is no client secret in the app) or a personal access token. The token is stored only on the device and is sent only to GitHub. Signing out deletes it.
+**Developer mode.** The user turns it on in settings. They then sign in with their own GitHub account. The OAuth device flow is configured: the public client id `Ov23liZBUKxpmryUJW1a` is used when `EXPO_PUBLIC_GITHUB_CLIENT_ID` is unset (Metro and every EAS profile). There is no client secret. A personal access token also works. The token is stored only on the device and is sent only to GitHub. Signing out deletes it.
 
 After sign-in, the app installs a repository only when both the owner in the GitHub URL and `owner.login` from `GET /repos/{owner}/{repo}` equal the authenticated user. The check is case-insensitive. Organization repositories and repositories owned by anyone else are rejected, even if the token can read them. Private repositories owned by that user are allowed. The same check runs on add, on every update, and on every open. If GitHub cannot confirm ownership, the mini-app does not start. QR codes and `everyapp://add` links for any other repository are rejected. There is no share path to another account. Signing out leaves the files on the device but disables open and update until the same account signs in again. Catalog mini-apps keep working without a session.
 

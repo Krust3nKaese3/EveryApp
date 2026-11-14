@@ -11,6 +11,8 @@ const {
   parseDevicePoll,
   normalizeAccessToken,
   configuredGithubClientId,
+  resolveGithubClientId,
+  DEFAULT_GITHUB_CLIENT_ID,
   installedAppAccess,
   OWN_REPO_MESSAGE,
 } = require('../src/services/developerMode.ts');
@@ -120,6 +122,11 @@ test('device-flow responses never surface the token in an error', () => {
   assert.strictEqual(configuredGithubClientId(''), '');
   assert.strictEqual(configuredGithubClientId('BITTE AUSFÜLLEN'), '');
   assert.strictEqual(configuredGithubClientId('Iv1.abc'), 'Iv1.abc');
+  assert.strictEqual(DEFAULT_GITHUB_CLIENT_ID, 'Ov23liZBUKxpmryUJW1a');
+  assert.strictEqual(resolveGithubClientId(undefined), DEFAULT_GITHUB_CLIENT_ID);
+  assert.strictEqual(resolveGithubClientId(''), DEFAULT_GITHUB_CLIENT_ID);
+  assert.strictEqual(resolveGithubClientId('BITTE AUSFÜLLEN'), DEFAULT_GITHUB_CLIENT_ID);
+  assert.strictEqual(resolveGithubClientId('Iv1.abc'), 'Iv1.abc');
   assert.throws(() => normalizeAccessToken('short'), /Format/);
   assert.throws(() => normalizeAccessToken('https://github.com/login/device-code-value'), /Format/);
   assert.strictEqual(normalizeAccessToken('  github_pat_0123456789abcdef  '), 'github_pat_0123456789abcdef');
