@@ -13,7 +13,7 @@ import { NativeCapabilities } from '../bridge/NativeCapabilities';
 import { takeDeepLink, onDeepLinkQueued, deepLinkInjection } from '../services/deepLinks';
 import { setupGlobalErrorHandler, removeGlobalErrorHandler } from '../utils/errorHandler';
 import { MultiplayerOverlay } from './MultiplayerOverlay';
-import { cancelMpScan, dismissMpUi, leaveMultiplayer, submitMpScan, subscribeMpUi, type MpUiState } from '../services/multiplayer/session';
+import { cancelMpScan, detachMultiplayer, dismissMpUi, endRoom, submitMpScan, subscribeMpUi, approveJoin, denyJoin, resumeMultiplayer, type MpUiState } from '../services/multiplayer/session';
 import {
   assetRuntimeSource,
   assetUri,
@@ -86,7 +86,7 @@ export const MiniAppRunner: React.FC<MiniAppRunnerProps> = ({ app, onClose }) =>
       if (capabilitiesRef.current) {
         capabilitiesRef.current.cleanup();
       }
-      void leaveMultiplayer(app.id);
+      void detachMultiplayer(app.id);
     };
   }, []);
 
@@ -188,8 +188,10 @@ export const MiniAppRunner: React.FC<MiniAppRunnerProps> = ({ app, onClose }) =>
 
       if (!capabilitiesRef.current) {
         capabilitiesRef.current = new NativeCapabilities(app.id);
+        if (grantedRef.current.includes('multiplayer')) {
+          void resumeMultiplayer(app.id, (event, data) => capabilitiesRef.current?.eventEmitter.emit(event, data));
+        }
       }
-      
       const bridgeHandler = new BridgeMessageHandler(app.id, grantedRef.current, capabilitiesRef.current);
       const bridgeScript = bridgeHandler.generateBridgeScript();
       const hashLine = hash ? `location.hash=${JSON.stringify(hash)};` : '';
@@ -425,9 +427,11 @@ export const MiniAppRunner: React.FC<MiniAppRunnerProps> = ({ app, onClose }) =>
       <MultiplayerOverlay
         state={mpUi}
         onDone={dismissMpUi}
-        onLeave={() => { void leaveMultiplayer(app.id); }}
+        onEnd={() => { void endRoom(app.id); }}
         onScanned={submitMpScan}
         onCancel={cancelMpScan}
+        onApprove={(id) => { void approveJoin(app.id, id); }}
+        onDeny={(id) => { void denyJoin(app.id, id); }}
       />
     </View>
   );

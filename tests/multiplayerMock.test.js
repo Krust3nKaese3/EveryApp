@@ -106,7 +106,7 @@ function fakeDocument() {
     if (id) nodes.set(id, node);
     return node;
   }
-  ['status', 'players', 'round', 'name', 'code', 'host', 'join', 'leave', 'start', 'plus', 'yes', 'no'].forEach((id) => make(id));
+  ['status', 'players', 'round', 'name', 'code', 'host', 'join', 'leave', 'start', 'plus', 'yes', 'no', 'discover', 'rooms', 'ask', 'asktext', 'allow', 'deny'].forEach((id) => make(id));
   return {
     getElementById(id) { return nodes.get(id) || null; },
     createElement() { return make(''); },

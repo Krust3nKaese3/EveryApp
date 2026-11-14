@@ -33,7 +33,7 @@ module.exports = ({ config }) => {
         ...(config.ios && config.ios.infoPlist),
         // Abfrage für Verbindungen im lokalen Netz. Der QR-Code ist die Einladung, Bonjour löst auf iOS oft erst die Systemfrage aus.
         NSLocalNetworkUsageDescription:
-          'EveryApp verbindet Mitspieler im selben WLAN oder Hotspot, ohne Internet. Der QR-Code enthält die lokale Adresse.',
+          'EveryApp sucht Spiele in der Nähe und verbindet Mitspieler im selben WLAN oder Hotspot, ohne Internet.',
         NSBonjourServices: ['_everyapp._tcp'],
       },
     },

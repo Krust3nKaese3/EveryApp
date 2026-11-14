@@ -84,6 +84,12 @@ class ExpoBackgroundServiceModule : Module() {
       UiStore.tileSlotsFor(context, appId).forEach { EveryAppTileBase.refresh(context, it) }
       true
     }
+    Function("setHosting") { hosting: Boolean ->
+      val context = appContext.reactContext ?: return@Function false
+      ServiceGate.setHosting(context, hosting)
+      ServiceGate.sync(context, "setHosting")
+      true
+    }
     Function("setRuntimeNeeds") { interval: Boolean, intervalMs: Double, wifi: Boolean ->
       val context = appContext.reactContext ?: return@Function false
       ServiceGate.setNeeds(context, interval, intervalMs.toLong(), wifi)

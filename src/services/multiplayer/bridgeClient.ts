@@ -27,15 +27,48 @@ export interface MultiplayerRoster {
   roomCode: string;
 }
 
+export interface DiscoveredRoom {
+  id: string;
+  roomCode: string;
+  hostName: string;
+  players: number;
+  maxPlayers: number;
+}
+
+export interface JoinRequest {
+  id: string;
+  name: string;
+  roomCode: string;
+  hostName: string;
+}
+
+export interface ResumeState {
+  role: 'host' | 'guest';
+  roomCode: string;
+  selfId: string;
+  players: MultiplayerPlayer[];
+  status: 'ready' | 'hostAway';
+}
+
 export interface MultiplayerBridge {
-  host(opts?: { maxPlayers?: number; name?: string }): Promise<MultiplayerState>;
-  join(input: string | { scan?: boolean; payload?: string; qrPayload?: string; name?: string }): Promise<MultiplayerState>;
+  host(opts?: { maxPlayers?: number; name?: string; discoverable?: boolean; joinApproval?: boolean }): Promise<MultiplayerState>;
+  join(input: string | { scan?: boolean; payload?: string; qrPayload?: string; name?: string; room?: string }): Promise<MultiplayerState>;
   send(data: unknown, opts?: { to?: string }): Promise<{ seq: number }>;
   broadcast(data: unknown): Promise<{ seq: number }>;
   onMessage(cb: (message: MultiplayerMessage) => void): () => void;
   onPlayersChanged(cb: (roster: MultiplayerRoster) => void): () => void;
   leave(): Promise<{ left: boolean }>;
   showQr(): Promise<{ roomCode: string; qrPayload: string }>;
+  discover(opts?: { onRooms?: (rooms: DiscoveredRoom[]) => void }): Promise<{ started: boolean }>;
+  stopDiscovery(): Promise<{ stopped: boolean }>;
+  setDiscoverable(on: boolean): Promise<{ discoverable: boolean }>;
+  approveJoin(id: string): Promise<{ approved: boolean }>;
+  denyJoin(id: string): Promise<{ denied: boolean }>;
+  onJoinRequest(cb: (request: JoinRequest) => void): () => void;
+  endRoom(): Promise<{ ended: boolean }>;
+  resume(): Promise<ResumeState | null>;
+  onResumed(cb: (state: ResumeState) => void): () => void;
+  onHostAway(cb: (info: { roomCode: string; message: string }) => void): () => void;
 }
 
 export const MULTIPLAYER_BRIDGE_METHODS = [
@@ -47,4 +80,14 @@ export const MULTIPLAYER_BRIDGE_METHODS = [
   'onPlayersChanged',
   'leave',
   'showQr',
+  'discover',
+  'stopDiscovery',
+  'setDiscoverable',
+  'approveJoin',
+  'denyJoin',
+  'onJoinRequest',
+  'endRoom',
+  'resume',
+  'onResumed',
+  'onHostAway',
 ] as const;

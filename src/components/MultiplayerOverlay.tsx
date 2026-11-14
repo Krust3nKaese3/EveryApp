@@ -8,13 +8,15 @@ import type { MpUiState } from '../services/multiplayer/session';
 interface MultiplayerOverlayProps {
   state: MpUiState | null;
   onDone: () => void;
-  onLeave: () => void;
+  onEnd: () => void;
   onScanned: (text: string) => void;
   onCancel: () => void;
+  onApprove: (id: string) => void;
+  onDeny: (id: string) => void;
 }
 
 /** Großer QR für den Host, Scanner für den Beitritt. Die Mini-App zeichnet das nicht selbst. */
-export function MultiplayerOverlay({ state, onDone, onLeave, onScanned, onCancel }: MultiplayerOverlayProps) {
+export function MultiplayerOverlay({ state, onDone, onEnd, onScanned, onCancel, onApprove, onDeny }: MultiplayerOverlayProps) {
   const [permission, requestPermission] = useCameraPermissions();
   const [scanHint, setScanHint] = useState('');
   const matrix = useMemo(() => {
@@ -68,6 +70,21 @@ export function MultiplayerOverlay({ state, onDone, onLeave, onScanned, onCancel
     );
   }
 
+  if (state.mode === 'ask' && state.requestId) {
+    return (
+      <View style={styles.screen}>
+        <Text style={styles.title}>{state.askName || 'Jemand'} möchte beitreten</Text>
+        <Text style={styles.hint}>Raum {state.roomCode}. Nur zulassen, wenn du den Namen kennst.</Text>
+        <TouchableOpacity style={styles.primary} onPress={() => onApprove(state.requestId || '')}>
+          <Text style={styles.primaryText}>Zulassen</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.secondary} onPress={() => onDeny(state.requestId || '')}>
+          <Text style={styles.secondaryText}>Ablehnen</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
   const cell = matrix ? Math.max(3, Math.floor(260 / matrix.size)) : 0;
   return (
     <View style={styles.screen}>
@@ -86,7 +103,7 @@ export function MultiplayerOverlay({ state, onDone, onLeave, onScanned, onCancel
       <TouchableOpacity style={styles.primary} onPress={onDone}>
         <Text style={styles.primaryText}>Fertig</Text>
       </TouchableOpacity>
-      <TouchableOpacity style={styles.secondary} onPress={onLeave}>
+      <TouchableOpacity style={styles.secondary} onPress={onEnd}>
         <Text style={styles.secondaryText}>Raum beenden</Text>
       </TouchableOpacity>
     </View>

@@ -16,7 +16,6 @@ export const MP_LIMITS = {
   maxArray: 2000,
   heartbeatMs: 3_000,
   timeoutMs: 10_000,
-  reconnectGraceMs: 20_000,
   handshakeMs: 5_000,
   maxPending: 8,
   maxMessagesPer10s: 80,
@@ -27,6 +26,13 @@ export const MP_LIMITS = {
   failureWindowMs: 60_000,
   lockoutMs: 30_000,
   maxQrChars: 2048,
+  askWindowMs: 60_000,
+  maxAsksPerAddress: 5,
+  askLockoutMs: 60_000,
+  askTimeoutMs: 30_000,
+  maxPendingAsks: 4,
+  roomTtlMs: 24 * 60 * 60 * 1000,
+  resumeBackoffMs: 15_000,
 };
 
 export interface PlayerView {
@@ -58,9 +64,19 @@ export interface MsgFrame {
   seq?: number;
 }
 
+export interface AskFrame {
+  t: 'ask';
+  v: 1;
+  appId: string;
+  room: string;
+  id: string;
+  name: string;
+}
+
 export type WireFrame =
   | HelloFrame
-  | { t: 'welcome'; playerId: string; secret: string; players: PlayerView[] }
+  | AskFrame
+  | { t: 'welcome'; playerId: string; secret: string; token?: string; roomId?: string; players: PlayerView[] }
   | { t: 'players'; players: PlayerView[] }
   | MsgFrame
   | { t: 'ping'; ts: number }
@@ -68,7 +84,7 @@ export type WireFrame =
   | { t: 'leave' }
   | { t: 'error'; code: string; message: string };
 
-const TYPES = new Set(['hello', 'welcome', 'players', 'msg', 'ping', 'pong', 'leave', 'error']);
+const TYPES = new Set(['hello', 'ask', 'welcome', 'players', 'msg', 'ping', 'pong', 'leave', 'error']);
 
 export function encodeFrame(frame: WireFrame): string {
   return `${JSON.stringify(frame)}\n`;
@@ -116,11 +132,25 @@ function asFrame(value: unknown): WireFrame | null {
       secret: typeof row.secret === 'string' ? row.secret : undefined,
     };
   }
+  if (row.t === 'ask') {
+    if (row.v !== 1) return null;
+    if (!short(row.appId, 200) || !short(row.room, 8) || !short(row.id, 64) || !short(row.name, 64)) return null;
+    return { t: 'ask', v: 1, appId: row.appId, room: row.room, id: row.id, name: row.name };
+  }
   if (row.t === 'welcome') {
     if (!short(row.playerId, 64) || !short(row.secret, 64) || !Array.isArray(row.players)) return null;
+    if (row.token != null && !short(row.token, 64)) return null;
+    if (row.roomId != null && !short(row.roomId, 64)) return null;
     const players = asPlayers(row.players);
     if (!players) return null;
-    return { t: 'welcome', playerId: row.playerId, secret: row.secret, players };
+    return {
+      t: 'welcome',
+      playerId: row.playerId,
+      secret: row.secret,
+      token: typeof row.token === 'string' ? row.token : undefined,
+      roomId: typeof row.roomId === 'string' ? row.roomId : undefined,
+      players,
+    };
   }
   if (row.t === 'players') {
     if (!Array.isArray(row.players)) return null;

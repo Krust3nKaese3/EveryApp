@@ -5,7 +5,8 @@ const { decodeJoinUrl, encodeJoinUrl, isPrivateIPv4 } = require('../src/services
 const { GameRoom } = require('../src/services/multiplayer/room.ts');
 const { sameSecret, handshakeExpired, HelloGuard } = require('../src/services/multiplayer/guard.ts');
 const { scriptJson } = require('../src/bridge/scriptJson.ts');
-const { hostMultiplayer, resetMultiplayerForTests } = require('../src/services/multiplayer/session.ts');
+const { hostMultiplayer, resetMultiplayerForTests, configureMultiplayer, approveJoin, denyJoin, endRoom, leaveMultiplayer, resumeMultiplayer } = require('../src/services/multiplayer/session.ts');
+const { createMemoryRoomStore, publicResume, resumeLeaksSecrets } = require('../src/services/multiplayer/persist.ts');
 
 function rng(seed) {
   let state = seed >>> 0;
@@ -70,13 +71,14 @@ test('Raum begrenzt die Rate und gibt das Spielergeheimnis nicht heraus', () => 
   assert.throws(() => room.relay(guest.player.id, { i: 'x' }, undefined, 50), /Zu viele/);
 });
 
-function makeLink() {
+function makeLink(address) {
   const data = [];
   const closes = [];
   let dead = false;
   return {
     sent: [],
     closed: false,
+    remoteAddress: address || '',
     send(frame) { this.sent.push(frame); },
     close() {
       if (dead) return;
@@ -187,6 +189,120 @@ test('TCP-Sitzung weist Raten, Übernahme, Flut und offene Sockets ab', async ()
     const late = makeLink();
     accept(late);
     assert.strictEqual(late.closed, true);
+
+    const store = createMemoryRoomStore();
+    const published = [];
+    let browsed = [];
+    const discovery = {
+      async publish(_name, port, txt) { published.push({ port, txt }); },
+      async unpublish() { published.push(null); },
+      async browse(onChange) { onChange(browsed); },
+      async stopBrowse() {},
+    };
+    configureMultiplayer({ store, discovery, keepAlive: async () => {} });
+    const events2 = [];
+    const room = await hostMultiplayer('wolf', (event, data) => events2.push({ event, data }), { name: 'Ada', maxPlayers: 4, joinApproval: true }, transport);
+    const info = decodeJoinUrl(room.qrPayload);
+    const txt = published.find((item) => item && item.txt).txt;
+    assert.strictEqual(txt.app, 'wolf');
+    assert.strictEqual(txt.room, info.room);
+    assert.ok(txt.id && txt.id !== info.token);
+    assert.strictEqual(txt.token, undefined);
+    assert.strictEqual(txt.secret, undefined);
+    const savedHost = await store.read('wolf');
+    assert.ok(savedHost.secret);
+    assert.ok(savedHost.members.some((member) => member.secret));
+    assert.strictEqual(resumeLeaksSecrets(publicResume(savedHost, 'ready')), false);
+
+    const askFrame = encodeFrame({ t: 'ask', v: 1, appId: 'wolf', room: info.room, id: txt.id, name: 'Cara' });
+    const asker = makeLink('10.0.0.8');
+    accept(asker);
+    asker.push(askFrame);
+    assert.ok(!readFrames(asker).some((frame) => frame.t === 'welcome'));
+    const request = events2.find((item) => item.event === 'multiplayer.joinRequest');
+    assert.ok(request);
+    await approveJoin('wolf', request.data.id);
+    const approved = readFrames(asker).find((frame) => frame.t === 'welcome');
+    assert.ok(approved.secret);
+    assert.strictEqual(approved.token, info.token);
+    assert.strictEqual(approved.roomId, txt.id);
+    assert.ok(!JSON.stringify(approved.players).includes(approved.secret));
+
+    const qrGuest = makeLink('10.0.0.9');
+    const before = events2.filter((item) => item.event === 'multiplayer.joinRequest').length;
+    accept(qrGuest);
+    qrGuest.push(encodeFrame({ t: 'hello', v: 1, appId: 'wolf', room: info.room, token: info.token, name: 'Bea' }));
+    assert.ok(readFrames(qrGuest).some((frame) => frame.t === 'welcome'));
+    assert.strictEqual(events2.filter((item) => item.event === 'multiplayer.joinRequest').length, before);
+
+    const denied = makeLink('10.0.0.10');
+    accept(denied);
+    denied.push(askFrame);
+    const second = events2.filter((item) => item.event === 'multiplayer.joinRequest').at(-1);
+    await denyJoin('wolf', second.data.id);
+    assert.ok(readFrames(denied).some((frame) => frame.t === 'error' && frame.code === 'denied'));
+    const lockedAsk = makeLink('10.0.0.10');
+    accept(lockedAsk);
+    lockedAsk.push(askFrame);
+    assert.ok(readFrames(lockedAsk).some((frame) => frame.t === 'error' && frame.code === 'rate'));
+
+    for (let i = 0; i < MP_LIMITS.maxAsksPerAddress; i++) {
+      const link = makeLink('10.0.0.11');
+      accept(link);
+      link.push(askFrame);
+      link.close();
+    }
+    const sixth = makeLink('10.0.0.11');
+    accept(sixth);
+    sixth.push(askFrame);
+    assert.ok(readFrames(sixth).some((frame) => frame.t === 'error' && frame.code === 'rate'));
+
+    await leaveMultiplayer('wolf');
+    assert.ok(await store.read('wolf'));
+    await endRoom('wolf');
+    assert.strictEqual(await store.read('wolf'), null);
+    assert.ok(readFrames(asker).some((frame) => frame.t === 'error' && frame.code === 'ended'));
+
+    const roomId = txt.id;
+    await store.write({ ...savedHost, updatedAt: Date.now(), members: savedHost.members });
+    const restoredEvents = [];
+    const restored = await resumeMultiplayer('wolf', (event) => restoredEvents.push(event), transport);
+    assert.strictEqual(restored.role, 'host');
+    assert.strictEqual(restored.roomCode, info.room);
+    assert.ok(restoredEvents.includes('multiplayer.resumed'));
+    assert.strictEqual(published.filter((item) => item && item.txt).at(-1).txt.id, roomId);
+    assert.strictEqual(resumeLeaksSecrets(restored), false);
+
+    const guestRow = {
+      ...savedHost,
+      role: 'guest',
+      selfId: approved.playerId,
+      secret: approved.secret,
+      host: '192.168.1.20',
+      port: 4040,
+      members: [],
+      roster: approved.players,
+      updatedAt: Date.now(),
+    };
+    await resetMultiplayerForTests();
+    configureMultiplayer({ store, discovery, keepAlive: async () => {} });
+    await store.write(guestRow);
+    await assert.rejects(() => hostMultiplayer('wolf', () => {}, { name: 'Ada' }, transport), /Verlasse ihn zuerst/);
+    browsed = [{ key: 'svc', host: '10.0.0.5', port: 4040, txt: { v: '1', app: 'wolf', room: info.room, id: roomId, name: 'Ada', n: '1', max: '4' } }];
+    const awayEvents = [];
+    const away = await resumeMultiplayer('wolf', (event) => awayEvents.push(event), {
+      async localIpv4() { return '192.168.1.20'; },
+      listen() { return Promise.resolve({ port: 4040, close() {} }); },
+      async connect() { throw new Error('weg'); },
+    });
+    assert.strictEqual(away.status, 'hostAway');
+    assert.ok(awayEvents.includes('multiplayer.hostAway'));
+    assert.strictEqual(resumeLeaksSecrets(away), false);
+    await resetMultiplayerForTests();
+    configureMultiplayer({ store, discovery, keepAlive: async () => {} });
+    await store.write({ ...guestRow, updatedAt: Date.now() - MP_LIMITS.roomTtlMs - 1 });
+    assert.strictEqual(await resumeMultiplayer('wolf', () => {}, transport), null);
+    assert.strictEqual(await store.read('wolf'), null);
   } finally {
     await resetMultiplayerForTests();
   }

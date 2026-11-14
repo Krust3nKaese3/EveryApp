@@ -90,29 +90,28 @@ test('Raum nimmt nur dieselbe Mini-App auf und leitet gezielt weiter', () => {
   assert.throws(() => room.relay(hostId, { x: 1 }), /Empfänger/);
 });
 
-test('Kurze Trennung behält den Platz, die Karenzzeit gibt ihn frei', () => {
+test('Trennung behält den Platz, bis der Gast geht', () => {
   const room = new GameRoom({ appId: 'song', maxPlayers: 4, hostName: 'Host', now: 0, random: rng(3) });
   const guest = room.admit({ appId: 'song', room: room.roomCode, token: room.token, name: 'Bea' }, 0);
   assert.strictEqual(guest.ok, true);
   assert.ok(!JSON.stringify(room.players()).includes(guest.secret));
+  assert.notStrictEqual(room.roomId, room.token);
   assert.strictEqual(room.disconnect(guest.player.id, 1000), true);
   assert.strictEqual(room.players().find((player) => player.id === guest.player.id).connected, false);
   const stolen = room.admit({
     appId: 'song', room: room.roomCode, token: room.token, name: 'Fremd', playerId: guest.player.id, secret: '0123456789abcdef',
   }, 2000);
   assert.strictEqual(stolen.code, 'auth');
-  assert.strictEqual(room.players().find((player) => player.id === guest.player.id).connected, false);
   const again = room.admit({
     appId: 'song', room: room.roomCode, token: room.token, name: 'Jemand', playerId: guest.player.id, secret: guest.secret,
   }, 5000);
   assert.strictEqual(again.ok && again.resumed, true);
   assert.strictEqual(again.player.name, 'Bea');
   room.disconnect(guest.player.id, 5000);
-  const early = room.tick(5000 + MP_LIMITS.reconnectGraceMs - 1);
-  assert.strictEqual(early.changed, false);
+  const late = room.tick(5000 + MP_LIMITS.roomTtlMs);
   assert.ok(room.players().some((player) => player.id === guest.player.id));
-  const late = room.tick(5000 + MP_LIMITS.reconnectGraceMs);
-  assert.strictEqual(late.changed, true);
+  assert.strictEqual(late.drop.length, 0);
+  assert.strictEqual(room.leave(guest.player.id), true);
   assert.ok(!room.players().some((player) => player.id === guest.player.id));
   assert.strictEqual(room.admit({
     appId: 'song', room: room.roomCode, token: room.token, name: 'Bea', playerId: guest.player.id, secret: guest.secret,
@@ -143,12 +142,13 @@ test('Bridge erlaubt Mehrspieler nur mit der passenden Berechtigung', () => {
   const host = bridgeMethod('multiplayer.host');
   assert.strictEqual(host.category, 'multiplayer');
   assert.strictEqual(host.action, 'host');
-  assert.deepStrictEqual(host.validate([]), [{ maxPlayers: undefined, name: undefined }]);
-  assert.deepStrictEqual(host.validate([{ maxPlayers: 4, name: 'Ada' }]), [{ maxPlayers: 4, name: 'Ada' }]);
+  assert.deepStrictEqual(host.validate([]), [{ maxPlayers: undefined, name: undefined, discoverable: undefined, joinApproval: undefined }]);
+  assert.deepStrictEqual(host.validate([{ maxPlayers: 4, name: 'Ada', discoverable: true, joinApproval: false }]), [{ maxPlayers: 4, name: 'Ada', discoverable: true, joinApproval: false }]);
   assert.throws(() => host.validate([{ maxPlayers: 99 }]), /maxPlayers/);
   const join = bridgeMethod('multiplayer.join');
   assert.deepStrictEqual(join.validate(['everyapp-mp://join']), ['everyapp-mp://join']);
-  assert.deepStrictEqual(join.validate([{ scan: true, name: 'Bea' }]), [{ scan: true, payload: undefined, qrPayload: undefined, name: 'Bea' }]);
+  assert.deepStrictEqual(join.validate([{ scan: true, name: 'Bea' }]), [{ scan: true, payload: undefined, qrPayload: undefined, name: 'Bea', room: undefined }]);
+  assert.deepStrictEqual(join.validate([{ room: 'aabb@svc', name: 'Bea' }]), [{ scan: undefined, payload: undefined, qrPayload: undefined, name: 'Bea', room: 'aabb@svc' }]);
   const send = bridgeMethod('multiplayer.send');
   assert.deepStrictEqual(send.validate([{ a: 1 }, { to: 'abcd' }]), [{ a: 1 }, { to: 'abcd' }]);
   assert.throws(() => bridgeMethod('multiplayer.broadcast').validate([]), /Argumente/);

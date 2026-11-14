@@ -46,22 +46,63 @@ function roomCode(random: () => number): string {
   return out;
 }
 
+export interface RoomMemberSeed {
+  id: string;
+  secret: string;
+  name: string;
+  host: boolean;
+}
+
+export interface RoomSnapshot {
+  appId: string;
+  roomCode: string;
+  roomId: string;
+  token: string;
+  maxPlayers: number;
+  members: RoomMemberSeed[];
+}
+
 export class GameRoom {
   readonly appId: string;
   readonly roomCode: string;
+  readonly roomId: string;
   readonly token: string;
   readonly maxPlayers: number;
   private members: Member[] = [];
   private seq = 0;
   private random: () => number;
 
-  constructor(opts: { appId: string; maxPlayers: number; hostName: string; now: number; random?: () => number }) {
+  constructor(opts: {
+    appId: string;
+    maxPlayers: number;
+    hostName: string;
+    now: number;
+    random?: () => number;
+    restore?: RoomSnapshot;
+  }) {
     this.random = opts.random || Math.random;
     this.appId = opts.appId;
     const cap = Math.floor(opts.maxPlayers);
     this.maxPlayers = Math.min(MP_LIMITS.maxPlayers, Math.max(MP_LIMITS.minPlayers, Number.isFinite(cap) ? cap : MP_LIMITS.defaultPlayers));
+    if (opts.restore) {
+      this.roomCode = opts.restore.roomCode;
+      this.roomId = opts.restore.roomId;
+      this.token = opts.restore.token;
+      this.members = opts.restore.members.map((member) => ({
+        id: member.id,
+        secret: member.secret,
+        name: playerName(member.name),
+        host: member.host,
+        connected: member.host,
+        lastSeen: opts.now,
+        disconnectedAt: member.host ? null : opts.now,
+        stamps: [],
+      }));
+      return;
+    }
     this.roomCode = roomCode(this.random);
     this.token = hex(this.random, 8);
+    this.roomId = hex(this.random, 8);
     this.members.push({
       id: this.freshId(),
       secret: hex(this.random, 8),
@@ -80,6 +121,28 @@ export class GameRoom {
 
   players(): PlayerView[] {
     return this.members.map(viewOf);
+  }
+
+  /** Für den App-Speicher. Die Mini-App bekommt diese Secrets nicht. */
+  exportMembers(): RoomMemberSeed[] {
+    return this.members.map((member) => ({ id: member.id, secret: member.secret, name: member.name, host: member.host }));
+  }
+
+  /** Nach Zustimmung, ohne Token vom Gast. Der Aufrufer hat Raum-Id und App schon geprüft. */
+  admitApproved(name: string, now: number): AdmitResult {
+    if (this.members.length >= this.maxPlayers) return { ok: false, code: 'full', message: 'Der Raum ist voll.' };
+    const member: Member = {
+      id: this.freshId(),
+      secret: hex(this.random, 8),
+      name: playerName(name),
+      host: false,
+      connected: true,
+      lastSeen: now,
+      disconnectedAt: null,
+      stamps: [],
+    };
+    this.members.push(member);
+    return { ok: true, player: viewOf(member), secret: member.secret, resumed: false };
   }
 
   admit(input: AdmitInput, now: number): AdmitResult {
@@ -123,7 +186,7 @@ export class GameRoom {
     member.lastSeen = now;
   }
 
-  /** Socket zu. Der Platz bleibt für die Karenzzeit, damit derselbe Spieler zurückkehren kann. */
+  /** Socket zu. Der Platz bleibt, bis der Gast geht oder der Host den Raum beendet. */
   disconnect(playerId: string, now: number): boolean {
     const member = this.members.find((item) => item.id === playerId);
     if (!member || member.host || !member.connected) return false;
@@ -140,7 +203,7 @@ export class GameRoom {
   }
 
   /**
-   * Stille Verbindungen werden getrennt. Nach der Karenzzeit verschwindet der Spieler.
+   * Stille Verbindungen werden getrennt. Der Spieler bleibt in der Liste.
    * `drop` sind Spieler, deren Socket jetzt zu soll.
    */
   tick(now: number): { changed: boolean; drop: string[] } {
@@ -153,9 +216,6 @@ export class GameRoom {
         member.disconnectedAt = now;
         changed = true;
         drop.push(member.id);
-      } else if (!member.connected && member.disconnectedAt != null && now - member.disconnectedAt >= MP_LIMITS.reconnectGraceMs) {
-        this.members = this.members.filter((item) => item.id !== member.id);
-        changed = true;
       }
     }
     return { changed, drop };

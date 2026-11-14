@@ -19,7 +19,14 @@ object ServiceGate {
     val waiting: Int,
     val exhausted: Int,
     val wifi: Boolean,
+    val hosting: Boolean,
   )
+
+  fun setHosting(ctx: Context, hosting: Boolean) {
+    ctx.applicationContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
+      .putBoolean("hosting", hosting)
+      .commit()
+  }
 
   fun setNeeds(ctx: Context, interval: Boolean, intervalMs: Long, wifi: Boolean) {
     ctx.applicationContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
@@ -40,15 +47,17 @@ object ServiceGate {
       waiting = ble[1],
       exhausted = ble[2],
       wifi = enabled && p.getBoolean("wifi", false),
+      hosting = p.getBoolean("hosting", false),
     )
   }
 
-  fun needed(s: Snap) = s.interval || s.due > 0
+  fun needed(s: Snap) = s.interval || s.due > 0 || s.hosting
 
   fun line(source: String, s: Snap, running: Boolean): String {
     val reasons = mutableListOf<String>()
     if (s.interval) reasons += "interval"
     if (s.due > 0) reasons += "bleNotify"
+    if (s.hosting) reasons += "spielraum"
     val why = if (reasons.isEmpty()) "Gründe: keine interval-Trigger und kein fälliges/verbundenes bleNotify"
       else "Gründe: ${reasons.joinToString(", ")}"
     val action = when {
@@ -65,6 +74,7 @@ object ServiceGate {
     var t = 0
     if (s.interval && Build.VERSION.SDK_INT >= 29) t = t or ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC
     if (s.due > 0 && Build.VERSION.SDK_INT >= 29) t = t or ServiceInfo.FOREGROUND_SERVICE_TYPE_CONNECTED_DEVICE
+    if (s.hosting && Build.VERSION.SDK_INT >= 29) t = t or ServiceInfo.FOREGROUND_SERVICE_TYPE_CONNECTED_DEVICE
     if (t == 0 && Build.VERSION.SDK_INT >= 29) t = ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC
     return t
   }

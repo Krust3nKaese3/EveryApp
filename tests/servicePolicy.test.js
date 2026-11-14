@@ -14,6 +14,7 @@ test('foreground service ignores wifi', () => {
   assert.deepStrictEqual(P.needsForegroundService({ interval: false, dueOrConnectedBle: 0 }), { needed: false, reasons: [] });
   assert.deepStrictEqual(P.needsForegroundService({ interval: true, dueOrConnectedBle: 0 }).reasons, ['interval']);
   assert.deepStrictEqual(P.needsForegroundService({ interval: false, dueOrConnectedBle: 1 }).reasons, ['bleNotify']);
+  assert.deepStrictEqual(P.needsForegroundService({ interval: false, dueOrConnectedBle: 0, hosting: true }).reasons, ['spielraum']);
   const stop = P.serviceDecisionLine('boot', { interval: false, dueOrConnectedBle: 0, waitingBle: 1, exhaustedBle: 2, wifi: true }, true);
   assert.match(stop, /^DIENST STOPP \|/);
   assert.match(stop, /WLAN ohne Vordergrunddienst/);

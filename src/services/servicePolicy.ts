@@ -19,13 +19,14 @@ export function bleShouldRetry(attempt: number): boolean {
   return attempt < BLE_MAX_ATTEMPTS;
 }
 
-export function needsForegroundService(input: { interval: boolean; dueOrConnectedBle: number }): {
+export function needsForegroundService(input: { interval: boolean; dueOrConnectedBle: number; hosting?: boolean }): {
   needed: boolean;
   reasons: string[];
 } {
   const reasons: string[] = [];
   if (input.interval) reasons.push('interval');
   if (input.dueOrConnectedBle > 0) reasons.push('bleNotify');
+  if (input.hosting) reasons.push('spielraum');
   return { needed: reasons.length > 0, reasons };
 }
 
