@@ -31,13 +31,14 @@ Auf dem Gerät, nicht auf einem EveryApp-Server, liegen:
 - der Speicher der Mini-App. Schlüssel beginnen mit `@miniapp_` und der Kennung der Mini-App. Andere Mini-Apps lesen diesen Speicher nicht
 - Geheimnisse, die eine Mini-App ablegt (lokal, je nach Build im App-Speicher oder im gerätegeschützten Speicher)
 - die Spotify-Client-ID, wenn du sie einträgst
+- im Entwicklermodus ein GitHub-Token und der zugehörige Benutzername. Das Token liegt im gerätegeschützten Speicher, wenn der Build das unterstützt, sonst im App-Speicher. Es geht nicht an einen Server von EveryApp
 - ein lokales Debug-Protokoll
 
 Aktualisieren einer Mini-App ersetzt nur die geladenen Dateien. Spielstände und anderer Speicher dieser Mini-App bleiben erhalten. Löschen entfernt die Dateien, den Speicher, die Geheimnisse, die Berechtigungen und zugehörige Zwischenspeicher dieser Mini-App.
 
 ## Wann eine Verbindung aufgebaut wird
 
-- **GitHub.** Die App fragt `api.github.com` nach dem aktuellen Commit von `main` und lädt Dateien von `raw.githubusercontent.com`. Dasselbe gilt für den Katalog `catalog/catalog.json` und die Sperrliste `catalog/blocklist.json` in diesem Repository. GitHub sieht dabei die üblichen Verbindungsdaten, insbesondere die IP-Adresse. EveryApp hängt keine Nutzerkennung an. Schlägt der Abruf fehl, gilt die in der App mitgelieferte Fassung von Katalog und Sperrliste.
+- **GitHub.** Die App fragt `api.github.com` nach dem aktuellen Commit von `main` und lädt Dateien von `raw.githubusercontent.com`. Dasselbe gilt für den Katalog `catalog/catalog.json` und die Sperrliste `catalog/blocklist.json` in diesem Repository. Im Entwicklermodus sendet die App das gespeicherte Token nur an GitHub (`Authorization`), um das Konto zu prüfen und Repositories dieses Kontos zu laden, auch private. GitHub sieht dabei die üblichen Verbindungsdaten, insbesondere die IP-Adresse. EveryApp hängt keine eigene Nutzerkennung an. Schlägt der Abruf von Katalog oder Sperrliste fehl, gilt die in der App mitgelieferte Fassung.
 - **Mini-Apps.** Erst nach deiner Zustimmung darf eine Mini-App selbst Verbindungen aufbauen (`http`, lokales Netz). Ziel und Inhalt bestimmt die Mini-App. Dafür ist der Betreiber dieser Mini-App verantwortlich, nicht ein Server von EveryApp.
 - **Spotify.** Steuerung und Suche laufen über die auf dem Gerät installierte Spotify-App (Spotify App Remote), nicht über einen Dienst von EveryApp. Es gilt zusätzlich die Datenschutzerklärung von Spotify.
 - **Melden.** Die Schaltfläche öffnet deine Mail-App mit einer vorausgefüllten Nachricht an manueldiliberto1@gmail.com (Name, Repository, App-Kennung, Version, Commit). Gesendet wird sie nur, wenn du das selbst tust.
@@ -52,7 +53,7 @@ Die Brücke gibt kein Dateisystem, keine Kontakte und keinen Standort (keine GPS
 
 „Empfohlen“ zeigt Mini-Apps aus dem Katalog (Name, Repository, Beschreibung, Altersangabe). Eine Sperrliste kann eine Mini-App für alle Installationen deaktivieren; die App zeigt dann den Grund und startet sie nicht. Es gibt keine zusätzliche Nutzerdatenbank dafür.
 
-Eine Build-Einstellung `EXPO_PUBLIC_CATALOG_ONLY` kann freie GitHub-Links und QR-Codes abschalten, damit nur der Katalog installiert werden kann.
+Eine Build-Einstellung `EXPO_PUBLIC_CATALOG_ONLY` schaltet freie GitHub-Links ab. In dem Build gibt es den Katalog und, wenn du ihn einschaltest, den Entwicklermodus: Anmeldung mit dem eigenen GitHub-Konto, danach nur Repositories, deren Besitzer dieses Konto ist. Abmelden schaltet diese Mini-Apps aus. Builds ohne diese Einstellung behalten die freie Installation mit Warnung.
 
 ## Kinder
 

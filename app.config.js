@@ -1,6 +1,6 @@
 // Extends app.json. The EAS "development" profile sets APP_VARIANT=development,
 // producing a separately installable dev-client app ("SrvEveryApp", package suffix .dev).
-// CATALOG_ONLY / EXPO_PUBLIC_CATALOG_ONLY=1 hides free GitHub installs (future iOS build).
+// CATALOG_ONLY / EXPO_PUBLIC_CATALOG_ONLY=1 hides free GitHub installs and offers own-repo developer mode.
 const IS_DEV = process.env.APP_VARIANT === 'development';
 const flagOn = (value) => ['1', 'true', 'yes'].includes(String(value || '').trim().toLowerCase());
 const CATALOG_ONLY = flagOn(process.env.CATALOG_ONLY) || flagOn(process.env.EXPO_PUBLIC_CATALOG_ONLY);
@@ -21,6 +21,7 @@ module.exports = ({ config }) => {
       ...config.extra,
       spotifyClientId: fromEnv || fromConfig || '',
       catalogOnly: CATALOG_ONLY,
+      githubClientId: process.env.EXPO_PUBLIC_GITHUB_CLIENT_ID || '',
     },
   };
 };
