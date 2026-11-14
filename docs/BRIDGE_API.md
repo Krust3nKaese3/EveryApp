@@ -63,9 +63,9 @@ BLE: `ble.isAvailable`, `ble.scan`, `ble.connect`, `ble.disconnect`, `ble.write`
 
 Zwischenablage: `clipboard.setString`, `clipboard.getString`
 
-Mehrspieler (Berechtigung `multiplayer`, Details in [MULTIPLAYER.md](MULTIPLAYER.md)): `multiplayer.host`, `multiplayer.join`, `multiplayer.send`, `multiplayer.broadcast`, `multiplayer.leave`, `multiplayer.showQr`
+Mehrspieler (Berechtigung `multiplayer`, Details in [MULTIPLAYER.md](MULTIPLAYER.md)): `multiplayer.host`, `multiplayer.join`, `multiplayer.send`, `multiplayer.broadcast`, `multiplayer.leave`, `multiplayer.showQr`, `multiplayer.discover`, `multiplayer.stopDiscovery`, `multiplayer.setDiscoverable`, `multiplayer.approveJoin`, `multiplayer.denyJoin`, `multiplayer.endRoom`, `multiplayer.resume`
 
-Events (nur diese Namen): `app.start`, `bluetooth.connected`, `bluetooth.disconnected`, `spotify.connected`, `spotify.disconnected`, `spotify.player`, `spotify.error`, `multiplayer.message`, `multiplayer.players`. Bluetooth-, Spotify- und Mehrspieler-Events brauchen die passende Berechtigung.
+Events (nur diese Namen): `app.start`, `bluetooth.connected`, `bluetooth.disconnected`, `spotify.connected`, `spotify.disconnected`, `spotify.player`, `spotify.error`, `multiplayer.message`, `multiplayer.players`, `multiplayer.rooms`, `multiplayer.joinRequest`, `multiplayer.resumed`, `multiplayer.hostAway`. Bluetooth-, Spotify- und Mehrspieler-Events brauchen die passende Berechtigung. Die Mini-App speichert ihren Spielstand selbst. Token und Spielergeheimnis gibt die Bridge nicht heraus.
 
 ## Melden
 

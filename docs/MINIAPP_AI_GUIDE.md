@@ -10,7 +10,7 @@ https://raw.githubusercontent.com/Krust3nKaese3/EveryApp/main/llms.txt
 und halte dich an den Guide, die Bridge-API und, falls Mehrspieler vorkommt, an MULTIPLAYER.md.
 Lege everyapp.json, eine Einstiegsdatei und nur die Berechtigungen an, die du brauchst.
 Nutze ausschließlich window.EveryAppBridge. Schreibe Namen und Spielnachrichten mit textContent, nie mit innerHTML.
-Beim Mehrspieler: Callbacks vor host/join, der Host ist allein zuständig, nach einem Reconnect den Spielstand neu senden, höchstens 32 KiB JSON.
+Beim Mehrspieler: Callbacks vor host/join/resume, der Host ist allein zuständig, den Spielstand selbst in EveryAppBridge.storage speichern und nach resume neu senden, höchstens 32 KiB JSON. Der Raum endet mit endRoom, nicht beim Schließen der App.
 ```
 
 ## Dateien
@@ -50,9 +50,11 @@ HTTP nur mit `http:` oder `https:`. Kein Dateisystem, keine Kontakte, kein GPS.
 
 ## Mehrspieler
 
-Berechtigung `multiplayer`. Ein Handy ist Host im selben WLAN oder Hotspot. Die anderen scannen den QR-Code, den EveryApp anzeigt. Ohne Internet, Android und iOS gemischt, sobald die installierte EveryApp den lokalen Server enthält.
+Berechtigung `multiplayer`. Ein Handy ist Host im selben WLAN oder Hotspot. Die anderen finden den Raum in der Nähe oder scannen den QR-Code, den EveryApp anzeigt. Ohne Internet, Android und iOS gemischt, sobald die installierte EveryApp den lokalen Server und die Suche enthält.
 
-Typen, die zur echten API passen: `host`, `join`, `send`, `broadcast`, `onMessage`, `onPlayersChanged`, `leave`, `showQr`.
+Die Mini-App speichert den Spielstand selbst mit `EveryAppBridge.storage`. EveryApp speichert nur den Raum. Token und Spielergeheimnis bekommt die Mini-App nicht.
+
+Methoden: `host`, `join`, `send`, `broadcast`, `onMessage`, `onPlayersChanged`, `leave`, `showQr`, `discover`, `stopDiscovery`, `setDiscoverable`, `approveJoin`, `denyJoin`, `onJoinRequest`, `endRoom`, `resume`, `onResumed`, `onHostAway`.
 
 ```javascript
 const mp = window.EveryAppBridge.multiplayer;
@@ -64,26 +66,47 @@ mp.onPlayersChanged((roster) => {
   // roster.players: { id, name, host, connected }
   // roster.selfId, roster.roomCode
 });
+mp.onJoinRequest((request) => {
+  // request.name und request.roomCode anzeigen, dann approveJoin oder denyJoin.
+});
+mp.onResumed((info) => {
+  // info.role, info.roomCode, info.selfId, info.players. Stand aus storage lesen.
+});
+mp.onHostAway((info) => {
+  // „Host ist kurz weg“. EveryApp versucht es weiter.
+});
 
-const room = await mp.host({ maxPlayers: 8, name: 'Ada' });
+const room = await mp.host({ maxPlayers: 8, name: 'Ada', discoverable: true, joinApproval: true });
 await mp.showQr();
+await mp.setDiscoverable(true);
+await mp.discover({ onRooms: (rooms) => {} });
+await mp.stopDiscovery();
+await mp.join({ room: 'raum-id', name: 'Bea' });
 await mp.join({ scan: true, name: 'Bea' });
 await mp.join(room.qrPayload);
+await mp.approveJoin('anfrage');
+await mp.denyJoin('anfrage');
 await mp.send({ type: 'vote', choice: 'ja' });
 await mp.send({ type: 'hint' }, { to: room.playerId });
 await mp.broadcast({ type: 'state', phase: 'night' });
+const back = await mp.resume();
 await mp.leave();
+await mp.endRoom();
 ```
 
-`maxPlayers` ist 2 bis 16, Vorgabe 8, der Host zählt mit. Namen höchstens 24 Zeichen. `send` ohne `to` geht vom Gast an den Host. Der Host muss `to` setzen oder `broadcast` nutzen. Es gibt kein Echo an den Absender.
+`maxPlayers` ist 2 bis 16, Vorgabe 8, der Host zählt mit. Namen höchstens 24 Zeichen. `discoverable` und `joinApproval` sind standardmäßig an. `send` ohne `to` geht vom Gast an den Host. Der Host muss `to` setzen oder `broadcast` nutzen. Es gibt kein Echo an den Absender.
+
+`discover` liefert nur Räume derselben Mini-App: `id`, `roomCode`, `hostName`, `players`, `maxPlayers`. Die Adresse bleibt in EveryApp. Beitritt über `join({ room })` ist eine Anfrage. Der QR-Code nicht. Die Liste soll den Host-Namen und den Raumcode zeigen, weil jemand denselben Namen ankündigen kann.
 
 ### Tun
 
-- `onMessage` und `onPlayersChanged` **vor** `host` oder `join` setzen. Sonst fehlt die erste Spielerliste.
+- `onMessage`, `onPlayersChanged`, `onResumed` und `onHostAway` **vor** `host`, `join` oder `resume` setzen. `resume()` gibt denselben Stand auch zurück.
+- Den Spielstand bei jeder Änderung in `EveryAppBridge.storage` schreiben. Nach `multiplayer.resumed` von dort lesen. Ist die Mini-App der Host, den Stand danach per `broadcast` schicken.
 - Den Host rechnen lassen. Gäste schicken Absichten (`vote`, `move`). Der Host prüft und schickt den neuen Stand.
 - Nach `connected: false` und wieder `true` den Spielstand neu senden. Die Pause puffert keine Nachrichten.
 - JSON senden: Objekte, Listen, Zahlen, Zeichenketten, `true`, `false`, `null`.
 - Anzeigen nur über `textContent` oder `createTextNode`.
+- Den Raum mit `endRoom()` beenden, wenn das Spiel vorbei ist. `leave()` des Hosts beendet ihn nicht.
 
 ### Lassen
 
@@ -93,10 +116,11 @@ await mp.leave();
 - Den Stand nicht den Gästen glauben, wenn der Host ihn schon kennt. Ein Gast kann `count: 999` schicken.
 - `innerHTML` mit Namen oder Nachrichtentext. Ein Name kann `<` enthalten, der Container schneidet das zwar, die Mini-App soll es trotzdem nicht als HTML lesen.
 - `join({ scan: true })` nicht selbst mit einer Kamera-Bibliothek nachbauen. EveryApp öffnet den Scanner.
+- Das Spielergeheimnis nicht selbst speichern wollen. Es kommt in der Bridge nicht an.
 
 `onMessage` und `onPlayersChanged` geben eine Funktion zurück, die den Callback wieder abnimmt.
 
-Spieler mit `connected: false` sind höchstens etwa 20 Sekunden reserviert. Dieselbe Id kommt zurück, wenn die Person rechtzeitig wieder da ist. Die Mini-App sieht das Geheimnis dafür nicht. Es bleibt im Container.
+Der Platz bleibt, bis der Gast `leave()` ruft oder der Host `endRoom()` aufruft. Dieselbe Id kommt zurück. Die Mini-App sieht das Geheimnis dafür nicht. Es bleibt im Container. Ist der Host weg, kommt `hostAway`, und der Platz bleibt trotzdem.
 
 Details: [MULTIPLAYER.md](https://raw.githubusercontent.com/Krust3nKaese3/EveryApp/main/docs/MULTIPLAYER.md).
 

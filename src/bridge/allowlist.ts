@@ -243,6 +243,8 @@ function multiplayerHost(args: unknown[]): unknown[] {
   return [{
     maxPlayers: raw.maxPlayers == null ? undefined : num(raw.maxPlayers, 'maxPlayers', 2, 16, true),
     name: raw.name == null ? undefined : str(raw.name, 'Name', 24),
+    discoverable: raw.discoverable == null ? undefined : bool(raw.discoverable, 'Sichtbar'),
+    joinApproval: raw.joinApproval == null ? undefined : bool(raw.joinApproval, 'Zustimmung'),
   }];
 }
 
@@ -255,6 +257,7 @@ function multiplayerJoin(args: unknown[]): unknown[] {
     payload: raw.payload == null ? undefined : str(raw.payload, 'QR', 2000),
     qrPayload: raw.qrPayload == null ? undefined : str(raw.qrPayload, 'QR', 2000),
     name: raw.name == null ? undefined : str(raw.name, 'Name', 24),
+    room: raw.room == null ? undefined : str(raw.room, 'Raum', 120),
   }];
 }
 
@@ -407,6 +410,13 @@ const BRIDGE_METHODS: Record<string, MethodSpec> = {
   'multiplayer.broadcast': method({ category: 'multiplayer', action: 'broadcast', rate: MP_SEND_RATE, validate: multiplayerBroadcast }),
   'multiplayer.leave': method({ category: 'multiplayer', action: 'leave', rate: MP_ROOM_RATE, validate: none }),
   'multiplayer.showQr': method({ category: 'multiplayer', action: 'showQr', validate: none }),
+  'multiplayer.discover': method({ category: 'multiplayer', action: 'discover', rate: MP_ROOM_RATE, validate: none }),
+  'multiplayer.stopDiscovery': method({ category: 'multiplayer', action: 'stopDiscovery', validate: none }),
+  'multiplayer.setDiscoverable': method({ category: 'multiplayer', action: 'setDiscoverable', validate: (a) => (exact(a, 1, 1), [bool(a[0], 'Sichtbar')]) }),
+  'multiplayer.approveJoin': method({ category: 'multiplayer', action: 'approveJoin', validate: (a) => (exact(a, 1, 1), [str(a[0], 'Anfrage', 64)]) }),
+  'multiplayer.denyJoin': method({ category: 'multiplayer', action: 'denyJoin', validate: (a) => (exact(a, 1, 1), [str(a[0], 'Anfrage', 64)]) }),
+  'multiplayer.endRoom': method({ category: 'multiplayer', action: 'endRoom', rate: MP_ROOM_RATE, validate: none }),
+  'multiplayer.resume': method({ category: 'multiplayer', action: 'resume', rate: MP_ROOM_RATE, validate: none }),
 };
 
 export function bridgeMethod(name: string): MethodSpec | null {
@@ -428,6 +438,10 @@ export const BRIDGE_EVENTS: Record<string, Permission | null> = {
   'spotify.error': 'spotify',
   'multiplayer.message': 'multiplayer',
   'multiplayer.players': 'multiplayer',
+  'multiplayer.rooms': 'multiplayer',
+  'multiplayer.joinRequest': 'multiplayer',
+  'multiplayer.resumed': 'multiplayer',
+  'multiplayer.hostAway': 'multiplayer',
 };
 
 export type ParsedMessage =

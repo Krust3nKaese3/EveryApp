@@ -62,6 +62,10 @@ Was dieser Build **nicht** tut und in den Notizen nicht behauptet werden darf:
 
 Der Entwicklermodus ist kein zweiter Katalog und kein Weg, 4.7 für fremde Repositories zu umgehen. Fremde Repositories lassen sich in diesem Build nicht installieren.
 
+## Lokales Netz
+
+EveryApp sucht Spiele in der Nähe und verbindet Mitspieler im selben WLAN oder Hotspot, ohne Internet. Dafür steht unter iOS `NSLocalNetworkUsageDescription` und der Bonjour-Dienst `_everyapp._tcp`. Die Ankündigung nennt Mini-App, Raumcode, Raum-Id, Anzeigename und Spielerzahl. Token und Spielergeheimnis stehen nicht darin. Android nutzt NSD ohne Standort-Berechtigung. `CHANGE_WIFI_MULTICAST_STATE` gilt nur, solange ein Raum angekündigt oder gesucht wird. Ein gehosteter Raum hält auf Android den vorhandenen Vordergrunddienst mit der sichtbaren Zeile „Spielraum“. iOS läuft dafür nicht im Hintergrund. Der Raum geht beim Schließen der App nicht verloren und startet beim nächsten Öffnen mit derselben Raum-Id neu.
+
 ## English section for App Store Connect review notes
 
 EveryApp has two areas in the `EXPO_PUBLIC_CATALOG_ONLY=1` build (the iOS build). This note describes the binary. It is not legal advice and it is not a claim that Apple has approved the app.
@@ -77,5 +81,7 @@ This follows the pattern Expo documents for Expo Go on a physical iPhone: Expo G
 Builds without the catalog-only flag (Android) keep the existing flow: a repository outside the catalog requires an explicit warning and confirmation. Developer mode does not replace that flow.
 
 Please do not read this note as claiming the following, because the app does not do them: universal links for each mini-app (Guideline 4.7.4), an age gate based on verified or declared age (4.7.5; catalog ages are recommendations only), or prior permission from Apple to expose native APIs to mini-apps (4.7.2). Native capabilities are an allowlist and require one-time consent per mini-app. The app does not expose the file system, contacts, or location.
+
+**Local network.** The local-multiplayer feature looks for nearby games and connects players on the same Wi-Fi or hotspot, without the Internet. iOS shows the local-network prompt because of `NSLocalNetworkUsageDescription` and the Bonjour service `_everyapp._tcp`. The advertisement carries the mini-app id, a room code, a room id, a display name, and the player count. It does not carry the join token or a player secret. Android uses NSD and does not request location for that. The multicast lock is held only while a room is advertised or a search is running. A hosted room keeps the existing Android foreground service up, with a visible “Spielraum” notification, while the app is in the background. iOS does not keep the host running in the background. Closing the app does not end the room. Opening it again restarts the same room id.
 
 To review developer mode, sign in with any GitHub account you control. A repository that account does not own will not install. Catalog apps do not need a login.

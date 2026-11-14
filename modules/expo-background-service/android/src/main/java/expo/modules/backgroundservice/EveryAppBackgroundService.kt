@@ -56,6 +56,7 @@ class EveryAppBackgroundService : Service() {
     val reasons = mutableListOf<String>()
     if (snap.interval) reasons += "Intervall"
     if (snap.due > 0) reasons += "BLE"
+    if (snap.hosting) reasons += "Spielraum"
     val launchIntent = packageManager.getLaunchIntentForPackage(applicationContext.packageName)
     val pendingIntent = PendingIntent.getActivity(
       this, 0, launchIntent,

@@ -20,10 +20,20 @@
   <label>Raumcode am PC<br /><input id="code" maxlength="200" placeholder="Leer lassen: Kamera in EveryApp" /></label>
   <div>
     <button id="host" type="button">Raum öffnen</button>
+    <button id="discover" type="button">Spiele in der Nähe</button>
     <button id="join" type="button">Beitreten</button>
     <button id="leave" class="quiet" type="button">Verlassen</button>
   </div>
   <p id="status">Noch kein Raum.</p>
+  <div class="card">
+    <strong>In der Nähe</strong>
+    <ul id="rooms"></ul>
+  </div>
+  <div class="card" id="ask">
+    <p id="asktext"></p>
+    <button id="allow" type="button">Zulassen</button>
+    <button id="deny" type="button">Ablehnen</button>
+  </div>
   <div class="card">
     <strong>Spieler</strong>
     <ul id="players"></ul>

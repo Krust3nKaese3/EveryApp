@@ -43,13 +43,25 @@ import {
   spotifyStop,
 } from '../services/spotifySettings';
 import {
+  approveJoin,
   broadcastMultiplayer,
+  configureMultiplayer,
+  denyJoin,
+  detachMultiplayer,
+  discoverMultiplayer,
+  endRoom,
   hostMultiplayer,
   joinMultiplayer,
   leaveMultiplayer,
+  resumeMultiplayer,
   sendMultiplayer,
+  setDiscoverableMultiplayer,
   showMultiplayerQr,
+  stopDiscoveryMultiplayer,
 } from '../services/multiplayer/session';
+import { nativeDiscoveryPort } from '../services/multiplayer/mdnsPort';
+import { roomStore } from '../services/multiplayer/secureRoomStore';
+import { setHostKeepAlive } from '../services/multiplayer/hostKeepAlive';
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -68,6 +80,11 @@ export class NativeCapabilities {
   private stopSpotify: (() => void) | null = null;
 
   constructor(appId: string) {
+    configureMultiplayer({
+      discovery: nativeDiscoveryPort(),
+      store: roomStore(),
+      keepAlive: setHostKeepAlive,
+    });
     this.appId = appId;
     this.eventEmitter = new EventEmitter();
     this.setupBluetoothListeners();
@@ -97,7 +114,7 @@ export class NativeCapabilities {
     this.stopSpotify = null;
     this.bluetoothConnectedSub?.remove();
     this.bluetoothDisconnectedSub?.remove();
-    void leaveMultiplayer(this.appId);
+    void detachMultiplayer(this.appId);
     this.eventEmitter.removeAllListeners();
   }
 
@@ -429,14 +446,21 @@ export class NativeCapabilities {
   };
 
   multiplayer = {
-    host: (opts?: { maxPlayers?: number; name?: string }) =>
+    host: (opts?: { maxPlayers?: number; name?: string; discoverable?: boolean; joinApproval?: boolean }) =>
       hostMultiplayer(this.appId, (event, data) => this.eventEmitter.emit(event, data), opts),
-    join: (input: string | { scan?: boolean; payload?: string; qrPayload?: string; name?: string }) =>
+    join: (input: string | { scan?: boolean; payload?: string; qrPayload?: string; name?: string; room?: string }) =>
       joinMultiplayer(this.appId, (event, data) => this.eventEmitter.emit(event, data), input),
     send: (data: unknown, opts?: { to?: string }) => sendMultiplayer(this.appId, data, opts),
     broadcast: (data: unknown) => broadcastMultiplayer(this.appId, data),
     leave: () => leaveMultiplayer(this.appId),
     showQr: () => showMultiplayerQr(this.appId),
+    discover: () => discoverMultiplayer(this.appId, (event, data) => this.eventEmitter.emit(event, data)),
+    stopDiscovery: () => stopDiscoveryMultiplayer(),
+    setDiscoverable: (on: boolean) => setDiscoverableMultiplayer(this.appId, on),
+    approveJoin: (id: string) => approveJoin(this.appId, id),
+    denyJoin: (id: string) => denyJoin(this.appId, id),
+    endRoom: () => endRoom(this.appId),
+    resume: () => resumeMultiplayer(this.appId, (event, data) => this.eventEmitter.emit(event, data)),
   };
 
   events = {

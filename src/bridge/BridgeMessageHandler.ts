@@ -2,6 +2,7 @@ import { checkBridgePermission, permissionDecision } from './permissions';
 import { Permission } from '../types';
 import { NativeCapabilities } from './NativeCapabilities';
 import { BRIDGE_EVENTS, RATE_LIMIT_ERROR, bridgeMethod, parseBridgeMessage, takeRate } from './allowlist';
+import { setJoinRequestOwnedByApp } from '../services/multiplayer/session';
 import { scriptJson } from './scriptJson';
 
 export type ConsentAsk = (category: Permission) => Promise<boolean>;
@@ -95,10 +96,12 @@ export class BridgeMessageHandler {
       };
       caps.__forwarded[event] = fn;
       this.capabilities.eventEmitter.on(event, fn);
+      if (event === 'multiplayer.joinRequest') setJoinRequestOwnedByApp(true);
     } else if (action === 'off') {
       const fn = caps.__forwarded[event];
       if (fn) this.capabilities.eventEmitter.off(event, fn);
       delete caps.__forwarded[event];
+      if (event === 'multiplayer.joinRequest') setJoinRequestOwnedByApp(false);
     }
   }
 
@@ -287,6 +290,16 @@ export class BridgeMessageHandler {
             broadcast: (data) => sendMessage('multiplayer.broadcast', [data]),
             leave: () => sendMessage('multiplayer.leave', []),
             showQr: () => sendMessage('multiplayer.showQr', []),
+            discover: (opts) => {
+              if (opts && opts.onRooms) window.EveryAppBridge.events.on('multiplayer.rooms', (payload) => opts.onRooms(payload.rooms || []));
+              return sendMessage('multiplayer.discover', []);
+            },
+            stopDiscovery: () => sendMessage('multiplayer.stopDiscovery', []),
+            setDiscoverable: (on) => sendMessage('multiplayer.setDiscoverable', [on !== false]),
+            approveJoin: (id) => sendMessage('multiplayer.approveJoin', [id]),
+            denyJoin: (id) => sendMessage('multiplayer.denyJoin', [id]),
+            endRoom: () => sendMessage('multiplayer.endRoom', []),
+            resume: () => sendMessage('multiplayer.resume', []),
             onMessage: (callback) => {
               window.EveryAppBridge.events.on('multiplayer.message', callback);
               return () => window.EveryAppBridge.events.off('multiplayer.message', callback);
@@ -294,6 +307,18 @@ export class BridgeMessageHandler {
             onPlayersChanged: (callback) => {
               window.EveryAppBridge.events.on('multiplayer.players', callback);
               return () => window.EveryAppBridge.events.off('multiplayer.players', callback);
+            },
+            onJoinRequest: (callback) => {
+              window.EveryAppBridge.events.on('multiplayer.joinRequest', callback);
+              return () => window.EveryAppBridge.events.off('multiplayer.joinRequest', callback);
+            },
+            onResumed: (callback) => {
+              window.EveryAppBridge.events.on('multiplayer.resumed', callback);
+              return () => window.EveryAppBridge.events.off('multiplayer.resumed', callback);
+            },
+            onHostAway: (callback) => {
+              window.EveryAppBridge.events.on('multiplayer.hostAway', callback);
+              return () => window.EveryAppBridge.events.off('multiplayer.hostAway', callback);
             },
           },
           events: {

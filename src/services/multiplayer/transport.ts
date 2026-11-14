@@ -5,6 +5,7 @@
 import { chooseLanIPv4, isPrivateIPv4, type LanCandidate } from './qr';
 
 export interface MpLink {
+  remoteAddress?: string;
   send(frame: string): void;
   close(): void;
   onData(cb: (chunk: string) => void): void;
@@ -93,6 +94,9 @@ function bindSocket(socket: TcpSocket): MpLink {
     onClose(cb) {
       closeListeners.push(cb);
     },
+    remoteAddress: typeof (socket as unknown as { remoteAddress?: unknown }).remoteAddress === 'string'
+      ? (socket as unknown as { remoteAddress: string }).remoteAddress
+      : '',
   };
 }
 

@@ -6,7 +6,7 @@
 
 - [Guide für KIs](https://raw.githubusercontent.com/Krust3nKaese3/EveryApp/main/docs/MINIAPP_AI_GUIDE.md): Aufbau, Berechtigungen, Bridge, Mehrspieler, Fehler, kopierbarer Auftrag.
 - [Bridge-API](https://raw.githubusercontent.com/Krust3nKaese3/EveryApp/main/docs/BRIDGE_API.md): erlaubte Methoden und Grenzen.
-- [Mehrspieler](https://raw.githubusercontent.com/Krust3nKaese3/EveryApp/main/docs/MULTIPLAYER.md): Host, QR, Events, 32 KiB.
+- [Mehrspieler](https://raw.githubusercontent.com/Krust3nKaese3/EveryApp/main/docs/MULTIPLAYER.md): Host, Suche in der Nähe, QR, Wiederbeitritt, 32 KiB. Die Mini-App speichert den Spielstand selbst.
 - [Mehrspieler-Sicherheit](https://raw.githubusercontent.com/Krust3nKaese3/EveryApp/main/docs/MULTIPLAYER_SECURITY.md): was das WLAN nicht leistet.
 
 ## Vorlage

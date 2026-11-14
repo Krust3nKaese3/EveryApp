@@ -1,14 +1,18 @@
-// Vorlage für eine Mini-App. Nur textContent, keine HTML-Namen.
-// Callbacks stehen vor host() und join(), sonst fehlt die erste Spielerliste.
+// Die Mini-App speichert den Spielstand selbst. EveryApp merkt sich nur den Raum.
 const mp = window.EveryAppBridge.multiplayer;
+const storage = window.EveryAppBridge.storage;
 const statusNode = document.getElementById('status');
 const playersNode = document.getElementById('players');
 const roundNode = document.getElementById('round');
+const roomsNode = document.getElementById('rooms');
+const askText = document.getElementById('asktext');
 
 let selfId = '';
 let isHost = false;
 let state = createLobby();
 let roster = [];
+let pendingAsk = '';
+let seenRooms = [];
 
 function setText(node, value) {
   node.textContent = value == null ? '' : String(value);
@@ -23,6 +27,15 @@ function render() {
     setText(item, player.name + ' · ' + role + ' · ' + online);
     playersNode.appendChild(item);
   });
+  if (roomsNode) {
+    roomsNode.replaceChildren();
+    seenRooms.forEach((room) => {
+      const item = document.createElement('li');
+      setText(item, room.hostName + ' · Raum ' + room.roomCode + ' · ' + room.players + '/' + room.maxPlayers);
+      item.onclick = () => { void joinRoom(room.id); };
+      roomsNode.appendChild(item);
+    });
+  }
   if (state.phase === 'lobby') {
     setText(roundNode, 'Runde noch nicht gestartet.');
     return;
@@ -34,6 +47,7 @@ function render() {
 
 function apply(message) {
   state = applyLobbyMessage(state, message);
+  if (storage && storage.set) void storage.set('lobby-state', state);
   render();
 }
 
@@ -66,13 +80,46 @@ mp.onPlayersChanged((next) => {
   if (isHost && state.phase === 'round' && returned.length) void publishState();
 });
 
+mp.onJoinRequest((request) => {
+  pendingAsk = request.id;
+  setText(askText, request.name + ' möchte in Raum ' + request.roomCode + ' bei ' + request.hostName + '.');
+});
+
+mp.onHostAway((info) => {
+  setText(statusNode, info.message || 'Host ist kurz weg');
+});
+
+mp.onResumed((info) => {
+  void adopt(info);
+});
+
+async function adopt(info) {
+  if (!info || !info.role) return;
+  isHost = info.role === 'host';
+  selfId = info.selfId || selfId;
+  roster = info.players || roster;
+  if (storage && storage.get) {
+    const saved = await storage.get('lobby-state');
+    if (saved && saved.phase) state = saved;
+  }
+  setText(statusNode, info.status === 'hostAway' ? 'Host ist kurz weg' : 'Wieder im Raum ' + info.roomCode + '.');
+  render();
+  if (isHost) await publishState();
+}
+
 function fail(error) {
   setText(statusNode, error && error.message ? error.message : 'Das hat nicht geklappt.');
 }
 
 document.getElementById('host').onclick = async () => {
   try {
-    const room = await mp.host({ maxPlayers: 8, name: document.getElementById('name').value });
+    const room = await mp.host({
+      maxPlayers: 8,
+      name: document.getElementById('name').value,
+      discoverable: true,
+      joinApproval: true,
+    });
+    await mp.setDiscoverable(true);
     await mp.showQr();
     isHost = true;
     selfId = room.playerId;
@@ -82,6 +129,46 @@ document.getElementById('host').onclick = async () => {
   } catch (error) {
     fail(error);
   }
+};
+
+document.getElementById('discover').onclick = async () => {
+  try {
+    await mp.stopDiscovery();
+    await mp.discover({
+      onRooms: (rooms) => {
+        seenRooms = rooms || [];
+        render();
+      },
+    });
+    setText(statusNode, 'Suche Spiele in der Nähe.');
+  } catch (error) {
+    fail(error);
+  }
+};
+
+async function joinRoom(roomId) {
+  const room = await mp.join({ room: roomId, name: document.getElementById('name').value });
+  isHost = false;
+  selfId = room.playerId;
+  roster = room.players || [];
+  setText(statusNode, 'Beigetreten, Raum ' + room.roomCode + '.');
+  render();
+}
+
+document.getElementById('allow').onclick = async () => {
+  if (!pendingAsk) return;
+  const id = pendingAsk;
+  pendingAsk = '';
+  setText(askText, '');
+  await mp.approveJoin(id);
+};
+
+document.getElementById('deny').onclick = async () => {
+  if (!pendingAsk) return;
+  const id = pendingAsk;
+  pendingAsk = '';
+  setText(askText, '');
+  await mp.denyJoin(id);
 };
 
 document.getElementById('join').onclick = async () => {
@@ -143,11 +230,17 @@ document.getElementById('yes').onclick = () => { void vote('ja'); };
 document.getElementById('no').onclick = () => { void vote('nein'); };
 
 document.getElementById('leave').onclick = async () => {
-  await mp.leave();
+  if (isHost) await mp.endRoom();
+  else await mp.leave();
   isHost = false;
   selfId = '';
   roster = [];
   state = createLobby();
+  if (storage && storage.set) void storage.set('lobby-state', state);
   setText(statusNode, 'Raum verlassen.');
   render();
 };
+
+void mp.resume().then((info) => {
+  if (info && info.status && info.status !== 'none') void adopt(info);
+});
