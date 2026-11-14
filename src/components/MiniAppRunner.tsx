@@ -5,6 +5,7 @@ import * as ScreenOrientation from 'expo-screen-orientation';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Clipboard from 'expo-clipboard';
 import { MiniApp, Permission } from '../types';
+import { isPermission } from '../bridge/permissionInfo';
 import { StorageService } from '../services/StorageService';
 import { PermissionRequestModal } from './PermissionRequestModal';
 import { BridgeMessageHandler } from '../bridge/BridgeMessageHandler';
@@ -34,7 +35,13 @@ export const MiniAppRunner: React.FC<MiniAppRunnerProps> = ({ app, onClose }) =>
   const [loading, setLoading] = useState(true);
   const [html, setHtml] = useState<string>('');
   const [showPermissionModal, setShowPermissionModal] = useState(false);
+  const [installPermissions, setInstallPermissions] = useState<Permission[]>([]);
+  const [runtimeConsent, setRuntimeConsent] = useState<Permission[] | null>(null);
   const [grantedPermissions, setGrantedPermissions] = useState<Permission[]>([]);
+  const grantedRef = useRef<Permission[]>([]);
+  const deniedRef = useRef<Permission[]>([]);
+  const consentChain = useRef<Promise<unknown>>(Promise.resolve());
+  const consentResolve = useRef<((ok: boolean) => void) | null>(null);
   const capabilitiesRef = useRef<NativeCapabilities | null>(null);
   const [error, setError] = useState<{ message: string; stack?: string } | null>(null);
 
@@ -79,29 +86,76 @@ export const MiniAppRunner: React.FC<MiniAppRunnerProps> = ({ app, onClose }) =>
     };
   }, []);
 
+  const declaredPermissions = () => (app.manifest.permissions || []).filter(isPermission);
+
   const initApp = async () => {
     const existingPermissions = await StorageService.getAppPermissions(app.id);
-    
-    // Ask again when the manifest declares permissions that were not granted yet (e.g. new 'ble')
-    const missing = app.manifest.permissions.filter((p) => !existingPermissions.includes(p));
-    if (missing.length > 0) {
+    const deniedPermissions = await StorageService.getDeniedPermissions(app.id);
+    grantedRef.current = existingPermissions;
+    deniedRef.current = deniedPermissions;
+    setGrantedPermissions(existingPermissions);
+    const undecided = declaredPermissions().filter((permission) => !existingPermissions.includes(permission) && !deniedPermissions.includes(permission));
+    if (undecided.length > 0) {
+      setInstallPermissions(undecided);
       setShowPermissionModal(true);
     } else {
-      setGrantedPermissions(existingPermissions);
       await loadApp(existingPermissions);
     }
   };
 
   const handleGrantPermissions = async () => {
-    await StorageService.saveGrantedPermissions(app.id, app.manifest.permissions);
-    setGrantedPermissions(app.manifest.permissions);
+    const selected = installPermissions;
+    for (const permission of selected) {
+      await StorageService.setPermissionDecision(app.id, permission, 'granted');
+    }
+    const next = Array.from(new Set([...grantedRef.current, ...selected]));
+    grantedRef.current = next;
+    deniedRef.current = deniedRef.current.filter((permission) => !selected.includes(permission));
+    setGrantedPermissions(next);
     setShowPermissionModal(false);
-    await loadApp(app.manifest.permissions);
+    await loadApp(next);
   };
 
-  const handleDenyPermissions = () => {
+  const handleDenyPermissions = async () => {
+    for (const permission of installPermissions) {
+      await StorageService.setPermissionDecision(app.id, permission, 'denied');
+    }
+    deniedRef.current = Array.from(new Set([...deniedRef.current, ...installPermissions]));
     setShowPermissionModal(false);
-    onClose();
+    await loadApp(grantedRef.current);
+  };
+
+  const askConsent = (category: Permission): Promise<boolean> => {
+    const run = () => {
+      if (grantedRef.current.includes(category)) return Promise.resolve(true);
+      if (deniedRef.current.includes(category)) return Promise.resolve(false);
+      return new Promise<boolean>((resolve) => {
+        consentResolve.current = resolve;
+        setRuntimeConsent([category]);
+      });
+    };
+    const pending = consentChain.current.then(run, run);
+    consentChain.current = pending.then(() => undefined, () => undefined);
+    return pending;
+  };
+
+  const finishConsent = async (ok: boolean) => {
+    const category = runtimeConsent?.[0];
+    const resolve = consentResolve.current;
+    consentResolve.current = null;
+    setRuntimeConsent(null);
+    if (category) {
+      await StorageService.setPermissionDecision(app.id, category, ok ? 'granted' : 'denied');
+      if (ok) {
+        grantedRef.current = Array.from(new Set([...grantedRef.current, category]));
+        deniedRef.current = deniedRef.current.filter((permission) => permission !== category);
+      } else {
+        deniedRef.current = Array.from(new Set([...deniedRef.current, category]));
+        grantedRef.current = grantedRef.current.filter((permission) => permission !== category);
+      }
+      setGrantedPermissions(grantedRef.current);
+    }
+    resolve?.(ok);
   };
 
   const baseDirRef = useRef('');
@@ -130,7 +184,7 @@ export const MiniAppRunner: React.FC<MiniAppRunnerProps> = ({ app, onClose }) =>
         capabilitiesRef.current = new NativeCapabilities(app.id);
       }
       
-      const bridgeHandler = new BridgeMessageHandler(app.id, permissions, capabilitiesRef.current);
+      const bridgeHandler = new BridgeMessageHandler(app.id, grantedRef.current, capabilitiesRef.current);
       const bridgeScript = bridgeHandler.generateBridgeScript();
       const hashLine = hash ? `location.hash=${JSON.stringify(hash)};` : '';
 
@@ -211,7 +265,13 @@ export const MiniAppRunner: React.FC<MiniAppRunnerProps> = ({ app, onClose }) =>
         capabilitiesRef.current = new NativeCapabilities(app.id);
       }
 
-      const bridgeHandler = new BridgeMessageHandler(app.id, grantedPermissions, capabilitiesRef.current, (js) => webViewRef.current?.injectJavaScript(js));
+      const bridgeHandler = new BridgeMessageHandler(
+        app.id,
+        grantedRef.current,
+        capabilitiesRef.current,
+        (js) => webViewRef.current?.injectJavaScript(js),
+        { denied: deniedRef.current, ask: askConsent },
+      );
       const response = await bridgeHandler.handleMessage(message);
       
       if (response) {
@@ -341,9 +401,20 @@ export const MiniAppRunner: React.FC<MiniAppRunnerProps> = ({ app, onClose }) =>
       <PermissionRequestModal
         visible={showPermissionModal}
         appName={app.manifest.name}
-        requestedPermissions={app.manifest.permissions}
+        requestedPermissions={installPermissions}
         onGrant={handleGrantPermissions}
         onDeny={handleDenyPermissions}
+      />
+      <PermissionRequestModal
+        visible={!!runtimeConsent}
+        appName={app.manifest.name}
+        requestedPermissions={runtimeConsent || []}
+        title="Zugriff erlauben?"
+        intro="Die Mini-App möchte diese Funktion jetzt zum ersten Mal nutzen."
+        grantLabel="Einmal erlauben"
+        denyLabel="Nicht erlauben"
+        onGrant={() => { void finishConsent(true); }}
+        onDeny={() => { void finishConsent(false); }}
       />
     </View>
   );

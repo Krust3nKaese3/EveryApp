@@ -1,0 +1,30 @@
+{
+  "version": 1,
+  "notice": "Kuratierte Mini-Apps. ageRating ist eine Empfehlung des Anbieters und keine behördliche Kennzeichnung. Vor dem Store-Release prüfen und bei Bedarf anpassen.",
+  "apps": [
+    {
+      "name": "Werwolf",
+      "repoUrl": "https://github.com/Krust3nKaese3/evryWerwolf",
+      "description": "Die Werwölfe von Düsterwald auf einem Handy, das die Runde weitergibt.",
+      "ageRating": "Empfehlung: ab 12"
+    },
+    {
+      "name": "Song raten",
+      "repoUrl": "https://github.com/Krust3nKaese3/evryGuessTheSong",
+      "description": "Partyspiel auf einem Handy: Songs laufen über die Box, alle raten den Titel.",
+      "ageRating": "Empfehlung: ohne Altersbeschränkung"
+    },
+    {
+      "name": "Würfel Roller",
+      "repoUrl": "https://github.com/Krust3nKaese3/EveryRollDice",
+      "description": "Würfle mit 1-6 Würfeln, mit Schüttel-Funktion und Historie.",
+      "ageRating": "Empfehlung: ohne Altersbeschränkung"
+    },
+    {
+      "name": "EveryMacro",
+      "repoUrl": "https://github.com/Krust3nKaese3/EveryMacro",
+      "description": "Automatisierung mit benutzerdefinierten Makros (JavaScript).",
+      "ageRating": "Empfehlung: ab 16"
+    }
+  ]
+}

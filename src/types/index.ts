@@ -7,7 +7,7 @@ export interface MiniAppManifest {
   permissions: Permission[];
 }
 
-export type Permission = 
+export type Permission =
   | 'storage'
   | 'http'
   | 'bluetooth'
@@ -20,7 +20,12 @@ export type Permission =
   | 'net'
   | 'popup'
   | 'tiles'
-  | 'spotify';
+  | 'spotify'
+  | 'clipboard'
+  | 'network'
+  | 'media'
+  | 'secrets'
+  | 'crypto';
 
 export interface MiniApp {
   id: string;
@@ -29,6 +34,8 @@ export interface MiniApp {
   localPath: string;
   addedAt: number;
   folderId: string | null;
+  /** Commit of `main` that was downloaded. Absent on mini-apps installed before SHA pinning. */
+  commitSha?: string;
 }
 
 export interface Folder {

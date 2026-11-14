@@ -1,3 +1,4 @@
+import { assertStorageKey, assertStorageValue } from './allowlist';
 import { classifyIcon } from '../services/popupTiles';
 import { StorageService } from '../services/StorageService';
 import * as Notifications from 'expo-notifications';
@@ -92,7 +93,7 @@ export class NativeCapabilities {
   }
 
   getStorageKey(key: string): string {
-    return `@miniapp_${this.appId}_${key}`;
+    return `@miniapp_${this.appId}_${assertStorageKey(key)}`;
   }
 
   storage = {
@@ -101,7 +102,7 @@ export class NativeCapabilities {
     },
     
     set: async (key: string, value: string): Promise<void> => {
-      await AsyncStorage.setItem(this.getStorageKey(key), value);
+      await AsyncStorage.setItem(this.getStorageKey(key), assertStorageValue(value));
     },
     
     remove: async (key: string): Promise<void> => {
@@ -308,26 +309,9 @@ export class NativeCapabilities {
     isAvailable: async (): Promise<boolean> => NetworkInfo.isAvailable(),
     getInfo: async (): Promise<any> => {
       if (!NetworkInfo.isAvailable()) throw new Error('Netzwerk-Info nicht verfügbar (braucht nächsten Build)');
-      if (Platform.OS === 'android') {
-        try { await PermissionsAndroid.request(PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION); } catch {}
-      }
       return await NetworkInfo.getInfoAsync();
     },
     getWifi: async (): Promise<any> => wifiInfo(),
-    // Two-step location prompt: fine first; background ('Immer erlauben') only via settings on Android 11+.
-    requestLocation: async (background?: boolean): Promise<any> => {
-      if (Platform.OS !== 'android') return { fine: true, background: true };
-      const P = PermissionsAndroid.PERMISSIONS as any;
-      const fine = (await PermissionsAndroid.request(P.ACCESS_FINE_LOCATION, {
-        title: 'Standort für WLAN', message: 'Android gibt WLAN-Name und Access-Point (BSSID) nur mit genauer Standort-Berechtigung heraus. EveryApp nutzt den Standort nicht.', buttonPositive: 'Weiter' })) === 'granted';
-      let bg = P.ACCESS_BACKGROUND_LOCATION ? await PermissionsAndroid.check(P.ACCESS_BACKGROUND_LOCATION) : true;
-      if (fine && background && !bg && P.ACCESS_BACKGROUND_LOCATION) {
-        const r = await PermissionsAndroid.request(P.ACCESS_BACKGROUND_LOCATION, {
-          title: 'Standort im Hintergrund', message: 'Für den Trigger wifiChanged bei geschlossener App: in den Einstellungen „Immer zulassen“ wählen.', buttonPositive: 'Zu den Einstellungen' });
-        bg = r === 'granted';
-      }
-      return { fine, background: bg };
-    },
   };
 
   // BLE GATT (pending native module, next build). Guarded: throws 'braucht nächsten Build'.

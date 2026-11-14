@@ -34,21 +34,26 @@ test('bleNotify address + short char uuid', () => {
   assert.ok(!matches({ type: 'bleNotify', address: 'cc:dd' }, ev));
 });
 test('bridge permissions', () => {
-  assert.doesNotThrow(() => checkBridgePermission('clipboard', []));
+  assert.throws(() => checkBridgePermission('clipboard', []), /Permission denied: clipboard/);
   assert.doesNotThrow(() => checkBridgePermission('ble', ['ble']));
   assert.throws(() => checkBridgePermission('ble', ['bluetooth']), /BLE nicht erlaubt/);
   assert.throws(() => checkBridgePermission('http', []), /Permission denied: http/);
+  const { permissionDecision } = require('../src/bridge/permissions.ts');
+  assert.strictEqual(permissionDecision('spotify', [], []), 'ask');
+  assert.strictEqual(permissionDecision('spotify', ['spotify'], []), 'allow');
+  assert.strictEqual(permissionDecision('storage', [], ['storage']), 'deny');
 });
 test('secret masking', () => {
   const { maskWith } = require('../src/services/secretMask.ts');
   assert.strictEqual(maskWith(['abc123', 'abc'], 'x abc123 y abc z'), 'x ••• y ••• z');
   assert.strictEqual(maskWith(['', 'ab'], 'ab'), 'ab');
-  assert.ok(require('../src/bridge/permissions.ts').FREE_CATEGORIES.includes('secrets'));
+  assert.ok(!require('../src/bridge/permissions.ts').FREE_CATEGORIES.includes('secrets'));
 });
-test('net permission + crypto free', () => {
+test('net permission + crypto requires consent', () => {
   assert.throws(() => checkBridgePermission('net', ['ble']), /Raw-Netzwerk nicht erlaubt/);
   assert.doesNotThrow(() => checkBridgePermission('net', ['net']));
-  assert.doesNotThrow(() => checkBridgePermission('crypto', []));
+  assert.throws(() => checkBridgePermission('crypto', []), /Permission denied: crypto/);
+  assert.doesNotThrow(() => checkBridgePermission('crypto', ['crypto']));
 });
 test('popup/tiles permissions', () => {
   assert.throws(() => checkBridgePermission('popup', []), /"popup"/);

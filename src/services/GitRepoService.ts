@@ -1,12 +1,12 @@
 import * as FileSystem from 'expo-file-system/legacy';
 import { MiniAppManifest, MiniApp } from '../types';
 import {
-  githubRawUrl,
   listMiniAppFiles,
   MINIAPP_LIMITS,
   normalizeEntrypoint,
   parseGitHubRepo,
 } from './miniAppFiles';
+import { GITHUB_API_HEADERS, commitApiUrl, githubRawUrlAtRef, parseCommitSha, treeApiUrl } from './githubPin';
 
 const APPS_DIR = `${FileSystem.documentDirectory}miniapps/`;
 
@@ -20,7 +20,8 @@ export class GitRepoService {
   static async fetchRepo(repoUrl: string): Promise<MiniApp> {
     const { owner, repo } = parseGitHubRepo(repoUrl);
     const appId = this.generateAppId(repoUrl);
-    const tree = await this.fetchTree(owner, repo);
+    const commitSha = await this.fetchCommitSha(owner, repo);
+    const tree = await this.fetchTree(owner, repo, commitSha);
     if (tree.truncated) {
       throw new Error('Repository tree is too large to install. Keep the mini-app in a smaller repository.');
     }
@@ -33,12 +34,17 @@ export class GitRepoService {
     await FileSystem.makeDirectoryAsync(staging, { intermediates: true });
 
     try {
-      const cacheBust = Date.now();
       await mapPool(files, 4, async (file) => {
         const dest = `${staging}${file.rel}`;
         const parent = dest.slice(0, dest.lastIndexOf('/'));
         await FileSystem.makeDirectoryAsync(parent, { intermediates: true });
-        const result = await FileSystem.downloadAsync(githubRawUrl(owner, repo, file.path, cacheBust), dest);
+        await FileSystem.deleteAsync(dest, { idempotent: true });
+        // SHA URL: raw.githubusercontent.com caches /main/ and ignores ?t= cache busters.
+        const result = await FileSystem.downloadAsync(
+          githubRawUrlAtRef(owner, repo, commitSha, file.path),
+          dest,
+          { headers: { 'Cache-Control': 'no-cache', Pragma: 'no-cache' } },
+        );
         if (result.status < 200 || result.status >= 300) {
           throw new Error(`Failed to download ${file.rel} (${result.status})`);
         }
@@ -95,6 +101,7 @@ export class GitRepoService {
         localPath: finalPath,
         addedAt: Date.now(),
         folderId: null,
+        commitSha,
       };
     } catch (error) {
       await FileSystem.deleteAsync(staging, { idempotent: true });
@@ -102,24 +109,43 @@ export class GitRepoService {
     }
   }
 
-  private static async fetchTree(owner: string, repo: string): Promise<GitTreeResponse> {
-    const url = `https://api.github.com/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/git/trees/main?recursive=1`;
-    const response = await fetch(url, {
-      headers: {
-        Accept: 'application/vnd.github+json',
-        'User-Agent': 'EveryApp',
-      },
-    });
-    if (response.status === 403 || response.status === 429) {
-      throw new Error('GitHub API rate limit reached. Try again later.');
-    }
+  /** Latest commit on `main`. Used by install, update, and the update check. */
+  static async latestCommit(repoUrl: string): Promise<string> {
+    const { owner, repo } = parseGitHubRepo(repoUrl);
+    return this.fetchCommitSha(owner, repo);
+  }
+
+  private static async fetchCommitSha(owner: string, repo: string): Promise<string> {
+    const response = await this.githubGet(commitApiUrl(owner, repo));
     if (response.status === 404) {
-      throw new Error('Repository or main branch not found. Public GitHub repositories on branch main only.');
+      throw new Error('Repository oder Branch main nicht gefunden. Nur öffentliche GitHub-Repositories mit Branch main.');
     }
-    if (!response.ok) {
-      throw new Error(`Failed to read repository tree (${response.status})`);
+    return parseCommitSha(await response.json());
+  }
+
+  private static async fetchTree(owner: string, repo: string, sha: string): Promise<GitTreeResponse> {
+    const response = await this.githubGet(treeApiUrl(owner, repo, sha));
+    if (response.status === 404) {
+      throw new Error('Repository oder Branch main nicht gefunden. Nur öffentliche GitHub-Repositories mit Branch main.');
     }
     return response.json();
+  }
+
+  private static async githubGet(url: string): Promise<Response> {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 20_000);
+    try {
+      const response = await fetch(url, { headers: GITHUB_API_HEADERS, signal: ctrl.signal });
+      if (response.status === 403 || response.status === 429) {
+        throw new Error('GitHub-API-Limit erreicht. Bitte später erneut versuchen.');
+      }
+      if (!response.ok && response.status !== 404) {
+        throw new Error(`GitHub-Anfrage fehlgeschlagen (${response.status}).`);
+      }
+      return response;
+    } finally {
+      clearTimeout(timer);
+    }
   }
 
   private static generateAppId(repoUrl: string): string {
@@ -134,7 +160,15 @@ export class GitRepoService {
   }
 
   static async deleteApp(app: MiniApp): Promise<void> {
-    await FileSystem.deleteAsync(app.localPath, { idempotent: true });
+    await this.deleteStoredApp(app.id);
+    if (app.localPath) await FileSystem.deleteAsync(app.localPath, { idempotent: true });
+  }
+
+  /** Installed copy plus the staging and backup directories used during download. */
+  static async deleteStoredApp(appId: string): Promise<void> {
+    await FileSystem.deleteAsync(`${APPS_DIR}${appId}/`, { idempotent: true });
+    await FileSystem.deleteAsync(`${APPS_DIR}${appId}.staging/`, { idempotent: true });
+    await FileSystem.deleteAsync(`${APPS_DIR}${appId}.backup/`, { idempotent: true });
   }
 }
 

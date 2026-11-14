@@ -19,11 +19,41 @@ import * as Clipboard from 'expo-clipboard';
 import { Linking } from 'react-native';
 import { classifyDeepLink, githubRepoKey, isGitHubRepoUrl, matchesMiniApp, queueDeepLink, repoUrlFromQr } from '../services/deepLinks';
 import { SpotifySettingsModal } from '../components/SpotifySettingsModal';
+import { AppInfoModal } from '../components/AppInfoModal';
+import { LegalModal } from '../components/LegalModal';
 import { CameraView, useCameraPermissions } from 'expo-camera';
+import { bundledBlocklistFile, bundledCatalogFile, loadPolicyLists } from '../services/remoteLists';
+import {
+  REPORT_EMAIL,
+  blockReasonFor,
+  decideAdd,
+  isCatalogOnlyBuild,
+  reportMailto,
+  mergeUpdatedApp,
+  type BlocklistFile,
+  type CatalogFile,
+} from '../services/storePolicy';
+import { updateStatus, versionLine } from '../services/githubPin';
+
+function confirmForeign(message: string): Promise<boolean> {
+  return new Promise((resolve) => {
+    Alert.alert('Unbekannte Quelle', message, [
+      { text: 'Abbrechen', style: 'cancel', onPress: () => resolve(false) },
+      { text: 'Trotzdem hinzufügen', style: 'destructive', onPress: () => resolve(true) },
+    ]);
+  });
+}
 
 export const HomeScreen: React.FC = () => {
   const [apps, setApps] = useState<MiniApp[]>([]);
   const [folders, setFolders] = useState<Folder[]>([]);
+  const [catalog, setCatalog] = useState<CatalogFile>(() => bundledCatalogFile());
+  const [blocklist, setBlocklist] = useState<BlocklistFile>(() => bundledBlocklistFile());
+  const [latestSha, setLatestSha] = useState<Record<string, string>>({});
+  const [infoApp, setInfoApp] = useState<MiniApp | null>(null);
+  const [legalDoc, setLegalDoc] = useState<'privacy' | 'terms' | null>(null);
+  const catalogOnly = isCatalogOnlyBuild();
+  const dismissedUpdates = useRef<Set<string>>(new Set());
   const [repoUrl, setRepoUrl] = useState('');
   const [loading, setLoading] = useState(false);
   const [selectedApp, setSelectedApp] = useState<MiniApp | null>(null);
@@ -45,12 +75,21 @@ export const HomeScreen: React.FC = () => {
   const performAdd = async (raw: string, source: 'field' | 'link') => {
     const trimmed = raw.trim();
     if (!trimmed) {
-      Alert.alert('Error', 'Please enter a repository URL');
+      Alert.alert('Fehler', 'Bitte eine Repository-URL eingeben.');
       return;
     }
     if (source === 'link' && !isGitHubRepoUrl(trimmed)) {
       Alert.alert('Add-Link', 'Der Add-Link enthält keine gültige GitHub-URL (https://github.com/besitzer/repo).');
       return;
+    }
+    const decision = decideAdd(trimmed, { catalog, blocklist, catalogOnly });
+    if (decision.type === 'reject' || decision.type === 'blocked') {
+      Alert.alert(decision.title, decision.message);
+      return;
+    }
+    if (decision.type === 'confirm-foreign') {
+      const accepted = await confirmForeign(decision.message);
+      if (!accepted) return;
     }
     setLoading(true);
     try {
@@ -60,24 +99,36 @@ export const HomeScreen: React.FC = () => {
         if (existing) {
           Alert.alert('Bereits installiert', `${existing.manifest.name} ist schon installiert.`, [
             { text: 'OK', style: 'cancel' },
-            { text: 'Öffnen', onPress: () => setSelectedApp(existing) },
+            { text: 'Öffnen', onPress: () => { void openAppRef.current(existing); } },
           ]);
           return;
         }
       }
+      const blockedNow = blockReasonFor('', trimmed, blocklist);
+      if (blockedNow) {
+        Alert.alert('Mini-App gesperrt', blockedNow);
+        return;
+      }
       const app = await GitRepoService.fetchRepo(trimmed);
+      const blockedId = blockReasonFor(app.id, app.repoUrl, blocklist);
+      if (blockedId) {
+        await GitRepoService.deleteApp(app);
+        Alert.alert('Mini-App gesperrt', blockedId);
+        return;
+      }
       await StorageService.saveApp(app);
       await loadData();
       if (source === 'field') setRepoUrl('');
-      Alert.alert('Success', `Added ${app.manifest.name}`);
+      Alert.alert('Hinzugefügt', `${app.manifest.name} wurde hinzugefügt.`);
     } catch (error: any) {
-      Alert.alert('Error', error.message);
+      Alert.alert('Fehler', error.message);
     } finally {
       setLoading(false);
     }
   };
   const performAddRef = useRef(performAdd);
   performAddRef.current = performAdd;
+  const openAppRef = useRef<(app: MiniApp) => Promise<void>>(async () => {});
 
   // everyapp://add?url=… (and exp+everyapp://add?url=…) installs a repo.
   // Other everyapp://<miniapp>/… links open that mini-app. Handled before the mini-app flow.
@@ -101,7 +152,7 @@ export const HomeScreen: React.FC = () => {
         const target = all.find((a) => matchesMiniApp(link, a));
         if (!target) { Alert.alert('Deep-Link', `Mini-App "${link.miniapp}" ist nicht installiert.\n\n${url}`); return; }
         queueDeepLink(target.id, link);
-        setSelectedApp((cur) => (cur && cur.id === target.id ? cur : target));
+        await openAppRef.current(target);
       });
     };
     Linking.getInitialURL().then(handle).catch(() => {});
@@ -111,6 +162,10 @@ export const HomeScreen: React.FC = () => {
 
   useEffect(() => {
     loadData();
+    loadPolicyLists().then((lists) => {
+      setCatalog(lists.catalog);
+      setBlocklist(lists.blocklist);
+    }).catch(() => {});
   }, []);
 
   const loadData = async () => {
@@ -118,6 +173,19 @@ export const HomeScreen: React.FC = () => {
     const loadedFolders = await StorageService.getFolders();
     setApps(loadedApps);
     setFolders(loadedFolders);
+    void checkUpdates(loadedApps);
+  };
+
+  const checkUpdates = async (installed: MiniApp[]) => {
+    const found: Record<string, string> = {};
+    for (const app of installed) {
+      try {
+        found[app.id] = await GitRepoService.latestCommit(app.repoUrl);
+      } catch {
+        // Offline or GitHub rate limit: the installed copy stays usable.
+      }
+    }
+    if (Object.keys(found).length > 0) setLatestSha((current) => ({ ...current, ...found }));
   };
 
   const handleAddRepo = () => {
@@ -159,7 +227,7 @@ export const HomeScreen: React.FC = () => {
 
   const handleCreateFolder = async () => {
     if (!newFolderName.trim()) {
-      Alert.alert('Error', 'Please enter a folder name');
+      Alert.alert('Fehler', 'Bitte einen Ordnernamen eingeben.');
       return;
     }
 
@@ -177,12 +245,12 @@ export const HomeScreen: React.FC = () => {
 
   const handleDeleteFolder = async (folderId: string) => {
     Alert.alert(
-      'Delete Folder',
-      'Apps in this folder will be moved to root. Continue?',
+      'Ordner löschen',
+      'Apps in diesem Ordner wandern in die Übersicht. Fortfahren?',
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: 'Abbrechen', style: 'cancel' },
         {
-          text: 'Delete',
+          text: 'Löschen',
           style: 'destructive',
           onPress: async () => {
             await StorageService.deleteFolder(folderId);
@@ -194,10 +262,10 @@ export const HomeScreen: React.FC = () => {
   };
 
   const handleMoveApp = (app: MiniApp, folderId: string | null) => {
-    Alert.alert('Move App', `Move ${app.manifest.name}?`, [
-      { text: 'Cancel', style: 'cancel' },
+    Alert.alert('App verschieben', `${app.manifest.name} verschieben?`, [
+      { text: 'Abbrechen', style: 'cancel' },
       {
-        text: 'Move',
+        text: 'Verschieben',
         onPress: async () => {
           await StorageService.updateAppFolder(app.id, folderId);
           await loadData();
@@ -207,14 +275,15 @@ export const HomeScreen: React.FC = () => {
   };
 
   const handleDeleteApp = (app: MiniApp) => {
-    Alert.alert('Delete App', `Delete ${app.manifest.name}?`, [
-      { text: 'Cancel', style: 'cancel' },
+    Alert.alert('App löschen', `${app.manifest.name} und alle ihre gespeicherten Daten löschen?`, [
+      { text: 'Abbrechen', style: 'cancel' },
       {
-        text: 'Delete',
+        text: 'Löschen',
         style: 'destructive',
         onPress: async () => {
           await GitRepoService.deleteApp(app);
           await StorageService.deleteApp(app.id);
+          setInfoApp((current) => current?.id === app.id ? null : current);
           await loadData();
         },
       },
@@ -228,13 +297,68 @@ export const HomeScreen: React.FC = () => {
     setRefreshingId(app.id);
     try {
       const fresh = await GitRepoService.fetchRepo(app.repoUrl);
-      await StorageService.saveApp({ ...fresh, addedAt: app.addedAt, folderId: app.folderId });
+      const merged = mergeUpdatedApp(app, fresh);
+      await StorageService.saveApp(merged);
+      if (merged.commitSha) setLatestSha((current) => ({ ...current, [app.id]: merged.commitSha as string }));
       await loadData();
+      return merged;
     } catch (error: any) {
-      Alert.alert('Update failed', error.message);
+      Alert.alert('Aktualisierung fehlgeschlagen', error.message);
+      return null;
     } finally {
       setRefreshingId(null);
     }
+  };
+
+  const openApp = async (app: MiniApp) => {
+    const reason = blockReasonFor(app.id, app.repoUrl, blocklist);
+    if (reason) {
+      Alert.alert('Mini-App gesperrt', reason);
+      return;
+    }
+    let latest: string | undefined = latestSha[app.id];
+    if (!latest) {
+      try {
+        latest = await GitRepoService.latestCommit(app.repoUrl);
+        const resolved = latest;
+        setLatestSha((current) => ({ ...current, [app.id]: resolved }));
+      } catch {
+        latest = undefined;
+      }
+    }
+    if (latest && updateStatus(app.commitSha, latest) === 'available' && !dismissedUpdates.current.has(app.id)) {
+      const installed = app;
+      const newest = latest;
+      Alert.alert(
+        'Update verfügbar',
+        `${versionLine(installed.manifest.version, installed.commitSha, newest)}\n\nDer Speicher dieser Mini-App bleibt beim Aktualisieren erhalten.`,
+        [
+          { text: 'Später', onPress: () => { dismissedUpdates.current.add(installed.id); setSelectedApp(installed); } },
+          { text: 'Aktualisieren', onPress: () => { void refreshAndOpen(installed); } },
+        ],
+      );
+      return;
+    }
+    setSelectedApp(app);
+  };
+  openAppRef.current = openApp;
+
+  const refreshAndOpen = async (app: MiniApp) => {
+    const merged = await handleRefreshApp(app);
+    if (merged) setSelectedApp(merged);
+  };
+
+  const reportApp = (app: MiniApp) => {
+    const url = reportMailto({
+      name: app.manifest.name,
+      repoUrl: app.repoUrl,
+      id: app.id,
+      version: app.manifest.version,
+      commitSha: app.commitSha,
+    });
+    Linking.openURL(url).catch(() => {
+      Alert.alert('Melden', `Die Mail-App konnte nicht geöffnet werden. Schreibe an ${REPORT_EMAIL}.`);
+    });
   };
 
   const toggleFolder = (folderId: string) => {
@@ -247,28 +371,38 @@ export const HomeScreen: React.FC = () => {
     setExpandedFolders(newExpanded);
   };
 
-  const renderApp = (app: MiniApp) => (
-    <TouchableOpacity
-      key={app.id}
-      style={styles.appItem}
-      onPress={() => setSelectedApp(app)}
-      onLongPress={() => setActionApp(app)}
-    >
-      <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-        <View style={{ flex: 1 }}>
-          <Text style={styles.appName}>{app.manifest.name}</Text>
-          <Text style={styles.appDesc}>{app.manifest.description}</Text>
+  const renderApp = (app: MiniApp) => {
+    const blocked = blockReasonFor(app.id, app.repoUrl, blocklist);
+    const latest = latestSha[app.id];
+    const status = updateStatus(app.commitSha, latest);
+    return (
+      <TouchableOpacity
+        key={app.id}
+        style={[styles.appItem, blocked ? styles.appBlocked : null]}
+        onPress={() => { void openApp(app); }}
+        onLongPress={() => setActionApp(app)}
+      >
+        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.appName}>{app.manifest.name}</Text>
+            <Text style={styles.appDesc}>{blocked ? `Gesperrt: ${blocked}` : app.manifest.description}</Text>
+            <Text style={styles.appVersion}>{versionLine(app.manifest.version, app.commitSha, latest)}</Text>
+            {status === 'available' && !blocked ? <Text style={styles.updateHint}>Update verfügbar</Text> : null}
+          </View>
+          {!blocked ? (
+            <TouchableOpacity
+              onPress={() => { void handleRefreshApp(app); }}
+              disabled={refreshingId === app.id}
+              style={{ padding: 10 }}
+              accessibilityLabel="Aktualisieren"
+            >
+              <Text style={{ fontSize: 22, opacity: refreshingId === app.id ? 0.3 : 1 }}>⟳</Text>
+            </TouchableOpacity>
+          ) : null}
         </View>
-        <TouchableOpacity
-          onPress={() => handleRefreshApp(app)}
-          disabled={refreshingId === app.id}
-          style={{ padding: 10 }}
-        >
-          <Text style={{ fontSize: 22, opacity: refreshingId === app.id ? 0.3 : 1 }}>⟳</Text>
-        </TouchableOpacity>
-      </View>
-    </TouchableOpacity>
-  );
+      </TouchableOpacity>
+    );
+  };
 
   const rootApps = apps.filter((a) => !a.folderId);
   
@@ -280,39 +414,56 @@ export const HomeScreen: React.FC = () => {
         <>
           <View style={styles.header}>
             <Text style={styles.title}>EveryApp</Text>
+            <View>
+              <TouchableOpacity onPress={() => setLegalDoc('privacy')}>
+                <Text style={styles.headerLink}>Datenschutz</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={() => setLegalDoc('terms')}>
+                <Text style={styles.headerLink}>Nutzung</Text>
+              </TouchableOpacity>
+            </View>
           </View>
 
-          <View style={styles.inputContainer}>
-            <TextInput
-              style={styles.input}
-              placeholder="GitHub repo URL (e.g., https://github.com/user/repo)"
-              value={repoUrl}
-              onChangeText={setRepoUrl}
-              autoCapitalize="none"
-            />
-            <TouchableOpacity
-              style={[styles.addButton, loading && styles.buttonDisabled]}
-              onPress={handleAddRepo}
-              disabled={loading}
-            >
-              <Text style={styles.buttonText}>{loading ? 'Adding...' : 'Add'}</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.qrButton, loading && styles.buttonDisabled]}
-              onPress={openScanner}
-              disabled={loading}
-              accessibilityLabel="QR-Code scannen"
-            >
-              <Text style={styles.buttonText}>QR</Text>
-            </TouchableOpacity>
-          </View>
+          {catalogOnly ? (
+            <View style={styles.catalogOnlyNote}>
+              <Text style={styles.catalogOnlyText}>
+                In dieser Version kannst du nur Mini-Apps aus dem Katalog installieren.
+              </Text>
+            </View>
+          ) : (
+            <View style={styles.inputContainer}>
+              <TextInput
+                style={styles.input}
+                placeholder="GitHub-Adresse, z. B. https://github.com/name/repo"
+                value={repoUrl}
+                onChangeText={setRepoUrl}
+                autoCapitalize="none"
+                autoCorrect={false}
+              />
+              <TouchableOpacity
+                style={[styles.addButton, loading && styles.buttonDisabled]}
+                onPress={handleAddRepo}
+                disabled={loading}
+              >
+                <Text style={styles.buttonText}>{loading ? 'Lädt…' : 'Hinzufügen'}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.qrButton, loading && styles.buttonDisabled]}
+                onPress={openScanner}
+                disabled={loading}
+                accessibilityLabel="QR-Code scannen"
+              >
+                <Text style={styles.buttonText}>QR</Text>
+              </TouchableOpacity>
+            </View>
+          )}
 
           <View style={styles.toolbarContainer}>
             <TouchableOpacity
               style={styles.toolbarButton}
               onPress={() => setShowFolderModal(true)}
             >
-              <Text style={styles.toolbarButtonText}>+ New Folder</Text>
+              <Text style={styles.toolbarButtonText}>+ Neuer Ordner</Text>
             </TouchableOpacity>
             <TouchableOpacity style={[styles.toolbarButton, { marginLeft: 8 }]} onPress={openDebugLog}>
               <Text style={styles.toolbarButtonText}>Debug-Log</Text>
@@ -327,11 +478,39 @@ export const HomeScreen: React.FC = () => {
             keyExtractor={(item: any) =>
               item.type === 'root' ? 'root' : item.folder.id
             }
+            ListHeaderComponent={
+              <View>
+                <Text style={styles.sectionTitle}>Empfohlen</Text>
+                {catalog.apps.map((entry) => {
+                  const installed = apps.find((app) => githubRepoKey(app.repoUrl) === githubRepoKey(entry.repoUrl));
+                  const blocked = blockReasonFor(installed?.id || '', entry.repoUrl, blocklist);
+                  return (
+                    <View key={entry.repoUrl} style={styles.appItem}>
+                      <Text style={styles.appName}>{entry.name}</Text>
+                      <Text style={styles.appDesc}>{entry.description}</Text>
+                      <Text style={styles.appVersion}>Altersangabe: {entry.ageRating}</Text>
+                      {blocked ? <Text style={styles.updateHint}>Gesperrt: {blocked}</Text> : (
+                        <TouchableOpacity
+                          style={styles.catalogButton}
+                          disabled={loading}
+                          onPress={() => {
+                            if (installed) void openApp(installed);
+                            else enqueue(() => performAdd(entry.repoUrl, 'link'));
+                          }}
+                        >
+                          <Text style={styles.catalogButtonText}>{installed ? 'Öffnen' : 'Installieren'}</Text>
+                        </TouchableOpacity>
+                      )}
+                    </View>
+                  );
+                })}
+              </View>
+            }
             renderItem={({ item }: any) => {
               if (item.type === 'root') {
                 return (
                   <View>
-                    <Text style={styles.sectionTitle}>My Apps</Text>
+                    <Text style={styles.sectionTitle}>Meine Apps</Text>
                     {rootApps.map(renderApp)}
                   </View>
                 );
@@ -415,10 +594,10 @@ export const HomeScreen: React.FC = () => {
           <Modal visible={showFolderModal} transparent animationType="slide">
             <View style={styles.modalOverlay}>
               <View style={styles.modalContainer}>
-                <Text style={styles.modalTitle}>New Folder</Text>
+                <Text style={styles.modalTitle}>Neuer Ordner</Text>
                 <TextInput
                   style={styles.modalInput}
-                  placeholder="Folder name"
+                  placeholder="Ordnername"
                   value={newFolderName}
                   onChangeText={setNewFolderName}
                 />
@@ -430,13 +609,13 @@ export const HomeScreen: React.FC = () => {
                       setNewFolderName('');
                     }}
                   >
-                    <Text style={styles.modalButtonText}>Cancel</Text>
+                    <Text style={styles.modalButtonText}>Abbrechen</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
                     style={styles.modalButtonCreate}
                     onPress={handleCreateFolder}
                   >
-                    <Text style={styles.modalButtonText}>Create</Text>
+                    <Text style={[styles.modalButtonText, { color: 'white' }]}>Anlegen</Text>
                   </TouchableOpacity>
                 </View>
               </View>
@@ -445,17 +624,31 @@ export const HomeScreen: React.FC = () => {
         </>
       )}
 
+      <AppInfoModal
+        app={infoApp}
+        latestSha={infoApp ? latestSha[infoApp.id] : undefined}
+        blocked={infoApp ? blockReasonFor(infoApp.id, infoApp.repoUrl, blocklist) : null}
+        refreshing={!!infoApp && refreshingId === infoApp.id}
+        onClose={() => setInfoApp(null)}
+        onUpdate={(app) => { void handleRefreshApp(app); }}
+        onReport={reportApp}
+        onDelete={handleDeleteApp}
+      />
+      <LegalModal document={legalDoc} onClose={() => setLegalDoc(null)} />
+
       <Modal visible={!!actionApp} transparent animationType="fade" onRequestClose={() => setActionApp(null)}>
         <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setActionApp(null)}>
           <View style={{ backgroundColor: 'white', borderRadius: 12, padding: 16, width: '85%' }}>
             <Text style={{ fontSize: 18, fontWeight: '700', marginBottom: 8 }}>{actionApp?.manifest.name}</Text>
             <Text selectable style={{ fontSize: 13, color: '#333', backgroundColor: '#f2f2f2', padding: 8, borderRadius: 6, marginBottom: 8 }}>{actionApp?.repoUrl}</Text>
             {[
-              { label: 'Copy GitHub Link', fn: async (a: MiniApp) => { await Clipboard.setStringAsync(a.repoUrl); } },
-              { label: 'Move to Root', fn: (a: MiniApp) => handleMoveApp(a, null) },
-              ...folders.map((f) => ({ label: `Move to ${f.name}`, fn: (a: MiniApp) => handleMoveApp(a, f.id) })),
-              { label: 'Delete', fn: (a: MiniApp) => handleDeleteApp(a), danger: true },
-              { label: 'Cancel', fn: () => {} },
+              { label: 'Info und Berechtigungen', fn: (a: MiniApp) => setInfoApp(a) },
+              { label: 'Melden', fn: (a: MiniApp) => reportApp(a) },
+              { label: 'GitHub-Link kopieren', fn: async (a: MiniApp) => { await Clipboard.setStringAsync(a.repoUrl); } },
+              { label: 'In die Übersicht', fn: (a: MiniApp) => handleMoveApp(a, null) },
+              ...folders.map((f) => ({ label: `Verschieben nach ${f.name}`, fn: (a: MiniApp) => handleMoveApp(a, f.id) })),
+              { label: 'Löschen', fn: (a: MiniApp) => handleDeleteApp(a), danger: true },
+              { label: 'Abbrechen', fn: () => {} },
             ].map((b: any) => (
               <TouchableOpacity
                 key={b.label}
@@ -481,11 +674,27 @@ const styles = StyleSheet.create({
     backgroundColor: '#2196F3',
     padding: 20,
     paddingTop: 50,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
   },
   title: {
     fontSize: 28,
     fontWeight: 'bold',
     color: 'white',
+  },
+  headerLink: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  catalogOnlyNote: {
+    backgroundColor: 'white',
+    padding: 16,
+  },
+  catalogOnlyText: {
+    color: '#333',
+    fontSize: 14,
   },
   inputContainer: {
     flexDirection: 'row',
@@ -611,6 +820,32 @@ const styles = StyleSheet.create({
   appDesc: {
     fontSize: 14,
     color: '#666',
+  },
+  appVersion: {
+    fontSize: 12,
+    color: '#1565C0',
+    marginTop: 4,
+  },
+  updateHint: {
+    fontSize: 12,
+    color: '#e65100',
+    fontWeight: '700',
+    marginTop: 4,
+  },
+  appBlocked: {
+    opacity: 0.55,
+  },
+  catalogButton: {
+    alignSelf: 'flex-start',
+    marginTop: 8,
+    backgroundColor: '#2196F3',
+    borderRadius: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+  },
+  catalogButtonText: {
+    color: 'white',
+    fontWeight: '700',
   },
   modalOverlay: {
     flex: 1,
