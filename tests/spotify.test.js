@@ -9,6 +9,10 @@ const {
   DEVELOPMENT_ANDROID_PACKAGE,
   PRODUCTION_ANDROID_PACKAGE,
   DEVELOPMENT_DEBUG_SHA1,
+  PRODUCTION_PLAY_SIGNING_SHA1,
+  PRODUCTION_PLAY_CLASSIC_SHA1,
+  PRODUCTION_UPLOAD_SHA1,
+  PRODUCTION_ANDROID_SHA1S,
   normalizeSpotifyClientId,
   normalizeSpotifySearch,
   resolveSpotifyClientId,
@@ -61,24 +65,35 @@ test('dashboard package and sha-1 follow the running variant', () => {
   assert.strictEqual(DEVELOPMENT_ANDROID_PACKAGE, 'com.openscr.app.dev');
   assert.strictEqual(PRODUCTION_ANDROID_PACKAGE, 'com.openscr.app');
   assert.strictEqual(DEVELOPMENT_DEBUG_SHA1, '5E:8F:16:06:2E:A3:CD:2C:4A:0D:54:78:76:BA:A6:F3:8C:AB:F6:25');
+  assert.strictEqual(PRODUCTION_PLAY_SIGNING_SHA1, 'AD:B7:BB:56:B8:CE:4F:E1:08:19:19:B0:56:FF:B1:A6:07:8D:01:3F');
+  assert.strictEqual(PRODUCTION_PLAY_CLASSIC_SHA1, 'A2:77:96:AB:2B:9E:B9:45:A3:DB:CF:8A:A6:0B:20:FB:6B:A5:85:FE');
+  assert.strictEqual(PRODUCTION_UPLOAD_SHA1, 'DA:30:B6:B4:FA:8D:D1:C1:EA:85:6B:3D:E3:4D:33:67:AE:F5:6C:B2');
 
   const dev = spotifyAndroidDashboardTarget(DEVELOPMENT_ANDROID_PACKAGE);
   assert.strictEqual(dev.variant, 'development');
   assert.strictEqual(dev.appName, 'SrvOpenScr');
   assert.strictEqual(dev.packageName, DEVELOPMENT_ANDROID_PACKAGE);
   assert.strictEqual(dev.sha1, DEVELOPMENT_DEBUG_SHA1);
+  assert.deepStrictEqual(dev.sha1s, [DEVELOPMENT_DEBUG_SHA1]);
 
   const prod = spotifyAndroidDashboardTarget(PRODUCTION_ANDROID_PACKAGE);
   assert.strictEqual(prod.variant, 'production');
   assert.strictEqual(prod.appName, 'OpenScr');
   assert.strictEqual(prod.packageName, PRODUCTION_ANDROID_PACKAGE);
   assert.strictEqual(prod.sha1, null);
+  assert.deepStrictEqual([...prod.sha1s], [...PRODUCTION_ANDROID_SHA1S]);
+  assert.deepStrictEqual([...prod.sha1s], [
+    PRODUCTION_PLAY_SIGNING_SHA1,
+    PRODUCTION_PLAY_CLASSIC_SHA1,
+    PRODUCTION_UPLOAD_SHA1,
+  ]);
 
   const unknown = spotifyAndroidDashboardTarget('com.example.other');
   assert.strictEqual(unknown.variant, 'unknown');
   assert.strictEqual(unknown.packageName, 'com.example.other');
   assert.strictEqual(unknown.sha1, null);
-  assert.strictEqual(spotifyAndroidDashboardTarget('  ').sha1, null);
+  assert.deepStrictEqual(unknown.sha1s, []);
+  assert.deepStrictEqual(spotifyAndroidDashboardTarget('  ').sha1s, []);
   assert.strictEqual(spotifyAndroidDashboardTarget(null).packageName, null);
 
   assert.strictEqual(

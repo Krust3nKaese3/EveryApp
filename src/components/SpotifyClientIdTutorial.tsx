@@ -13,6 +13,9 @@ import * as Clipboard from 'expo-clipboard';
 import {
   DEVELOPMENT_ANDROID_PACKAGE,
   PRODUCTION_ANDROID_PACKAGE,
+  PRODUCTION_PLAY_CLASSIC_SHA1,
+  PRODUCTION_PLAY_SIGNING_SHA1,
+  PRODUCTION_UPLOAD_SHA1,
   SPOTIFY_DASHBOARD_URL,
   SPOTIFY_REDIRECT_URI,
   readRunningAndroidPackage,
@@ -115,8 +118,10 @@ export const SpotifyClientIdTutorial: React.FC<Props> = ({ visible, onClose }) =
             <Step n={7} title="Paketname und SHA-1 dieser App">
               <Text style={styles.body}>
                 Paketname und SHA-1 müssen zu der App passen, die gerade läuft.
-                Eine Produktions-SHA-1 steht hier nicht — die bitte nicht raten und nicht vom Debug-Keystore abschreiben.
-                Im Spotify-Dashboard die alte Zeile com.everyapp.container entfernen und com.openscr.app plus den SHA-1 dieser Signatur neu eintragen. Die Development-Zeile ist com.openscr.app.dev.
+                Für OpenScr (com.openscr.app) drei Zeilen anlegen: derselbe Paketname, jeweils ein SHA-1.
+                Alle drei einzutragen ist harmlos und gilt für Play und für eine direkt installierte APK.
+                Im Spotify-Dashboard die alte Zeile com.everyapp.container entfernen.
+                Die Development-Zeile ist com.openscr.app.dev.
               </Text>
               <VariantBlock target={target} dev={dev} prod={prod} />
             </Step>
@@ -168,11 +173,10 @@ function VariantBlock({
     return (
       <View>
         <Text style={styles.body}>
-          Du nutzt gerade OpenScr. Den SHA-1 dieser Signatur gibt es in diesem Projekt nicht.
-          Lies ihn am Signaturzertifikat ab oder in den EAS-Android-Credentials dieses Builds.
-          Den Debug-SHA-1 von SrvOpenScr hier nicht eintragen.
+          Du nutzt gerade OpenScr. Für jeden Wert eine Zeile unter Android Packages, Paketname jeweils {target.packageName}.
+          Play-Installationen und eine direkt installierte APK brauchen verschiedene Schlüssel. Alle drei Zeilen sind harmlos.
         </Text>
-        <CopyValue label="Package name" value={target.packageName} />
+        <ProductionFingerprints packageName={target.packageName} />
       </View>
     );
   }
@@ -182,15 +186,27 @@ function VariantBlock({
       <Text style={styles.body}>
         Die laufende Variante ließ sich nicht erkennen
         {target.packageName ? ` (gelesener Paketname: ${target.packageName})` : ''}.
-        Trag nur die Werte der App ein, die auf diesem Handy installiert ist. Für einen unbekannten Paketnamen liegt hier kein SHA-1.
+        Trag die Werte der App ein, die auf diesem Handy installiert ist.
       </Text>
       <Text style={styles.subhead}>SrvOpenScr, Development</Text>
       <CopyValue label="Package name" value={dev.packageName || DEVELOPMENT_ANDROID_PACKAGE} />
       {dev.sha1 ? <CopyValue label="Package SHA1 fingerprint" value={dev.sha1} /> : null}
       <Text style={styles.subhead}>OpenScr, Production</Text>
-      <CopyValue label="Package name" value={prod.packageName || PRODUCTION_ANDROID_PACKAGE} />
+      <ProductionFingerprints packageName={prod.packageName || PRODUCTION_ANDROID_PACKAGE} />
+    </View>
+  );
+}
+
+function ProductionFingerprints({ packageName }: { packageName: string }) {
+  return (
+    <View>
+      <CopyValue label="Package name" value={packageName} />
+      <CopyValue label="Play-Signatur (Google Play)" value={PRODUCTION_PLAY_SIGNING_SHA1} />
+      <CopyValue label="Play-Signatur, klassischer Schlüssel" value={PRODUCTION_PLAY_CLASSIC_SHA1} />
+      <CopyValue label="Upload-Schlüssel (direkt installierte APK)" value={PRODUCTION_UPLOAD_SHA1} />
       <Text style={styles.body}>
-        SHA-1 für OpenScr steht nicht im Repo. Vom Signaturzertifikat oder aus den EAS-Android-Credentials lesen, nicht den Debug-SHA-1 kopieren.
+        Pro Wert eine Zeile, immer mit dem Paket {packageName}.
+        Welchen der beiden Play-Schlüssel die installierte APK meldet, ist noch offen, deshalb beide eintragen.
       </Text>
     </View>
   );
