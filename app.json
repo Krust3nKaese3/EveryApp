@@ -13,7 +13,7 @@
     "android": {
       "versionCode": 1,
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
+        "backgroundColor": "#2E2E33",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
@@ -44,6 +44,17 @@
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#2E2E33",
+          "image": "./assets/splash-icon.png",
+          "dark": {
+            "backgroundColor": "#2E2E33",
+            "image": "./assets/splash-icon.png"
+          }
+        }
+      ],
       [
         "expo-camera",
         {
