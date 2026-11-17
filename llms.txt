@@ -1,12 +1,12 @@
-# OpenScr für Scrapp-Autoren
+# OpenScr für OpenScrapp-Autoren
 
-> Einstieg für eine KI, die eine Scrapp in einem anderen Repository schreibt. OpenScr steht für Open Smartphone Code Runner. Scr ist Smartphone Code Runner. Die kleinen Apps heißen Scrapps (Einzahl Scrapp), aus OpenScr und apps. Eine Scrapp wird in OpenScr geladen. Sie spricht über `window.OpenScrBridge`. `window.EveryAppBridge` ist dasselbe Objekt und bleibt als Kompatibilität. Das Manifest heißt `openscr.json`; `everyapp.json` wird nur noch gelesen, wenn keine `openscr.json` da ist. Empfehlung für den Repository-Namen: `<Name>Scrapps`, zum Beispiel `KrustenScrapps`.
+> Einstieg für eine KI, die eine OpenScrapp in einem anderen Repository schreibt. OpenScr steht für Open Smartphone Code Runner. Die kleinen Apps heißen OpenScrapps (Einzahl OpenScrapp). Eine OpenScrapp wird in OpenScr geladen. Sie spricht über `window.OpenScrBridge`. `window.EveryAppBridge` ist dasselbe Objekt und bleibt als Kompatibilität. Das Manifest heißt `openscr.json`; `everyapp.json` wird nur noch gelesen, wenn keine `openscr.json` da ist. Empfehlung für den Repository-Namen: `<Name>Scrapps`, zum Beispiel `KrustenScrapps`.
 
 ## Zuerst lesen
 
 - [Guide für KIs](https://raw.githubusercontent.com/Krust3nKaese3/OpenScr/main/docs/MINIAPP_AI_GUIDE.md): Aufbau, Berechtigungen, Bridge, Mehrspieler, Fehler, kopierbarer Auftrag.
 - [Bridge-API](https://raw.githubusercontent.com/Krust3nKaese3/OpenScr/main/docs/BRIDGE_API.md): erlaubte Methoden und Grenzen.
-- [Mehrspieler](https://raw.githubusercontent.com/Krust3nKaese3/OpenScr/main/docs/MULTIPLAYER.md): Host, Suche in der Nähe, QR, Wiederbeitritt, 32 KiB. Die Scrapp speichert den Spielstand selbst.
+- [Mehrspieler](https://raw.githubusercontent.com/Krust3nKaese3/OpenScr/main/docs/MULTIPLAYER.md): Host, Suche in der Nähe, QR, Wiederbeitritt, 32 KiB. Die OpenScrapp speichert den Spielstand selbst.
 - [Mehrspieler-Sicherheit](https://raw.githubusercontent.com/Krust3nKaese3/OpenScr/main/docs/MULTIPLAYER_SECURITY.md): was das WLAN nicht leistet.
 
 ## Vorlage

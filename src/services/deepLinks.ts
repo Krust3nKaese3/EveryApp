@@ -1,7 +1,7 @@
 /**
- * Generic deep links: openscr://<scrapp>/<path>?query (also exp+openscr://… on dev-client builds).
- * Host `add` is reserved for installing a Scrapp (openscr://add?url=<encoded GitHub URL>) and is
- * not a Scrapp name. Pure parsing + a tiny pending-link queue consumed by MiniAppRunner.
+ * Generic deep links: openscr://<openscrapp>/<path>?query (also exp+openscr://… on dev-client builds).
+ * Host `add` is reserved for installing an OpenScrapp (openscr://add?url=<encoded GitHub URL>) and is
+ * not an OpenScrapp name. Pure parsing + a tiny pending-link queue consumed by MiniAppRunner.
  */
 export interface DeepLink { miniapp: string; path: string; params: Record<string, string>; url: string }
 
@@ -92,7 +92,7 @@ export function takeDeepLink(appId: string): DeepLink | null { const l = pending
 export function onDeepLinkQueued(fn: (appId: string) => void) { listeners.add(fn); return () => { listeners.delete(fn); }; }
 
 /**
- * JS injected into the Scrapp WebView.
+ * JS injected into the OpenScrapp WebView.
  * Listen with window.addEventListener('openscr:deeplink', e => e.detail).
  * everyapp:deeplink and window.EveryAppLaunch stay as compatibility aliases.
  */

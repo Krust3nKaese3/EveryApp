@@ -41,7 +41,7 @@ test('QR lehnt öffentliche Ziele, Namen und Sonderports ab', () => {
   assert.throws(() => decodeJoinUrl(url.replace('port=38421', 'port=1e4')), /Port/);
   assert.throws(() => decodeJoinUrl(url.replace('port=38421', 'port=0x1f90')), /Port/);
   assert.throws(() => decodeJoinUrl(`${url}&pad=${'a'.repeat(MP_LIMITS.maxQrChars)}`), /zu lang/);
-  assert.throws(() => decodeJoinUrl(url.replace('app=wolf', 'app=%3Cscript%3E')), /Scrapp/);
+  assert.throws(() => decodeJoinUrl(url.replace('app=wolf', 'app=%3Cscript%3E')), /OpenScrapp/);
   assert.strictEqual(playerName('<img onerror=alert(1)>'), 'img onerror=alert(1)');
   assert.ok(!playerName('<b>Ada</b>').includes('<'));
 });

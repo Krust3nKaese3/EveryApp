@@ -1,6 +1,6 @@
 # Spotify in OpenScr
 
-Scrapps (zum Beispiel ein „Song raten“-Quiz) suchen Titel über die Spotify Web API und steuern die Wiedergabe über die **installierte Spotify-Android-App**. Der Ton läuft in Spotify, nicht im WebView. Das Web Playback SDK wird nicht verwendet. `preview_url`, Audio-Features und der alte Recommendations-Endpunkt werden nicht benutzt.
+OpenScrapps (zum Beispiel ein „Song raten“-Quiz) suchen Titel über die Spotify Web API und steuern die Wiedergabe über die **installierte Spotify-Android-App**. Der Ton läuft in Spotify, nicht im WebView. Das Web Playback SDK wird nicht verwendet. `preview_url`, Audio-Features und der alte Recommendations-Endpunkt werden nicht benutzt.
 
 Es gibt **kein Client-Secret** in diesem Repo. Die Client ID ist öffentlich und wird zur Laufzeit eingetragen. Ein leeres `expo.extra.spotifyClientId` ist der Normalfall.
 
@@ -33,7 +33,7 @@ Am Computer geht das leichter als auf dem Handy: [Spotify Developer Dashboard](h
 1. APK installieren (dieser Stand enthält Auth- und App-Remote-SDK, Redirect und Paketnamen).
 2. Spotify-App auf dem Gerät installieren und mit dem Premium-Account anmelden. Einen einzelnen Track (`spotify:track:…`) abspielen geht nur mit Premium. API und SDK kosten nichts extra.
 3. In OpenScr auf dem Startbildschirm **Spotify** öffnen, Client ID einfügen, speichern. Die **Anleitung** neben dem Feld zeigt Redirect-URI, Paketname und SHA-1 für diese Installation.
-4. Dafür ist **kein neuer Build** nötig. Die ID liegt in den Container-Einstellungen von OpenScr, nicht im Scrapp-Repo. `login`, `connect` und `play` lesen die gespeicherte ID bei jedem Aufruf.
+4. Dafür ist **kein neuer Build** nötig. Die ID liegt in den Container-Einstellungen von OpenScr, nicht im OpenScrapp-Repo. `login`, `connect` und `play` lesen die gespeicherte ID bei jedem Aufruf.
 
 Ohne gespeicherte ID kommt:
 
@@ -42,14 +42,14 @@ Ohne gespeicherte ID kommt:
 ### Vorrang, wenn mehrere IDs existieren
 
 1. **OpenScr-Einstellungen** (Container, Quelle der Wahrheit)
-2. `OpenScrBridge.spotify.setClientId()` einer Scrapp mit erlaubter Permission `spotify` (ebenfalls nur im Container, nicht im Scrapp-Storage)
+2. `OpenScrBridge.spotify.setClientId()` einer OpenScrapp mit erlaubter Permission `spotify` (ebenfalls nur im Container, nicht im OpenScrapp-Storage)
 3. Optionaler Build-Prefill: Umgebungsvariable `SPOTIFY_CLIENT_ID` oder `expo.extra.spotifyClientId` in `app.json`
 
 `setClientId` überschreibt eine in den Einstellungen gespeicherte ID nicht. `getClientId()` liefert `source`: `settings`, `bridge`, `prefill` oder `none`.
 
-Tokens (Access und Refresh) liegen in den privaten App-Preferences des Containers. Scrapps bekommen keinen Access-Token. `search`, `getMe`, `getMyPlaylists` und `getSavedTracks` rufen die Web API selbst auf und erneuern abgelaufene Tokens.
+Tokens (Access und Refresh) liegen in den privaten App-Preferences des Containers. OpenScrapps bekommen keinen Access-Token. `search`, `getMe`, `getMyPlaylists` und `getSavedTracks` rufen die Web API selbst auf und erneuern abgelaufene Tokens.
 
-## Scrapp
+## OpenScrapp
 
 In `openscr.json`:
 

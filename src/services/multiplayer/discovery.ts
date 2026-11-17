@@ -91,7 +91,7 @@ export interface LanService {
   txt: Record<string, unknown>;
 }
 
-/** Nur Räume derselben Scrapp. Die IP steht nicht in der Liste für die Scrapp. */
+/** Nur Räume derselben OpenScrapp. Die IP steht nicht in der Liste für die OpenScrapp. */
 export function visibleRooms(services: LanService[], appId: string): VisibleRoom[] {
   const out: VisibleRoom[] = [];
   const seen = new Set<string>();

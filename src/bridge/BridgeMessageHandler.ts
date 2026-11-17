@@ -69,7 +69,7 @@ export class BridgeMessageHandler {
     const decision = permissionDecision(category, this.grantedPermissions, this.deniedPermissions);
     if (decision === 'allow') return;
     if (decision === 'deny') {
-      throw new Error(`„${category}“ ist für diese Scrapp nicht erlaubt. Du kannst das in den App-Infos ändern.`);
+      throw new Error(`„${category}“ ist für diese OpenScrapp nicht erlaubt. Du kannst das in den App-Infos ändern.`);
     }
     if (!this.ask) {
       checkBridgePermission(category, this.grantedPermissions);

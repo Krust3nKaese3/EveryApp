@@ -64,7 +64,7 @@ test('QR bleibt im lokalen Netz und passt in einen Code', () => {
   assert.strictEqual(chooseLanIPv4([{ name: 'lo', ip: '127.0.0.1' }]), null);
 });
 
-test('Raum nimmt nur dieselbe Scrapp auf und leitet gezielt weiter', () => {
+test('Raum nimmt nur dieselbe OpenScrapp auf und leitet gezielt weiter', () => {
   const room = new GameRoom({ appId: 'wolf', maxPlayers: 3, hostName: 'Ada', now: 0, random: rng(7) });
   const hostId = room.hostId;
   assert.strictEqual(room.players().length, 1);

@@ -93,7 +93,7 @@ const index = `<!DOCTYPE html>
   </header>
   <main>
     <h1>Rechtliches</h1>
-    <p>OpenScr ist eine Container-App. Scrapps aus GitHub laufen als HTML und JavaScript in einer WebView. Es gibt keinen eigenen Server, kein Nutzerkonto und kein Analyse-SDK.</p>
+    <p>OpenScr ist eine Container-App. OpenScrapps aus GitHub laufen als HTML und JavaScript in einer WebView. Es gibt keinen eigenen Server, kein Nutzerkonto und kein Analyse-SDK.</p>
     <ul>
       <li><a href="datenschutz.html">Datenschutzerklärung (Deutsch)</a></li>
       <li><a href="privacy.html">Privacy policy (English)</a></li>

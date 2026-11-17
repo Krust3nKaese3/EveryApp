@@ -62,7 +62,7 @@ export const SpotifySettingsModal: React.FC<Props> = ({ visible, onClose }) => {
             <Text style={styles.title}>Spotify</Text>
             <Text style={styles.body}>
               Client ID aus dem Spotify Developer Dashboard. Leer lassen ist normal, bis du eine App angelegt hast.
-              Die hier gespeicherte ID gilt sofort, ohne neuen Build, und hat Vorrang vor Scrapps und vor einem optionalen Build-Prefill.
+              Die hier gespeicherte ID gilt sofort, ohne neuen Build, und hat Vorrang vor OpenScrapps und vor einem optionalen Build-Prefill.
             </Text>
             <View style={styles.labelRow}>
               <Text style={styles.label}>Client ID in den Einstellungen</Text>

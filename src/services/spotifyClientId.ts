@@ -196,7 +196,7 @@ export function normalizeSpotifySearch(query: unknown, options?: SpotifySearchOp
 export function spotifyClientIdSourceLabel(source: SpotifyClientIdSource): string {
   switch (source) {
     case 'settings': return 'OpenScr-Einstellungen';
-    case 'bridge': return 'Scrapp';
+    case 'bridge': return 'OpenScrapp';
     case 'prefill': return 'Build-Prefill';
     default: return 'keine';
   }

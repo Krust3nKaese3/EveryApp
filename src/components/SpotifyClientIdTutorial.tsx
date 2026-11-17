@@ -62,8 +62,8 @@ export const SpotifyClientIdTutorial: React.FC<Props> = ({ visible, onClose }) =
             <Step n={1} title="Die ID gehört in OpenScr">
               <Text style={styles.body}>
                 Die Client ID speicherst du in OpenScr selbst, in diesen Container-Einstellungen.
-                Nicht in einem Scrapp-Repo. Nach Speichern gilt sie sofort, ohne neuen Build.
-                Dieser Wert hat Vorrang vor setClientId einer Scrapp und vor einem optionalen Build-Prefill.
+                Nicht in einem OpenScrapp-Repo. Nach Speichern gilt sie sofort, ohne neuen Build.
+                Dieser Wert hat Vorrang vor setClientId einer OpenScrapp und vor einem optionalen Build-Prefill.
               </Text>
             </Step>
 

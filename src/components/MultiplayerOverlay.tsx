@@ -15,7 +15,7 @@ interface MultiplayerOverlayProps {
   onDeny: (id: string) => void;
 }
 
-/** Großer QR für den Host, Scanner für den Beitritt. Die Scrapp zeichnet das nicht selbst. */
+/** Großer QR für den Host, Scanner für den Beitritt. Die OpenScrapp zeichnet das nicht selbst. */
 export function MultiplayerOverlay({ state, onDone, onEnd, onScanned, onCancel, onApprove, onDeny }: MultiplayerOverlayProps) {
   const [permission, requestPermission] = useCameraPermissions();
   const [scanHint, setScanHint] = useState('');

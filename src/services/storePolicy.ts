@@ -15,13 +15,13 @@ export const BLOCKLIST_PATH = 'catalog/blocklist.json';
 /** Shown before a repository that is not in the curated catalog is installed. */
 export const FOREIGN_WARNING_MESSAGE =
   'Nur vertrauenswürdige Quellen hinzufügen…\n\n' +
-  'Diese Scrapp steht nicht im Katalog. Sie wird als Webseite aus einem öffentlichen GitHub-Repository geladen. ' +
+  'Diese OpenScrapp steht nicht im Katalog. Sie wird als Webseite aus einem öffentlichen GitHub-Repository geladen. ' +
   'Erst nach deiner Zustimmung kann sie Gerätefunktionen nutzen, zum Beispiel Speicher, Internet, Bluetooth, Benachrichtigungen, Kamera, Sensoren oder Spotify. ' +
   'Sie erhält keinen Zugriff auf das Dateisystem, auf Kontakte oder auf den Standort.\n\n' +
   'Füge sie nur hinzu, wenn du dem Repository vertraust.';
 
 export const CATALOG_ONLY_MESSAGE =
-  'In dieser Version kannst du nur Scrapps aus dem Katalog installieren. Eigene Repositories gehen nur im Entwicklermodus, nachdem du dich mit deinem GitHub-Konto angemeldet hast.';
+  'In dieser Version kannst du nur OpenScrapps aus dem Katalog installieren. Eigene Repositories gehen nur im Entwicklermodus, nachdem du dich mit deinem GitHub-Konto angemeldet hast.';
 
 export interface CatalogApp {
   name: string;
@@ -141,7 +141,7 @@ export function decideAdd(
   }
   const blocked = blockReasonFor(opts.appId || '', trimmed, opts.blocklist);
   if (blocked) {
-    return { type: 'blocked', title: 'Scrapp gesperrt', message: blocked };
+    return { type: 'blocked', title: 'OpenScrapp gesperrt', message: blocked };
   }
   if (catalogEntryFor(trimmed, opts.catalog)) return { type: 'install', origin: 'catalog' };
   if (!opts.catalogOnly) {
@@ -175,7 +175,7 @@ export function mergeUpdatedApp(previous: MiniApp, fresh: MiniApp): MiniApp {
 export function reportMailto(app: { name: string; repoUrl: string; id: string; version?: string; commitSha?: string }): string {
   const subject = `OpenScr Meldung: ${app.name}`;
   const body = [
-    'Ich möchte eine Scrapp melden.',
+    'Ich möchte eine OpenScrapp melden.',
     '',
     `Name: ${app.name}`,
     `Repository: ${app.repoUrl}`,

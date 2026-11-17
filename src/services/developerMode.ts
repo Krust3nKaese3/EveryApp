@@ -16,7 +16,7 @@ export const DEV_MODE_OFF_MESSAGE =
   'Der Entwicklermodus ist aus. Schalte ihn ein und melde dich mit dem GitHub-Konto an, dem dieses Repository gehört.';
 
 export const SIGNED_OUT_MESSAGE =
-  'Abmelden deaktiviert Scrapps aus dem Entwicklermodus. Melde dich wieder mit dem GitHub-Konto an, dem das Repository gehört.';
+  'Abmelden deaktiviert OpenScrapps aus dem Entwicklermodus. Melde dich wieder mit dem GitHub-Konto an, dem das Repository gehört.';
 
 /** GitHub logins are case-insensitive. Empty is never a match. */
 export function normalizeLogin(login: string | null | undefined): string {
@@ -156,7 +156,7 @@ export function installedAppAccess(
   const catalogApp = app.origin === 'catalog' || (app.origin !== 'developer' && app.origin !== 'free' && opts.inCatalog);
   if (catalogApp) return { allowed: true, verifyOwnership: false };
   if (app.origin !== 'developer') {
-    return { allowed: false, reason: 'Diese Scrapp stammt nicht aus dem Katalog und ist in dieser Version nicht verfügbar.' };
+    return { allowed: false, reason: 'Diese OpenScrapp stammt nicht aus dem Katalog und ist in dieser Version nicht verfügbar.' };
   }
   if (!opts.developerMode) return { allowed: false, reason: DEV_MODE_OFF_MESSAGE };
   if (!normalizeLogin(opts.signedInLogin)) return { allowed: false, reason: SIGNED_OUT_MESSAGE };
