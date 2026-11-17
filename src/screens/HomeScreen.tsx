@@ -119,7 +119,7 @@ export const HomeScreen: React.FC = () => {
       }
       const blockedNow = blockReasonFor('', trimmed, blocklist);
       if (blockedNow) {
-        Alert.alert('Mini-App gesperrt', blockedNow);
+        Alert.alert('OpenScrapp gesperrt', blockedNow);
         return;
       }
       let downloadToken: string | undefined;
@@ -139,7 +139,7 @@ export const HomeScreen: React.FC = () => {
       const blockedId = blockReasonFor(app.id, app.repoUrl, blocklist);
       if (blockedId) {
         await GitRepoService.deleteApp(app);
-        Alert.alert('Mini-App gesperrt', blockedId);
+        Alert.alert('OpenScrapp gesperrt', blockedId);
         return;
       }
       await StorageService.saveApp(app);
@@ -157,8 +157,8 @@ export const HomeScreen: React.FC = () => {
   performAddRef.current = performAdd;
   const openAppRef = useRef<(app: MiniApp) => Promise<void>>(async () => {});
 
-  // everyapp://add?url=… (and exp+everyapp://add?url=…) installs a repo.
-  // Other everyapp://<miniapp>/… links open that mini-app. Handled before the mini-app flow.
+  // openscr://add?url=… (and exp+openscr://add?url=…) installs a repo.
+  // Other openscr://<miniapp>/… links open that mini-app. Handled before the mini-app flow.
   useEffect(() => {
     const recent = { url: '', at: 0 };
     const handle = (url?: string | null) => {
@@ -177,7 +177,7 @@ export const HomeScreen: React.FC = () => {
         const link = classified.link;
         const all = await StorageService.getApps();
         const target = all.find((a) => matchesMiniApp(link, a));
-        if (!target) { Alert.alert('Deep-Link', `Mini-App "${link.miniapp}" ist nicht installiert.\n\n${url}`); return; }
+        if (!target) { Alert.alert('Deep-Link', `OpenScrapp "${link.miniapp}" ist nicht installiert.\n\n${url}`); return; }
         queueDeepLink(target.id, link);
         await openAppRef.current(target);
       });
@@ -259,7 +259,7 @@ export const HomeScreen: React.FC = () => {
     if (!granted) {
       Alert.alert(
         'Kamera',
-        'Ohne Kamerazugriff kann EveryApp keinen QR-Code scannen. Erlaube die Kamera in den Einstellungen.',
+        'Ohne Kamerazugriff kann OpenScr keinen QR-Code scannen. Erlaube die Kamera in den Einstellungen.',
         [
           { text: 'Abbrechen', style: 'cancel' },
           { text: 'Einstellungen', onPress: () => { Linking.openSettings().catch(() => {}); } },
@@ -382,7 +382,7 @@ export const HomeScreen: React.FC = () => {
   const openApp = async (app: MiniApp) => {
     const reason = blockReasonFor(app.id, app.repoUrl, blocklist);
     if (reason) {
-      Alert.alert('Mini-App gesperrt', reason);
+      Alert.alert('OpenScrapp gesperrt', reason);
       return;
     }
     const access = accessFor(app);
@@ -416,7 +416,7 @@ export const HomeScreen: React.FC = () => {
       const newest = latest;
       Alert.alert(
         'Update verfügbar',
-        `${versionLine(installed.manifest.version, installed.commitSha, newest)}\n\nDer Speicher dieser Mini-App bleibt beim Aktualisieren erhalten.`,
+        `${versionLine(installed.manifest.version, installed.commitSha, newest)}\n\nDer Speicher dieser OpenScrapp bleibt beim Aktualisieren erhalten.`,
         [
           { text: 'Später', onPress: () => { dismissedUpdates.current.add(installed.id); setSelectedApp(installed); } },
           { text: 'Aktualisieren', onPress: () => { void refreshAndOpen(installed); } },
@@ -501,7 +501,7 @@ export const HomeScreen: React.FC = () => {
       ) : (
         <>
           <View style={styles.header}>
-            <Text style={styles.title}>EveryApp</Text>
+            <Text style={styles.title}>OpenScr</Text>
             <View>
               <TouchableOpacity onPress={() => setLegalDoc('privacy')}>
                 <Text style={styles.headerLink}>Datenschutz</Text>
@@ -552,7 +552,7 @@ export const HomeScreen: React.FC = () => {
             ) : (
               <View style={styles.catalogOnlyNote}>
                 <Text style={styles.catalogOnlyText}>
-                  In dieser Version kannst du Mini-Apps aus dem Katalog installieren. Eigene Repositories nur im Entwicklermodus.
+                  In dieser Version kannst du OpenScrapps aus dem Katalog installieren. Eigene Repositories nur im Entwicklermodus.
                 </Text>
                 <TouchableOpacity onPress={() => setShowDeveloper(true)}>
                   <Text style={styles.devLink}>Entwicklermodus</Text>
@@ -711,7 +711,7 @@ export const HomeScreen: React.FC = () => {
               ) : null}
               <View style={styles.scannerHint}>
                 <Text style={styles.scannerHintText}>
-                  QR-Code mit GitHub-Link oder EveryApp-Add-Link scannen
+                  QR-Code mit GitHub-Link oder OpenScr-Add-Link scannen
                 </Text>
                 <TouchableOpacity style={styles.scannerCancel} onPress={() => setScanning(false)}>
                   <Text style={styles.scannerCancelText}>Abbrechen</Text>

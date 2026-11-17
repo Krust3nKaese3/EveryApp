@@ -1,11 +1,11 @@
 /**
- * Generic deep links: everyapp://<miniapp>/<path>?query (also exp+everyapp://… on dev-client builds).
- * Host `add` is reserved for installing a mini-app (everyapp://add?url=<encoded GitHub URL>) and is
- * not a mini-app name. Pure parsing + a tiny pending-link queue consumed by MiniAppRunner.
+ * Generic deep links: openscr://<openscrapp>/<path>?query (also exp+openscr://… on dev-client builds).
+ * Host `add` is reserved for installing an OpenScrapp (openscr://add?url=<encoded GitHub URL>) and is
+ * not an OpenScrapp name. Pure parsing + a tiny pending-link queue consumed by MiniAppRunner.
  */
 export interface DeepLink { miniapp: string; path: string; params: Record<string, string>; url: string }
 
-const SCHEMES = ['everyapp:', 'exp+everyapp:'];
+const SCHEMES = ['openscr:', 'exp+openscr:'];
 /** Reserved host: install link, never routed as a mini-app. */
 export const ADD_LINK_HOST = 'add';
 
@@ -57,7 +57,7 @@ export type QrInstall =
   | { ok: true; repoUrl: string }
   | { ok: false; message: string };
 
-const QR_UNSUPPORTED = 'Dieser QR-Code ist kein EveryApp-Add-Link und keine GitHub-Repository-URL.';
+const QR_UNSUPPORTED = 'Dieser QR-Code ist kein OpenScr-Add-Link und keine GitHub-Repository-URL.';
 const QR_INVALID_ADD = 'Der Add-Link enthält keine gültige GitHub-URL (https://github.com/besitzer/repo).';
 
 /**
@@ -91,8 +91,12 @@ export function queueDeepLink(appId: string, link: DeepLink) { pending.set(appId
 export function takeDeepLink(appId: string): DeepLink | null { const l = pending.get(appId) || null; pending.delete(appId); return l; }
 export function onDeepLinkQueued(fn: (appId: string) => void) { listeners.add(fn); return () => { listeners.delete(fn); }; }
 
-/** JS injected into the mini-app WebView. Mini-apps listen with window.addEventListener('everyapp:deeplink', e => e.detail). */
+/**
+ * JS injected into the OpenScrapp WebView.
+ * Listen with window.addEventListener('openscr:deeplink', e => e.detail).
+ * everyapp:deeplink and window.EveryAppLaunch stay as compatibility aliases.
+ */
 export function deepLinkInjection(link: DeepLink): string {
   const d = JSON.stringify(link);
-  return `(function(){window.EveryAppLaunch=${d};try{window.dispatchEvent(new CustomEvent('everyapp:deeplink',{detail:${d}}));}catch(e){}})();true;`;
+  return `(function(){var detail=${d};window.OpenScrLaunch=detail;window.EveryAppLaunch=detail;try{window.dispatchEvent(new CustomEvent('openscr:deeplink',{detail:detail}));window.dispatchEvent(new CustomEvent('everyapp:deeplink',{detail:detail}));}catch(e){}})();true;`;
 }

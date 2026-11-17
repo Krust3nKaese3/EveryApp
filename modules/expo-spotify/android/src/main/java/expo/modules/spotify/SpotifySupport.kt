@@ -9,7 +9,7 @@ import java.net.URL
 
 /** German user-facing strings. Keep in sync with src/services/spotifyClientId.ts. */
 object SpotifyText {
-  const val NO_CLIENT_ID = "Keine Spotify Client ID hinterlegt. Bitte in den EveryApp-Einstellungen eintragen."
+  const val NO_CLIENT_ID = "Keine Spotify Client ID hinterlegt. Bitte in den OpenScr-Einstellungen eintragen."
   const val BAD_CLIENT_ID = "Die Spotify Client ID muss 32 Hex-Zeichen aus dem Developer Dashboard sein."
   const val NOT_INSTALLED = "Spotify ist nicht installiert. Bitte die Spotify-App aus dem Play Store installieren und dich dort anmelden."
   const val NOT_PREMIUM = "Dieser Spotify-Account hat kein Premium. Einen bestimmten Song abspielen geht nur mit Premium."
@@ -18,12 +18,12 @@ object SpotifyText {
   const val NEED_LOGIN = "Spotify ist nicht angemeldet. Bitte zuerst spotify.login() aufrufen."
   const val AUTH_CANCELLED = "Spotify-Anmeldung abgebrochen."
   const val AUTH_DENIED = "Die Spotify-Anmeldung wurde abgelehnt."
-  const val AUTH_FAILED = "Spotify-Anmeldung fehlgeschlagen. Client ID, Redirect-URI everyapp://spotify-callback und den SHA1 im Spotify-Dashboard prüfen."
+  const val AUTH_FAILED = "Spotify-Anmeldung fehlgeschlagen. Client ID, Redirect-URI openscr://spotify-callback und den SHA1 im Spotify-Dashboard prüfen."
   const val NOT_AUTHORIZED = "Spotify hat die Fernsteuerung nicht erlaubt. Bitte die Anmeldung bestätigen."
   const val NOT_LOGGED_IN = "In der Spotify-App ist niemand angemeldet. Bitte Spotify öffnen und anmelden."
   const val OFFLINE = "Spotify ist im Offline-Modus. Bitte online gehen und es erneut versuchen."
   const val BAD_URI = "Ungültige Spotify-URI. Erwartet wird zum Beispiel spotify:track:…"
-  const val NO_ACTIVITY = "Spotify-Anmeldung geht nur, solange EveryApp im Vordergrund ist."
+  const val NO_ACTIVITY = "Spotify-Anmeldung geht nur, solange OpenScr im Vordergrund ist."
   const val RATE_LIMIT = "Spotify-API-Limit erreicht. Bitte kurz warten und erneut versuchen."
   const val QUERY_MISSING = "Suchbegriff fehlt."
   const val QUERY_LONG = "Suchbegriff ist zu lang."

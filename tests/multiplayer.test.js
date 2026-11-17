@@ -45,7 +45,8 @@ test('QR bleibt im lokalen Netz und passt in einen Code', () => {
   assert.strictEqual(isPrivateIPv4('127.0.0.1'), false);
   const target = { v: 1, host: '172.20.10.1', port: 38421, room: 'K7QP', token: '0123456789abcdef', appId: 'evryWerwolf' };
   const url = encodeJoinUrl(target);
-  assert.ok(url.startsWith('everyapp-mp://join?'));
+  assert.ok(url.startsWith('openscr-mp://join?'));
+  assert.throws(() => decodeJoinUrl(url.replace('openscr-mp:', 'everyapp-mp:')), /OpenScr-Spielraum/);
   assert.deepStrictEqual(decodeJoinUrl(url), target);
   assert.throws(() => decodeJoinUrl('https://github.com/a/b'), /Spielraum/);
   assert.throws(() => encodeJoinUrl({ ...target, host: '8.8.8.8' }), /lokalen Netz/);
@@ -63,7 +64,7 @@ test('QR bleibt im lokalen Netz und passt in einen Code', () => {
   assert.strictEqual(chooseLanIPv4([{ name: 'lo', ip: '127.0.0.1' }]), null);
 });
 
-test('Raum nimmt nur dieselbe Mini-App auf und leitet gezielt weiter', () => {
+test('Raum nimmt nur dieselbe OpenScrapp auf und leitet gezielt weiter', () => {
   const room = new GameRoom({ appId: 'wolf', maxPlayers: 3, hostName: 'Ada', now: 0, random: rng(7) });
   const hostId = room.hostId;
   assert.strictEqual(room.players().length, 1);
@@ -146,7 +147,7 @@ test('Bridge erlaubt Mehrspieler nur mit der passenden Berechtigung', () => {
   assert.deepStrictEqual(host.validate([{ maxPlayers: 4, name: 'Ada', discoverable: true, joinApproval: false }]), [{ maxPlayers: 4, name: 'Ada', discoverable: true, joinApproval: false }]);
   assert.throws(() => host.validate([{ maxPlayers: 99 }]), /maxPlayers/);
   const join = bridgeMethod('multiplayer.join');
-  assert.deepStrictEqual(join.validate(['everyapp-mp://join']), ['everyapp-mp://join']);
+  assert.deepStrictEqual(join.validate(['openscr-mp://join']), ['openscr-mp://join']);
   assert.deepStrictEqual(join.validate([{ scan: true, name: 'Bea' }]), [{ scan: true, payload: undefined, qrPayload: undefined, name: 'Bea', room: undefined }]);
   assert.deepStrictEqual(join.validate([{ room: 'aabb@svc', name: 'Bea' }]), [{ scan: undefined, payload: undefined, qrPayload: undefined, name: 'Bea', room: 'aabb@svc' }]);
   const send = bridgeMethod('multiplayer.send');

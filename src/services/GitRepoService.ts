@@ -2,6 +2,8 @@ import * as FileSystem from 'expo-file-system/legacy';
 import { MiniAppManifest, MiniApp } from '../types';
 import {
   listMiniAppFiles,
+  MANIFEST_FALLBACK,
+  MANIFEST_FILE,
   MINIAPP_LIMITS,
   normalizeEntrypoint,
   parseGitHubRepo,
@@ -9,6 +11,14 @@ import {
 import { GITHUB_API_HEADERS, commitApiUrl, githubRawUrlAtRef, parseCommitSha, treeApiUrl } from './githubPin';
 
 const APPS_DIR = `${FileSystem.documentDirectory}miniapps/`;
+
+async function firstExistingManifest(staging: string): Promise<string> {
+  for (const name of [MANIFEST_FILE, MANIFEST_FALLBACK]) {
+    const info = await FileSystem.getInfoAsync(`${staging}${name}`);
+    if (info.exists && !info.isDirectory) return name;
+  }
+  throw new Error('openscr.json not found in repository');
+}
 
 type GitTreeResponse = {
   truncated?: boolean;
@@ -24,7 +34,7 @@ export class GitRepoService {
     const commitSha = await this.fetchCommitSha(owner, repo, token);
     const tree = await this.fetchTree(owner, repo, commitSha, token);
     if (tree.truncated) {
-      throw new Error('Repository tree is too large to install. Keep the mini-app in a smaller repository.');
+      throw new Error('Repository tree is too large to install. Keep the OpenScrapp in a smaller repository.');
     }
     const { files } = listMiniAppFiles(tree.tree || []);
 
@@ -61,18 +71,19 @@ export class GitRepoService {
         total += size;
       }
       if (total > MINIAPP_LIMITS.maxTotalBytes) {
-        throw new Error(`Mini-app exceeds the ${MINIAPP_LIMITS.maxTotalBytes} byte download limit.`);
+        throw new Error(`OpenScrapp exceeds the ${MINIAPP_LIMITS.maxTotalBytes} byte download limit.`);
       }
 
-      const manifestRaw = await FileSystem.readAsStringAsync(`${staging}everyapp.json`);
+      const manifestName = await firstExistingManifest(staging);
+      const manifestRaw = await FileSystem.readAsStringAsync(`${staging}${manifestName}`);
       let manifest: MiniAppManifest;
       try {
         manifest = JSON.parse(manifestRaw);
       } catch {
-        throw new Error('everyapp.json is not valid JSON');
+        throw new Error(`${manifestName} is not valid JSON`);
       }
       if (!manifest || typeof manifest !== 'object' || typeof manifest.entrypoint !== 'string') {
-        throw new Error('Entrypoint missing in everyapp.json');
+        throw new Error(`Entrypoint missing in ${manifestName}`);
       }
       const entryRel = normalizeEntrypoint(manifest.entrypoint);
       const entryInfo = await FileSystem.getInfoAsync(`${staging}${entryRel}`);

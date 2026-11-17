@@ -1,17 +1,17 @@
 /** Spotify Client-ID helpers. Precedence and wording are mirrored in the Kotlin module. */
 
-export const SPOTIFY_REDIRECT_URI = 'everyapp://spotify-callback';
+export const SPOTIFY_REDIRECT_URI = 'openscr://spotify-callback';
 
 export const SPOTIFY_DASHBOARD_URL = 'https://developer.spotify.com/dashboard';
 
 /** Production package from app.json. app.config.js keeps this when APP_VARIANT is not "development". */
-export const PRODUCTION_ANDROID_PACKAGE = 'com.everyapp.container';
+export const PRODUCTION_ANDROID_PACKAGE = 'com.openscr.app';
 
-/** SrvEveryApp. app.config.js appends ".dev" when APP_VARIANT=development. */
-export const DEVELOPMENT_ANDROID_PACKAGE = 'com.everyapp.container.dev';
+/** SrvOpenScr. app.config.js appends ".dev" when APP_VARIANT=development. */
+export const DEVELOPMENT_ANDROID_PACKAGE = 'com.openscr.app.dev';
 
 /**
- * Public SHA-1 of the debug keystore used to sign the current SrvEveryApp APK.
+ * Public SHA-1 of the debug keystore used to sign the current SrvOpenScr APK.
  * Colon form, as the Dashboard field "Package SHA1 fingerprint" shows it.
  * The same fingerprint without colons is also accepted. Not a secret.
  * The production signing SHA-1 is not in this repo.
@@ -40,12 +40,12 @@ export interface SpotifyAndroidDashboardTarget {
 export function spotifyAndroidDashboardTarget(packageName: unknown): SpotifyAndroidDashboardTarget {
   const pkg = String(packageName ?? '').trim();
   if (pkg === DEVELOPMENT_ANDROID_PACKAGE) {
-    return { variant: 'development', appName: 'SrvEveryApp', packageName: pkg, sha1: DEVELOPMENT_DEBUG_SHA1 };
+    return { variant: 'development', appName: 'SrvOpenScr', packageName: pkg, sha1: DEVELOPMENT_DEBUG_SHA1 };
   }
   if (pkg === PRODUCTION_ANDROID_PACKAGE) {
-    return { variant: 'production', appName: 'EveryApp', packageName: pkg, sha1: null };
+    return { variant: 'production', appName: 'OpenScr', packageName: pkg, sha1: null };
   }
-  return { variant: 'unknown', appName: 'EveryApp', packageName: pkg || null, sha1: null };
+  return { variant: 'unknown', appName: 'OpenScr', packageName: pkg || null, sha1: null };
 }
 
 type ExpoPackageConstants = {
@@ -54,7 +54,7 @@ type ExpoPackageConstants = {
   manifest2?: { extra?: { expoClient?: { android?: { package?: string | null } | null } | null } | null } | null;
 };
 
-/** android.package written by app.config.js (APP_VARIANT → com.everyapp.container or .dev). */
+/** android.package written by app.config.js (APP_VARIANT → com.openscr.app or .dev). */
 export function androidPackageFromExpoConstants(constants: ExpoPackageConstants | null | undefined): string | null {
   const candidates = [
     constants?.expoConfig?.android?.package,
@@ -97,7 +97,7 @@ export function readRunningAndroidPackage(): string | null {
 }
 
 export const MISSING_SPOTIFY_CLIENT_ID =
-  'Keine Spotify Client ID hinterlegt. Bitte in den EveryApp-Einstellungen eintragen.';
+  'Keine Spotify Client ID hinterlegt. Bitte in den OpenScr-Einstellungen eintragen.';
 
 export const BAD_SPOTIFY_CLIENT_ID =
   'Die Spotify Client ID muss 32 Hex-Zeichen aus dem Developer Dashboard sein.';
@@ -142,7 +142,7 @@ export function normalizeSpotifyClientId(raw: unknown, allowEmpty = false): stri
 
 /**
  * Which Client ID login/connect/play will use.
- * 1. Value saved in the EveryApp settings screen (container).
+ * 1. Value saved in the OpenScr settings screen (container).
  * 2. Value saved by a mini-app via spotify.setClientId.
  * 3. Optional build prefill (expo.extra.spotifyClientId / SPOTIFY_CLIENT_ID).
  */
@@ -195,8 +195,8 @@ export function normalizeSpotifySearch(query: unknown, options?: SpotifySearchOp
 
 export function spotifyClientIdSourceLabel(source: SpotifyClientIdSource): string {
   switch (source) {
-    case 'settings': return 'EveryApp-Einstellungen';
-    case 'bridge': return 'Mini-App';
+    case 'settings': return 'OpenScr-Einstellungen';
+    case 'bridge': return 'OpenScrapp';
     case 'prefill': return 'Build-Prefill';
     default: return 'keine';
   }

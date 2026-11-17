@@ -10,7 +10,7 @@
 
 export const GITHUB_API_HEADERS: Record<string, string> = {
   Accept: 'application/vnd.github+json',
-  'User-Agent': 'EveryApp',
+  'User-Agent': 'OpenScr',
   'Cache-Control': 'no-cache',
   Pragma: 'no-cache',
 };

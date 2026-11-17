@@ -1,21 +1,27 @@
-# EveryApp
+# OpenScr
 
-**EveryApp** is an Android container app that runs mini-apps loaded on demand from public Git repositories, without requiring app store deployments. Built with React Native, Expo, and TypeScript.
+**OpenScr** stands for **Open Smartphone Code Runner**.
 
-## Mini-App bauen
+The small apps are **OpenScrapps** (singular **OpenScrapp**).
 
-Wer eine Mini-App in einem eigenen Repository schreibt, gibt der KI diesen Einstieg: [llms.txt](llms.txt). Der Guide [docs/MINIAPP_AI_GUIDE.md](docs/MINIAPP_AI_GUIDE.md) erklärt Manifest, Bridge und Mehrspieler. Die Vorlage ist [examples/multiplayer-lobby/](examples/multiplayer-lobby/). Am PC testen zwei Browser-Tabs mit [examples/multiplayer-mock/everyapp-mock.js](examples/multiplayer-mock/everyapp-mock.js).
+OpenScr is an Android container app that runs OpenScrapps loaded on demand from public Git repositories, without requiring app store deployments. Built with React Native, Expo, and TypeScript.
+
+Empfehlung: Das Repository eigener OpenScrapps heißt `<Name>Scrapps`, zum Beispiel `KrustenScrapps`. Der Name ist keine technische Voraussetzung.
+
+## OpenScrapp bauen
+
+Wer eine OpenScrapp in einem eigenen Repository schreibt, gibt der KI diesen Einstieg: [llms.txt](llms.txt). Der Guide [docs/MINIAPP_AI_GUIDE.md](docs/MINIAPP_AI_GUIDE.md) erklärt Manifest, Bridge und Mehrspieler. Die Vorlage ist [examples/multiplayer-lobby/](examples/multiplayer-lobby/). Am PC testen zwei Browser-Tabs mit [examples/multiplayer-mock/everyapp-mock.js](examples/multiplayer-mock/everyapp-mock.js).
 
 ## Features
 
 ### v1.0 Capabilities
 
-- **Load Mini-Apps from GitHub**: Add public GitHub repository URLs to fetch and run mini-apps (typed URL, in-app QR scan, or an EveryApp add-link)
+- **Load OpenScrapps from GitHub**: Add public GitHub repository URLs to fetch and run OpenScrapps (typed URL, in-app QR scan, or an OpenScr add-link)
 - **QR install**: Scan a QR code in the app, or open an add-link with the system camera (see below)
-- **Sandboxed WebView Execution**: Each mini-app runs in its own isolated WebView with controlled access to native capabilities
+- **Sandboxed WebView Execution**: Each OpenScrapp runs in its own isolated WebView with controlled access to native capabilities
 - **Permission System**: User consent prompts for requested permissions with fine-grained control
 - **Folder Organization**: Create, rename, delete folders and organize apps between them
-- **Native Bridge API**: Typed JavaScript bridge exposing native capabilities to mini-apps
+- **Native Bridge API**: Typed JavaScript bridge exposing native capabilities to OpenScrapps
 - **Full-Screen Support**: Orientation unlocking for games and immersive experiences
 - **Performance Optimized**: WebView configured for 60 FPS rendering suitable for Canvas/WebGL games
 
@@ -24,18 +30,18 @@ Wer eine Mini-App in einem eigenen Repository schreibt, gibt der KI diesen Einst
 - **Empfohlen:** `catalog/catalog.json` (name, repo URL, description, age rating). Fetched from the latest `main` commit, with the copy in the app as fallback. One tap installs it.
 - Repositories that are not in the catalog (typed URL, QR, add-link) require the warning „Nur vertrauenswürdige Quellen hinzufügen…“ and an explicit confirmation.
 - `EXPO_PUBLIC_CATALOG_ONLY=1` (mirrored from `CATALOG_ONLY` in `app.config.js` as `extra.catalogOnly`) disables free GitHub links. On that build, **Entwicklermodus** can load only repositories owned by the signed-in GitHub account (device flow or a personal token kept in the on-device secret store). Add, update, and open re-check ownership. Signing out disables those apps. The EAS profile `production-catalog` sets the flag for a later iOS build. Android builds leave the flag off and keep the free-add flow. Do not start that build unless you mean to.
-- Device flow is configured. The public GitHub OAuth client id is `Ov23liZBUKxpmryUJW1a` (Device Flow enabled, no client secret). Metro and every EAS profile use it when `EXPO_PUBLIC_GITHUB_CLIENT_ID` is unset; set that variable to override it. A personal token still works.
+- Device flow is configured. The public GitHub OAuth client id is `Ov23liZBUKxpmryUJW1a` (Device Flow enabled, no client secret). Metro and every EAS profile use it when `EXPO_PUBLIC_GITHUB_CLIENT_ID` is unset; set that variable to override it. A personal token still works. The device flow never redirects into the app, so the GitHub OAuth app’s Authorization callback URL does not need to change for this rename. The client id stays the same.
 - Review notes for the two areas: [docs/APP_REVIEW.md](docs/APP_REVIEW.md). That file is not legal advice.
 - **Melden** opens a prefilled email to `manueldiliberto1@gmail.com`. There is no report server.
 - `catalog/blocklist.json` disables listed `appId`s or repos for everyone and shows `reason`.
 - Privacy and terms: [docs/site/](docs/site/index.html) (German and English), linked in the app as „Datenschutz“ and „Nutzung“. After editing those pages, run `node scripts/sync-legal.js`. Play listing, data safety and the closed-test checklist: [docs/PLAY_STORE.md](docs/PLAY_STORE.md). Catalog age ratings are recommendations and need a check too.
-- Delete removes that mini-app’s files, `@miniapp_<appId>_` keys, secrets, permissions, and caches. Update keeps storage.
-- Bridge allowlist: [docs/BRIDGE_API.md](docs/BRIDGE_API.md). Local multiplayer for mini-apps: [docs/MULTIPLAYER.md](docs/MULTIPLAYER.md).
+- Delete removes that OpenScrapp’s files, `@miniapp_<appId>_` keys, secrets, permissions, and caches. Update keeps storage.
+- Bridge allowlist: [docs/BRIDGE_API.md](docs/BRIDGE_API.md). Local multiplayer for OpenScrapps: [docs/MULTIPLAYER.md](docs/MULTIPLAYER.md).
 - **Mehrspieler**: Ein Handy ist Host im selben WLAN oder Hotspot, die anderen treten per QR bei. Nur mit der Berechtigung `multiplayer`. Braucht einen neuen nativen Build.
 
 ### Supported Native Capabilities
 
-Mini-apps can request access to the following through the permission system:
+OpenScrapps can request access to the following through the permission system:
 
 - **Storage**: Persistent key-value storage (scoped per app)
 - **HTTP**: Network requests to external APIs
@@ -45,43 +51,43 @@ Mini-apps can request access to the following through the permission system:
 - **Sensors**: Accelerometer and gyroscope data
 - **Vibration**: Haptic feedback
 
-## Adding a mini-app with a QR code
+## Adding an OpenScrapp with a QR code
 
 On the home screen, next to **Add**, tap **QR**. The in-app camera accepts:
 
-- an EveryApp add-link (either scheme below)
+- an OpenScr add-link (either scheme below)
 - a plain GitHub repository URL (`https://github.com/owner/repo` or the same URL ending in `.git`)
 
-Anything else shows an error and does not install a mini-app. A multiplayer invite (`everyapp-mp://…`) is not an install link; the game scanner reads it. After a successful scan the camera closes so the same code is not added twice. If that repository is already installed, EveryApp says so and can open it.
+Anything else shows an error and does not install an OpenScrapp. A multiplayer invite (`openscr-mp://…`) is not an install link; the game scanner reads it. After a successful scan the camera closes so the same code is not added twice. If that repository is already installed, OpenScr says so and can open it.
 
 A plain `https://github.com/...` QR works **only in the in-app scanner**. The system camera treats that as a web link and opens the browser.
 
 ### Add-links (system camera and in-app scanner)
 
-The host `add` is reserved (it is not a mini-app name). The GitHub URL is the `url` query parameter, percent-encoded. The same path and query work on both schemes; pick the scheme that opens the app you have installed.
+The host `add` is reserved (it is not an OpenScrapp name). The GitHub URL is the `url` query parameter, percent-encoded. The same path and query work on both schemes; pick the scheme that opens the app you have installed.
 
 | App | Package | Link |
 | --- | --- | --- |
-| Production **EveryApp** | `com.everyapp.container` | `everyapp://add?url=<encoded https GitHub URL>` |
-| Dev client **SrvEveryApp** | `com.everyapp.container.dev` | `exp+everyapp://add?url=<encoded https GitHub URL>` (preferred; this scheme is what opens the dev client). `everyapp://add?url=…` is also accepted if that build is the one that handles the scheme. |
+| Production **OpenScr** | `com.openscr.app` | `openscr://add?url=<encoded https GitHub URL>` |
+| Dev client **SrvOpenScr** | `com.openscr.app.dev` | `exp+openscr://add?url=<encoded https GitHub URL>` (preferred; this scheme is what opens the dev client). `openscr://add?url=…` is also accepted if that build is the one that handles the scheme. |
 
 Example for `https://github.com/Krust3nKaese3/evryGuessTheSong`:
 
-- Dev client (SrvEveryApp): `exp+everyapp://add?url=https%3A%2F%2Fgithub.com%2FKrust3nKaese3%2FevryGuessTheSong`
-- Production EveryApp: `everyapp://add?url=https%3A%2F%2Fgithub.com%2FKrust3nKaese3%2FevryGuessTheSong`
+- Dev client (SrvOpenScr): `exp+openscr://add?url=https%3A%2F%2Fgithub.com%2FKrust3nKaese3%2FevryGuessTheSong`
+- Production OpenScr: `openscr://add?url=https%3A%2F%2Fgithub.com%2FKrust3nKaese3%2FevryGuessTheSong`
 
-Opening one of those links (app already running, or cold start) runs the same fetch and save as **Add**, including the success and error alerts. Existing mini-app links such as `everyapp://EveryMacro/...` are unchanged. `everyapp://spotify-callback` and the dev-launcher URL `exp+everyapp://expo-development-client/...` are not install links.
+Opening one of those links (app already running, or cold start) runs the same fetch and save as **Add**, including the success and error alerts. Existing OpenScrapp links such as `openscr://EveryMacro/...` are unchanged. `openscr://spotify-callback` and the dev-launcher URL `exp+openscr://expo-development-client/...` are not install links.
 
-## Mini-App Repository Format
+## OpenScrapp Repository Format
 
 ### Directory Structure
 
-A mini-app is still started from `everyapp.json` and its `entrypoint`. Everything else is up to you: one HTML file, or HTML plus scripts, styles, and assets in any folders you want. Paths are relative to the file that contains them (`app.js` next to `index.html`, `assets/buzz.mp3` from that HTML, `url(../img/a.png)` from a stylesheet).
+An OpenScrapp is started from `openscr.json` and its `entrypoint`. `everyapp.json` is still accepted when the repository has no `openscr.json` (evryWerwolf, evryGuessTheSong, EveryMacro, and EveryRollDice). Everything else is up to you: one HTML file, or HTML plus scripts, styles, and assets in any folders you want. Paths are relative to the file that contains them (`app.js` next to `index.html`, `assets/buzz.mp3` from that HTML, `url(../img/a.png)` from a stylesheet).
 
 ```
-your-miniapp-repo/
-├── everyapp.json          # Manifest (required)
-├── index.html             # Entrypoint named by everyapp.json
+KrustenScrapps/
+├── openscr.json          # Manifest (required)
+├── index.html             # Entrypoint named by openscr.json
 ├── styles.css             # Optional
 ├── app.js                 # Optional
 ├── assets/
@@ -103,21 +109,21 @@ const levels = await fetch('assets/levels.json').then((res) => res.json());
 new Audio('assets/buzz.mp3');
 ```
 
-A classic single-file mini-app (only `everyapp.json` and one HTML file, like evryGuessTheSong or EveryMacro) keeps working with no repository change.
+A classic single-file OpenScrapp keeps working. Repositories that still ship only `everyapp.json` do not need a rename. New ones use `openscr.json`.
 
-The entrypoint can live in a subfolder (`"entrypoint": "src/index.html"`). Relative URLs in that file are resolved from `src/`, and `../assets/a.png` is allowed as long as it stays inside the mini-app. `file://` URLs are not used and cannot read the rest of the phone. A link to another page (`<a href="page.html">`) opens that HTML file in the same WebView.
+The entrypoint can live in a subfolder (`"entrypoint": "src/index.html"`). Relative URLs in that file are resolved from `src/`, and `../assets/a.png` is allowed as long as it stays inside the OpenScrapp. `file://` URLs are not used and cannot read the rest of the phone. A link to another page (`<a href="page.html">`) opens that HTML file in the same WebView.
 
-EveryApp downloads the folder that contains `everyapp.json` (the repo root when the manifest is there, otherwise the only folder in the repo that has one). Install and update read the public `main` branch. Limits: 500 files, 40 MB total, 15 MB per file. `node_modules` and git symlinks are not installed. Put the mini-app in its own repository, or keep a single `everyapp.json` at the root of a larger one.
+OpenScr downloads the folder that contains `openscr.json` (the repo root when the manifest is there, otherwise the only folder in the repo that has one). Install and update read the public `main` branch. Limits: 500 files, 40 MB total, 15 MB per file. `node_modules` and git symlinks are not installed. Put the OpenScrapp in its own repository, or keep a single `openscr.json` at the root of a larger one.
 
-After you push new files, refresh the mini-app in EveryApp (⟳). Refresh resolves the latest commit of `main` via the GitHub API and downloads `raw.githubusercontent.com/<owner>/<repo>/<commit-sha>/…`. The previous URL under `/main/` stays on GitHub’s CDN for several minutes and ignores a `?t=` cache buster, which is why a refresh used to keep the old files while delete-and-install could see a newer copy. The mini-app’s storage (for example a saved game) is kept. The row shows the installed commit and, when a newer one exists, that an update is available. Opening the container checks for that in the background.
+After you push new files, refresh the OpenScrapp in OpenScr (⟳). Refresh resolves the latest commit of `main` via the GitHub API and downloads `raw.githubusercontent.com/<owner>/<repo>/<commit-sha>/…`. The previous URL under `/main/` stays on GitHub’s CDN for several minutes and ignores a `?t=` cache buster, which is why a refresh used to keep the old files while delete-and-install could see a newer copy. The OpenScrapp’s storage (for example a saved game) is kept. The row shows the installed commit and, when a newer one exists, that an update is available. Opening the container checks for that in the background.
 
 ### Dateien und Ordner (Deutsch)
 
-Eine Mini-App startet weiter über `everyapp.json` und das Feld `entrypoint`. Alles andere darf frei verteilt sein: eine einzelne HTML-Datei, oder HTML plus JavaScript, CSS und Medien in beliebigen Ordnern. Relative Pfade gelten ab der Datei, in der sie stehen.
+Eine OpenScrapp startet weiter über `openscr.json` und das Feld `entrypoint`. Alles andere darf frei verteilt sein: eine einzelne HTML-Datei, oder HTML plus JavaScript, CSS und Medien in beliebigen Ordnern. Relative Pfade gelten ab der Datei, in der sie stehen.
 
 ```
-deine-mini-app/
-├── everyapp.json
+deine-OpenScrapp/
+├── openscr.json
 ├── index.html
 ├── styles.css
 ├── app.js
@@ -126,13 +132,13 @@ deine-mini-app/
     └── icon.png
 ```
 
-Im HTML zum Beispiel `href="styles.css"`, `src="app.js"`, `src="assets/buzz.mp3"`. Im Script funktionieren `fetch('assets/levels.json')`, `img.src = 'assets/icon.png'` und `new Audio('assets/buzz.mp3')`. CSS `url(...)` ist relativ zur CSS-Datei. `../` darf den Ordner der Mini-App nicht verlassen. Die App liest keine anderen Dateien auf dem Gerät.
+Im HTML zum Beispiel `href="styles.css"`, `src="app.js"`, `src="assets/buzz.mp3"`. Im Script funktionieren `fetch('assets/levels.json')`, `img.src = 'assets/icon.png'` und `new Audio('assets/buzz.mp3')`. CSS `url(...)` ist relativ zur CSS-Datei. `../` darf den Ordner der OpenScrapp nicht verlassen. Die App liest keine anderen Dateien auf dem Gerät.
 
 Bestehende Ein-Datei-Repos müssen nicht geändert werden. Der Einstieg darf in einem Unterordner liegen (`"entrypoint": "src/index.html"`). Ein Link `<a href="seite.html">` öffnet diese HTML-Datei.
 
-EveryApp lädt den Ordner, der `everyapp.json` enthält, vom öffentlichen Branch `main`. Grenzen: 500 Dateien, 40 MB insgesamt, 15 MB pro Datei. `node_modules` und Git-Symlinks werden nicht installiert. Nach dem Push neuer Dateien die Mini-App in EveryApp mit ⟳ aktualisieren. Die App ermittelt dafür den aktuellen Commit von `main` und lädt die Dateien über diese Commit-SHA, nicht über die gecachte Adresse `/main/`. Der Speicher der Mini-App (Spielstand) bleibt erhalten.
+OpenScr lädt den Ordner, der `openscr.json` enthält, vom öffentlichen Branch `main`. Grenzen: 500 Dateien, 40 MB insgesamt, 15 MB pro Datei. `node_modules` und Git-Symlinks werden nicht installiert. Nach dem Push neuer Dateien die OpenScrapp in OpenScr mit ⟳ aktualisieren. Die App ermittelt dafür den aktuellen Commit von `main` und lädt die Dateien über diese Commit-SHA, nicht über die gecachte Adresse `/main/`. Der Speicher der OpenScrapp (Spielstand) bleibt erhalten.
 
-### Manifest Format (`everyapp.json`)
+### Manifest Format (`openscr.json`)
 
 ```json
 {
@@ -146,7 +152,7 @@ EveryApp lädt den Ordner, der `everyapp.json` enthält, vom öffentlichen Branc
 ```
 
 **Fields:**
-- `name` (string, required): Display name of the mini-app
+- `name` (string, required): Display name of the OpenScrapp
 - `version` (string, required): Semantic version
 - `description` (string, required): Brief description
 - `icon` (string, optional): Relative path to icon image
@@ -166,28 +172,28 @@ EveryApp lädt den Ordner, der `everyapp.json` enthält, vom öffentlichen Branc
 
 ## Bridge API Reference
 
-The EveryApp bridge is available globally as `window.EveryAppBridge` in your mini-app's WebView context.
+The OpenScr bridge is available globally as `window.OpenScrBridge` in your OpenScrapp's WebView context. `window.EveryAppBridge` is the same object and remains as a compatibility alias.
 
 ### Storage API
 
 ```javascript
 // Get a value
-const value = await window.EveryAppBridge.storage.get('key');
+const value = await window.OpenScrBridge.storage.get('key');
 
 // Set a value
-await window.EveryAppBridge.storage.set('key', 'value');
+await window.OpenScrBridge.storage.set('key', 'value');
 
 // Remove a value
-await window.EveryAppBridge.storage.remove('key');
+await window.OpenScrBridge.storage.remove('key');
 ```
 
-**Note:** Storage is scoped per mini-app. Keys are prefixed with `@miniapp_<appId>_`. Values are text, at most 256 KiB. The allowed method list, rate limits, and the explicit absence of file system, contacts, and location are documented in [docs/BRIDGE_API.md](docs/BRIDGE_API.md).
+**Note:** Storage is scoped per OpenScrapp. Keys are prefixed with `@miniapp_<appId>_`. Values are text, at most 256 KiB. The allowed method list, rate limits, and the explicit absence of file system, contacts, and location are documented in [docs/BRIDGE_API.md](docs/BRIDGE_API.md).
 
 ### HTTP API
 
 **Standard Fetch (compatible with existing code):**
 ```javascript
-const response = await window.EveryAppBridge.http.fetch('https://api.example.com/data', {
+const response = await window.OpenScrBridge.http.fetch('https://api.example.com/data', {
   method: 'GET',
   headers: {
     'Content-Type': 'application/json'
@@ -201,7 +207,7 @@ const text = await response.text();
 
 **Advanced Request (for LAN devices, with full response details):**
 ```javascript
-const response = await window.EveryAppBridge.http.request({
+const response = await window.OpenScrBridge.http.request({
   url: 'http://192.168.178.20:8080/api/data',
   method: 'POST',
   headers: {
@@ -225,27 +231,27 @@ console.log(response.body);    // Response body as text
 **BLE Operations (Low Energy):**
 ```javascript
 // Scan for BLE devices (returns array of peripherals)
-const devices = await window.EveryAppBridge.bluetooth.scan();
+const devices = await window.OpenScrBridge.bluetooth.scan();
 
 // Connect to a BLE device
-await window.EveryAppBridge.bluetooth.connect(deviceId);
+await window.OpenScrBridge.bluetooth.connect(deviceId);
 
 // Disconnect from a BLE device
-await window.EveryAppBridge.bluetooth.disconnect(deviceId);
+await window.OpenScrBridge.bluetooth.disconnect(deviceId);
 ```
 
 **Classic Bluetooth:**
 ```javascript
 // Get currently connected classic Bluetooth devices
-const connectedDevices = await window.EveryAppBridge.bluetooth.getConnectedDevices();
+const connectedDevices = await window.OpenScrBridge.bluetooth.getConnectedDevices();
 // Returns: [{ name: string, address: string }, ...]
 
 // Listen for Bluetooth connection events
-window.EveryAppBridge.events.on('bluetooth.connected', (device) => {
+window.OpenScrBridge.events.on('bluetooth.connected', (device) => {
   console.log(`Device connected: ${device.name} (${device.address})`);
 });
 
-window.EveryAppBridge.events.on('bluetooth.disconnected', (device) => {
+window.OpenScrBridge.events.on('bluetooth.disconnected', (device) => {
   console.log(`Device disconnected: ${device.name} (${device.address})`);
 });
 ```
@@ -258,7 +264,7 @@ window.EveryAppBridge.events.on('bluetooth.disconnected', (device) => {
 
 ```javascript
 // Schedule a notification
-await window.EveryAppBridge.notifications.schedule(
+await window.OpenScrBridge.notifications.schedule(
   'Notification Title',
   'Notification body text',
   5  // seconds until notification appears
@@ -269,7 +275,7 @@ await window.EveryAppBridge.notifications.schedule(
 
 ```javascript
 // Request camera and take picture (returns file URI)
-const imageUri = await window.EveryAppBridge.camera.takePicture();
+const imageUri = await window.OpenScrBridge.camera.takePicture();
 ```
 
 **Note:** Camera functionality requires additional UI component integration in the host app for full functionality.
@@ -278,11 +284,11 @@ const imageUri = await window.EveryAppBridge.camera.takePicture();
 
 ```javascript
 // Get accelerometer reading
-const accel = await window.EveryAppBridge.sensors.getAccelerometer();
+const accel = await window.OpenScrBridge.sensors.getAccelerometer();
 // Returns: { x: number, y: number, z: number }
 
 // Get gyroscope reading
-const gyro = await window.EveryAppBridge.sensors.getGyroscope();
+const gyro = await window.OpenScrBridge.sensors.getGyroscope();
 // Returns: { x: number, y: number, z: number }
 ```
 
@@ -290,38 +296,38 @@ const gyro = await window.EveryAppBridge.sensors.getGyroscope();
 
 ```javascript
 // Simple vibration
-window.EveryAppBridge.vibration.vibrate();
+window.OpenScrBridge.vibration.vibrate();
 
 // Pattern vibration (array of durations in ms)
-window.EveryAppBridge.vibration.vibrate([100, 50, 100, 50, 200]);
+window.OpenScrBridge.vibration.vibrate([100, 50, 100, 50, 200]);
 ```
 
 ### Background Execution API
 
 ```javascript
-// Enable background execution for this mini-app
-await window.EveryAppBridge.background.enable();
+// Enable background execution for this OpenScrapp
+await window.OpenScrBridge.background.enable();
 // Arms background mode. The foreground service stays up only for interval
 // triggers or a connected/due BLE notify. Other triggers use a short headless task.
 
 // Disable background execution
-await window.EveryAppBridge.background.disable();
+await window.OpenScrBridge.background.disable();
 
 // Check if background execution is enabled
-const isEnabled = await window.EveryAppBridge.background.isEnabled();
+const isEnabled = await window.OpenScrBridge.background.isEnabled();
 ```
 
 **Background Behavior:**
-- Mini-apps with the `background` permission can keep running when EveryApp is in the background or the screen is off
+- OpenScrapps with the `background` permission can keep running when OpenScr is in the background or the screen is off
 - A persistent notification is shown only while an interval or a connected/due BLE notify needs the process
-- The mini-app can continue to:
+- The OpenScrapp can continue to:
   - Receive Bluetooth connection events
   - Make HTTP requests
   - Execute scheduled logic
 - Background execution stops when:
   - `background.disable()` is called
   - The user stops the service from the notification
-  - EveryApp is force-stopped
+  - OpenScr is force-stopped
 
 **Requirements:**
 - Mini-app must declare `"background"` permission in manifest
@@ -330,90 +336,90 @@ const isEnabled = await window.EveryAppBridge.background.isEnabled();
 
 ### Spotify API
 
-Permission: `"spotify"` in `everyapp.json`, granted by the user. Playback uses the **Spotify Android app** (App Remote). The WebView does not stream audio. Search uses the Web API with a PKCE token kept inside EveryApp. There is no client secret in this repo, and new Spotify apps must not rely on `preview_url`.
+Permission: `"spotify"` in `openscr.json`, granted by the user. Playback uses the **Spotify Android app** (App Remote). The WebView does not stream audio. Search uses the Web API with a PKCE token kept inside OpenScr. There is no client secret in this repo, and new Spotify apps must not rely on `preview_url`.
 
-The Client ID is **not** baked into the build. Enter it in EveryApp under **Spotify** on the home screen (stored in the container settings, not in a mini-app repo). It applies immediately. A granted mini-app can read or set the same value. Precedence when several values exist:
+The Client ID is **not** baked into the build. Enter it in OpenScr under **Spotify** on the home screen (stored in the container settings, not in an OpenScrapp repo). It applies immediately. A granted OpenScrapp can read or set the same value. Precedence when several values exist:
 
-1. EveryApp settings (source of truth)
-2. `spotify.setClientId()` from a mini-app
+1. OpenScr settings (source of truth)
+2. `spotify.setClientId()` from an OpenScrapp
 3. Optional build prefill `expo.extra.spotifyClientId` / `SPOTIFY_CLIENT_ID` (empty is normal)
 
 Changing the Client ID does not require a new native build. The redirect URI, package names and Spotify SDK do.
 
-The same screen has a German walkthrough (**Anleitung**) next to the Client ID field. It covers creating the Dashboard app on a computer ([Spotify Developer Dashboard](https://developer.spotify.com/dashboard)) with **Web API** and **Android SDK** (not the Web Playback SDK), the redirect URI `everyapp://spotify-callback`, empty Bundle IDs (iOS-only; EveryApp is Android-only for now), and the Android package name plus SHA-1 of the **running** variant. Development / SrvEveryApp (`APP_VARIANT=development`, `com.everyapp.container.dev`) uses the debug-keystore SHA-1 `5E:8F:16:06:2E:A3:CD:2C:4A:0D:54:78:76:BA:A6:F3:8C:AB:F6:25`. Production / EveryApp (`com.everyapp.container`) has no signing SHA-1 in this repo — read it from the signing certificate or the EAS Android credentials, and do not reuse the debug fingerprint. The phone still needs the Spotify app and a Premium login to start a specific track. The API and SDK themselves cost nothing extra. Same steps, in German, in [SPOTIFY.md](SPOTIFY.md).
+The same screen has a German walkthrough (**Anleitung**) next to the Client ID field. It covers creating the Dashboard app on a computer ([Spotify Developer Dashboard](https://developer.spotify.com/dashboard)) with **Web API** and **Android SDK** (not the Web Playback SDK), the redirect URI `openscr://spotify-callback`, empty Bundle IDs (iOS-only; OpenScr is Android-only for now), and the Android package name plus SHA-1 of the **running** variant. Development / SrvOpenScr (`APP_VARIANT=development`, `com.openscr.app.dev`) uses the debug-keystore SHA-1 `5E:8F:16:06:2E:A3:CD:2C:4A:0D:54:78:76:BA:A6:F3:8C:AB:F6:25`. Production / OpenScr (`com.openscr.app`) has no signing SHA-1 in this repo — read it from the signing certificate or the EAS Android credentials, and do not reuse the debug fingerprint. The phone still needs the Spotify app and a Premium login to start a specific track. The API and SDK themselves cost nothing extra. Same steps, in German, in [SPOTIFY.md](SPOTIFY.md).
 
 ```javascript
-const status = await EveryAppBridge.spotify.isAvailable();
+const status = await OpenScrBridge.spotify.isAvailable();
 // { installed, connected, authorized, premium }  premium is null until known
 
-await EveryAppBridge.spotify.setClientId(clientIdFromTheUser);
-const id = await EveryAppBridge.spotify.getClientId();
+await OpenScrBridge.spotify.setClientId(clientIdFromTheUser);
+const id = await OpenScrBridge.spotify.getClientId();
 // { clientId, source: 'settings'|'bridge'|'prefill'|'none', settingsClientId, bridgeClientId, prefillClientId }
 // If source is 'settings', setClientId is stored but does not override the settings field.
 
-await EveryAppBridge.spotify.login();   // Authorization Code + PKCE, opens Spotify or the browser
-await EveryAppBridge.spotify.connect();  // App Remote; may show Spotify's auth view
+await OpenScrBridge.spotify.login();   // Authorization Code + PKCE, opens Spotify or the browser
+await OpenScrBridge.spotify.connect();  // App Remote; may show Spotify's auth view
 
-const found = await EveryAppBridge.spotify.search('yellow submarine', { types: ['track'], limit: 5 });
+const found = await OpenScrBridge.spotify.search('yellow submarine', { types: ['track'], limit: 5 });
 const uri = found.tracks.items[0].uri;
-await EveryAppBridge.spotify.play(uri, { positionMs: 15000 }); // needs Premium for a track URI
-await EveryAppBridge.spotify.seek(40000);
-await EveryAppBridge.spotify.pause();
-await EveryAppBridge.spotify.resume();
-await EveryAppBridge.spotify.skipNext();
-await EveryAppBridge.spotify.skipPrevious();
-await EveryAppBridge.spotify.stop(); // pause and seek to 0 (App Remote has no separate stop)
-const state = await EveryAppBridge.spotify.getPlayerState();
+await OpenScrBridge.spotify.play(uri, { positionMs: 15000 }); // needs Premium for a track URI
+await OpenScrBridge.spotify.seek(40000);
+await OpenScrBridge.spotify.pause();
+await OpenScrBridge.spotify.resume();
+await OpenScrBridge.spotify.skipNext();
+await OpenScrBridge.spotify.skipPrevious();
+await OpenScrBridge.spotify.stop(); // pause and seek to 0 (App Remote has no separate stop)
+const state = await OpenScrBridge.spotify.getPlayerState();
 // { connected, paused, positionMs, playbackSpeed, canSeek, track: { uri, name, artist, artists, album, durationMs } }
 
-await EveryAppBridge.spotify.getMe();                 // { id, displayName, product, premium }
-await EveryAppBridge.spotify.getMyPlaylists({ limit: 20 });
-await EveryAppBridge.spotify.getSavedTracks({ limit: 20 });
+await OpenScrBridge.spotify.getMe();                 // { id, displayName, product, premium }
+await OpenScrBridge.spotify.getMyPlaylists({ limit: 20 });
+await OpenScrBridge.spotify.getSavedTracks({ limit: 20 });
 
-await EveryAppBridge.spotify.disconnect();
-await EveryAppBridge.spotify.logout(); // forgets the Web API token; does not remove the Client ID
+await OpenScrBridge.spotify.disconnect();
+await OpenScrBridge.spotify.logout(); // forgets the Web API token; does not remove the Client ID
 
-EveryAppBridge.events.on('spotify.connected', (data) => console.log('connected', data));
-EveryAppBridge.events.on('spotify.disconnected', (data) => console.log('disconnected', data));
-EveryAppBridge.events.on('spotify.player', (state) => console.log(state.track && state.track.name, state.positionMs));
-EveryAppBridge.events.on('spotify.error', (err) => console.log(err.message));
+OpenScrBridge.events.on('spotify.connected', (data) => console.log('connected', data));
+OpenScrBridge.events.on('spotify.disconnected', (data) => console.log('disconnected', data));
+OpenScrBridge.events.on('spotify.player', (state) => console.log(state.track && state.track.name, state.positionMs));
+OpenScrBridge.events.on('spotify.error', (err) => console.log(err.message));
 ```
 
-`EveryAppBridge.media.*` still sends generic media keys and is unchanged. It cannot start a specific Spotify URI.
+`OpenScrBridge.media.*` still sends generic media keys and is unchanged. It cannot start a specific Spotify URI.
 
-If no Client ID is saved, `login`, `connect`, `play` and `search` reject with: `Keine Spotify Client ID hinterlegt. Bitte in den EveryApp-Einstellungen eintragen.` Other readable German errors cover: Spotify not installed, auth cancelled, not Premium, connection dropped, and Web API rate limits. The access token is not given to the mini-app.
+If no Client ID is saved, `login`, `connect`, `play` and `search` reject with: `Keine Spotify Client ID hinterlegt. Bitte in den OpenScr-Einstellungen eintragen.` Other readable German errors cover: Spotify not installed, auth cancelled, not Premium, connection dropped, and Web API rate limits. The access token is not given to the OpenScrapp.
 
 ### Events API
 
 ```javascript
 // Listen for app lifecycle events
-window.EveryAppBridge.events.on('app.start', (data) => {
+window.OpenScrBridge.events.on('app.start', (data) => {
   console.log('Mini-app runtime started at:', data.timestamp);
-  // This event fires when the mini-app is loaded (foreground or background)
+  // This event fires when the OpenScrapp is loaded (foreground or background)
 });
 
 // Listen for Bluetooth events (requires 'bluetooth' permission)
-window.EveryAppBridge.events.on('bluetooth.connected', (device) => {
+window.OpenScrBridge.events.on('bluetooth.connected', (device) => {
   console.log('Bluetooth device connected:', device.name, device.address);
 });
 
-window.EveryAppBridge.events.on('bluetooth.disconnected', (device) => {
+window.OpenScrBridge.events.on('bluetooth.disconnected', (device) => {
   console.log('Bluetooth device disconnected:', device.name, device.address);
 });
 
 // Remove event listeners
-window.EveryAppBridge.events.off('app.start', callback);
+window.OpenScrBridge.events.off('app.start', callback);
 ```
 
 **Available Events:**
-- `app.start` - Fired when the mini-app runtime starts (no permission required)
+- `app.start` - Fired when the OpenScrapp runtime starts (no permission required)
 - `bluetooth.connected` - Classic Bluetooth device connected (requires `bluetooth` permission)
 - `bluetooth.disconnected` - Classic Bluetooth device disconnected (requires `bluetooth` permission)
 - `spotify.connected` / `spotify.disconnected` / `spotify.player` / `spotify.error` - Spotify App Remote (requires `spotify` permission to call the API; events arrive on the same event bus)
 
 ## EveryMacro Use Case
 
-The **EveryMacro** mini-app is a prime example of the new capabilities:
+The **EveryMacro** OpenScrapp is a prime example of the new capabilities:
 
 **Scenario:** A macro automation app that monitors classic Bluetooth device connections (e.g., car, headphones, smart home devices) and triggers HTTP requests to control LAN devices.
 
@@ -427,19 +433,19 @@ The **EveryMacro** mini-app is a prime example of the new capabilities:
 **Implementation Example:**
 ```javascript
 // Enable background execution to monitor devices 24/7
-await window.EveryAppBridge.background.enable();
+await window.OpenScrBridge.background.enable();
 
 // Listen for device connections
-window.EveryAppBridge.events.on('bluetooth.connected', async (device) => {
+window.OpenScrBridge.events.on('bluetooth.connected', async (device) => {
   // When car Bluetooth connects, turn on home lights
   if (device.name === 'MY-CAR') {
-    await window.EveryAppBridge.http.request({
+    await window.OpenScrBridge.http.request({
       url: 'http://192.168.1.100/api/lights/on',
       method: 'POST',
       timeoutMs: 3000
     });
     
-    await window.EveryAppBridge.notifications.schedule(
+    await window.OpenScrBridge.notifications.schedule(
       'Macro Triggered',
       'Home lights turned on',
       1
@@ -448,8 +454,8 @@ window.EveryAppBridge.events.on('bluetooth.connected', async (device) => {
 });
 
 // On app start, check currently connected devices
-window.EveryAppBridge.events.on('app.start', async () => {
-  const devices = await window.EveryAppBridge.bluetooth.getConnectedDevices();
+window.OpenScrBridge.events.on('app.start', async () => {
+  const devices = await window.OpenScrBridge.bluetooth.getConnectedDevices();
   console.log('Currently connected devices:', devices);
 });
 ```
@@ -460,9 +466,9 @@ window.EveryAppBridge.events.on('app.start', async () => {
 3. **LAN HTTP Requests** - Cleartext HTTP to local smart home devices
 4. **Event System** - `app.start` ensures initialization on background wake
 
-## Example Mini-Apps
+## Example OpenScrapps
 
-Two example mini-apps are included in the `examples/` directory:
+Two example OpenScrapps are included in the `examples/` directory:
 
 ### 1. Dice Game (`examples/dice-game/`)
 
@@ -501,8 +507,8 @@ https://github.com/YOUR_USERNAME/YOUR_REPO/tree/main/examples/http-demo
 
 1. Clone the repository:
 ```bash
-git clone <repository-url>
-cd everyapp
+git clone https://github.com/Krust3nKaese3/OpenScr.git
+cd OpenScr
 ```
 
 2. Install dependencies:
@@ -589,8 +595,8 @@ everyapp/
 │   └── types/
 │       └── index.ts                   # TypeScript definitions
 ├── examples/
-│   ├── dice-game/                     # Example mini-app
-│   └── http-demo/                     # Example mini-app
+│   ├── dice-game/                     # Example OpenScrapp
+│   └── http-demo/                     # Example OpenScrapp
 ├── App.tsx                            # Entry point
 ├── app.json                           # Expo configuration
 └── package.json
@@ -599,11 +605,11 @@ everyapp/
 ### Data Flow
 
 1. User adds GitHub repository URL
-2. `GitRepoService` downloads the mini-app folder that contains `everyapp.json` (manifest, entrypoint, scripts, styles, and assets)
+2. `GitRepoService` downloads the OpenScrapp folder that contains `openscr.json` (manifest, entrypoint, scripts, styles, and assets)
 3. Files are cached locally using Expo FileSystem
 4. App metadata saved to AsyncStorage
 5. When launched, `MiniAppRunner` loads HTML into WebView
-6. Bridge script injected into WebView provides `window.EveryAppBridge`
+6. Bridge script injected into WebView provides `window.OpenScrBridge`
 7. Mini-app calls bridge methods via `postMessage`
 8. `BridgeMessageHandler` validates permissions and executes native APIs
 9. Results returned to WebView via injected JavaScript
@@ -641,7 +647,7 @@ everyapp/
 
 - WebView sandboxing provides basic isolation. Mini-app files are loaded without `file://` access, so a page cannot read arbitrary files outside its own directory
 - Permissions must be explicitly granted by users
-- Mini-apps cannot access other apps' data
+- OpenScrapps cannot access other apps' data
 - HTTP requests are not proxied or filtered
 - Consider implementing content security policies for production use
 
@@ -654,12 +660,12 @@ everyapp/
 - Delete `node_modules` and reinstall
 
 **WebView not loading**
-- Check that `everyapp.json` exists in repository root
+- Check that `openscr.json` exists in repository root
 - Verify `entrypoint` path is correct
 - Check browser console for JavaScript errors
 
 **Permissions not working**
-- Ensure permission is listed in `everyapp.json`
+- Ensure permission is listed in `openscr.json`
 - Check that user granted permission in consent dialog
 - Review Android system permissions in app settings
 
@@ -691,8 +697,8 @@ See LICENSE file for details.
 - [ ] Run `npm install`
 - [ ] Connect Android device or start emulator
 - [ ] Run `npm run android`
-- [ ] In the app, add example mini-app repository URL
+- [ ] In the app, add example OpenScrapp repository URL
 - [ ] Grant requested permissions
-- [ ] Test mini-app functionality
+- [ ] Test OpenScrapp functionality
 
 For questions or issues, please open a GitHub issue.

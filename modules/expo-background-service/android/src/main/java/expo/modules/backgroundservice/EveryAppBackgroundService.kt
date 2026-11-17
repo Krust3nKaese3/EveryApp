@@ -63,7 +63,7 @@ class EveryAppBackgroundService : Service() {
       PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
     )
     return NotificationCompat.Builder(this, CHANNEL_ID)
-      .setContentTitle("EveryApp aktiv")
+      .setContentTitle("OpenScr aktiv")
       .setContentText(if (reasons.isEmpty()) "Hintergrund-Makros" else reasons.joinToString(", "))
       .setSmallIcon(android.R.drawable.ic_menu_compass)
       .setContentIntent(pendingIntent)
@@ -89,7 +89,7 @@ class EveryAppBackgroundService : Service() {
 
     fun createChannel(context: Context) {
       if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-        val channel = NotificationChannel(CHANNEL_ID, "EveryApp Hintergrund", NotificationManager.IMPORTANCE_LOW)
+        val channel = NotificationChannel(CHANNEL_ID, "OpenScr Hintergrund", NotificationManager.IMPORTANCE_LOW)
         channel.description = "Hält Hintergrund-Makros aktiv"
         (context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager).createNotificationChannel(channel)
       }

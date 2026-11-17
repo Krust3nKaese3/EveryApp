@@ -1,21 +1,25 @@
-# Mini-App für EveryApp
+# OpenScrapp für OpenScr
 
-Diese Datei reicht als Auftrag für eine KI. Die Mini-App liegt in **ihrem eigenen Git-Repository**. EveryApp lädt sie von dort. Es gibt keinen Zugriff auf Dateien des Geräts, Kontakte oder Standort.
+OpenScr steht für Open Smartphone Code Runner. Die kleinen Apps heißen OpenScrapps (Einzahl OpenScrapp).
+
+Diese Datei reicht als Auftrag für eine KI. Die OpenScrapp liegt in **ihrem eigenen Git-Repository**. OpenScr lädt sie von dort. Es gibt keinen Zugriff auf Dateien des Geräts, Kontakte oder Standort.
 
 Sag deiner KI:
 
 ```text
-Baue eine EveryApp-Mini-App. Lies zuerst
-https://raw.githubusercontent.com/Krust3nKaese3/EveryApp/main/llms.txt
+Baue eine OpenScrapp für OpenScr. Lies zuerst
+https://raw.githubusercontent.com/Krust3nKaese3/OpenScr/main/llms.txt
 und halte dich an den Guide, die Bridge-API und, falls Mehrspieler vorkommt, an MULTIPLAYER.md.
-Lege everyapp.json, eine Einstiegsdatei und nur die Berechtigungen an, die du brauchst.
-Nutze ausschließlich window.EveryAppBridge. Schreibe Namen und Spielnachrichten mit textContent, nie mit innerHTML.
-Beim Mehrspieler: Callbacks vor host/join/resume, der Host ist allein zuständig, den Spielstand selbst in EveryAppBridge.storage speichern und nach resume neu senden, höchstens 32 KiB JSON. Der Raum endet mit endRoom, nicht beim Schließen der App.
+Lege openscr.json, eine Einstiegsdatei und nur die Berechtigungen an, die du brauchst.
+Nutze ausschließlich window.OpenScrBridge. Schreibe Namen und Spielnachrichten mit textContent, nie mit innerHTML.
+Beim Mehrspieler: Callbacks vor host/join/resume, der Host ist allein zuständig, den Spielstand selbst in OpenScrBridge.storage speichern und nach resume neu senden, höchstens 32 KiB JSON. Der Raum endet mit endRoom, nicht beim Schließen der App.
 ```
 
 ## Dateien
 
-`everyapp.json` im Ordner, den EveryApp als Wurzel nimmt:
+Empfehlung für den Repository-Namen: `<Name>Scrapps`, zum Beispiel `KrustenScrapps`. OpenScr verlangt den Namen nicht.
+
+`openscr.json` im Ordner, den OpenScr als Wurzel nimmt. Liegt keine `openscr.json` im Repository, gilt weiter `everyapp.json` (so sind evryWerwolf, evryGuessTheSong, EveryMacro und EveryRollDice gebaut). Neue OpenScrapps legen `openscr.json` an:
 
 ```json
 {
@@ -29,35 +33,35 @@ Beim Mehrspieler: Callbacks vor host/join/resume, der Host ist allein zuständig
 
 `entrypoint` ist der Start, meist `index.html`. Relative Skripte und Bilder daneben sind in Ordnung. Pfade mit `..` oder `file://` werden verworfen.
 
-`permissions` ist die Liste, die EveryApp vor dem ersten Nutzen zeigt. Unbekannte Namen werden ignoriert. Eine Fähigkeit ohne Eintrag fragt EveryApp beim ersten Aufruf. Die Nutzerin kann ablehnen.
+`permissions` ist die Liste, die OpenScr vor dem ersten Nutzen zeigt. Unbekannte Namen werden ignoriert. Eine Fähigkeit ohne Eintrag fragt OpenScr beim ersten Aufruf. Die Nutzerin kann ablehnen.
 
 Eine fertige Lobby steht unter `examples/multiplayer-lobby/`.
 
 ## Bridge
 
-Im Spiel gibt es `window.EveryAppBridge`. Andere Namen gibt es nicht. Die vollständige Liste steht in [BRIDGE_API.md](https://raw.githubusercontent.com/Krust3nKaese3/EveryApp/main/docs/BRIDGE_API.md).
+Im Spiel gibt es `window.OpenScrBridge`. `window.EveryAppBridge` ist dasselbe Objekt und nur der Kompatibilitätsname. Neue OpenScrapps nutzen `OpenScrBridge`. Die vollständige Liste steht in [BRIDGE_API.md](https://raw.githubusercontent.com/Krust3nKaese3/OpenScr/main/docs/BRIDGE_API.md).
 
 Aufrufe geben ein Promise zurück. Fehler kommen als Ablehnung mit deutschem Text.
 
-Speicher ist Text, nur für diese Mini-App, höchstens 256 KiB pro Wert:
+Speicher ist Text, nur für diese OpenScrapp, höchstens 256 KiB pro Wert:
 
 ```javascript
-await EveryAppBridge.storage.set('stand', JSON.stringify(stand));
-const raw = await EveryAppBridge.storage.get('stand');
+await OpenScrBridge.storage.set('stand', JSON.stringify(stand));
+const raw = await OpenScrBridge.storage.get('stand');
 ```
 
 HTTP nur mit `http:` oder `https:`. Kein Dateisystem, keine Kontakte, kein GPS.
 
 ## Mehrspieler
 
-Berechtigung `multiplayer`. Ein Handy ist Host im selben WLAN oder Hotspot. Die anderen finden den Raum in der Nähe oder scannen den QR-Code, den EveryApp anzeigt. Ohne Internet, Android und iOS gemischt, sobald die installierte EveryApp den lokalen Server und die Suche enthält.
+Berechtigung `multiplayer`. Ein Handy ist Host im selben WLAN oder Hotspot. Die anderen finden den Raum in der Nähe oder scannen den QR-Code, den OpenScr anzeigt. Ohne Internet, Android und iOS gemischt, sobald die installierte OpenScr den lokalen Server und die Suche enthält.
 
-Die Mini-App speichert den Spielstand selbst mit `EveryAppBridge.storage`. EveryApp speichert nur den Raum. Token und Spielergeheimnis bekommt die Mini-App nicht.
+Die OpenScrapp speichert den Spielstand selbst mit `OpenScrBridge.storage`. OpenScr speichert nur den Raum. Token und Spielergeheimnis bekommt die OpenScrapp nicht.
 
 Methoden: `host`, `join`, `send`, `broadcast`, `onMessage`, `onPlayersChanged`, `leave`, `showQr`, `discover`, `stopDiscovery`, `setDiscoverable`, `approveJoin`, `denyJoin`, `onJoinRequest`, `endRoom`, `resume`, `onResumed`, `onHostAway`.
 
 ```javascript
-const mp = window.EveryAppBridge.multiplayer;
+const mp = window.OpenScrBridge.multiplayer;
 
 mp.onMessage((message) => {
   // message.from ist die Spieler-Id. message.data ist JSON.
@@ -73,7 +77,7 @@ mp.onResumed((info) => {
   // info.role, info.roomCode, info.selfId, info.players. Stand aus storage lesen.
 });
 mp.onHostAway((info) => {
-  // „Host ist kurz weg“. EveryApp versucht es weiter.
+  // „Host ist kurz weg“. OpenScr versucht es weiter.
 });
 
 const room = await mp.host({ maxPlayers: 8, name: 'Ada', discoverable: true, joinApproval: true });
@@ -96,12 +100,12 @@ await mp.endRoom();
 
 `maxPlayers` ist 2 bis 16, Vorgabe 8, der Host zählt mit. Namen höchstens 24 Zeichen. `discoverable` und `joinApproval` sind standardmäßig an. `send` ohne `to` geht vom Gast an den Host. Der Host muss `to` setzen oder `broadcast` nutzen. Es gibt kein Echo an den Absender.
 
-`discover` liefert nur Räume derselben Mini-App: `id`, `roomCode`, `hostName`, `players`, `maxPlayers`. Die Adresse bleibt in EveryApp. Beitritt über `join({ room })` ist eine Anfrage. Der QR-Code nicht. Die Liste soll den Host-Namen und den Raumcode zeigen, weil jemand denselben Namen ankündigen kann.
+`discover` liefert nur Räume derselben OpenScrapp: `id`, `roomCode`, `hostName`, `players`, `maxPlayers`. Die Adresse bleibt in OpenScr. Beitritt über `join({ room })` ist eine Anfrage. Der QR-Code nicht. Die Liste soll den Host-Namen und den Raumcode zeigen, weil jemand denselben Namen ankündigen kann.
 
 ### Tun
 
 - `onMessage`, `onPlayersChanged`, `onResumed` und `onHostAway` **vor** `host`, `join` oder `resume` setzen. `resume()` gibt denselben Stand auch zurück.
-- Den Spielstand bei jeder Änderung in `EveryAppBridge.storage` schreiben. Nach `multiplayer.resumed` von dort lesen. Ist die Mini-App der Host, den Stand danach per `broadcast` schicken.
+- Den Spielstand bei jeder Änderung in `OpenScrBridge.storage` schreiben. Nach `multiplayer.resumed` von dort lesen. Ist die OpenScrapp der Host, den Stand danach per `broadcast` schicken.
 - Den Host rechnen lassen. Gäste schicken Absichten (`vote`, `move`). Der Host prüft und schickt den neuen Stand.
 - Nach `connected: false` und wieder `true` den Spielstand neu senden. Die Pause puffert keine Nachrichten.
 - JSON senden: Objekte, Listen, Zahlen, Zeichenketten, `true`, `false`, `null`.
@@ -114,41 +118,41 @@ await mp.endRoom();
 - Nicht über 32 KiB pro Nachricht. Ein Bild gehört nicht in `broadcast`.
 - Keine Funktionen, `undefined` oder Klassenzeilen. `JSON.stringify` muss klappen.
 - Den Stand nicht den Gästen glauben, wenn der Host ihn schon kennt. Ein Gast kann `count: 999` schicken.
-- `innerHTML` mit Namen oder Nachrichtentext. Ein Name kann `<` enthalten, der Container schneidet das zwar, die Mini-App soll es trotzdem nicht als HTML lesen.
-- `join({ scan: true })` nicht selbst mit einer Kamera-Bibliothek nachbauen. EveryApp öffnet den Scanner.
+- `innerHTML` mit Namen oder Nachrichtentext. Ein Name kann `<` enthalten, der Container schneidet das zwar, die OpenScrapp soll es trotzdem nicht als HTML lesen.
+- `join({ scan: true })` nicht selbst mit einer Kamera-Bibliothek nachbauen. OpenScr öffnet den Scanner.
 - Das Spielergeheimnis nicht selbst speichern wollen. Es kommt in der Bridge nicht an.
 
 `onMessage` und `onPlayersChanged` geben eine Funktion zurück, die den Callback wieder abnimmt.
 
-Der Platz bleibt, bis der Gast `leave()` ruft oder der Host `endRoom()` aufruft. Dieselbe Id kommt zurück. Die Mini-App sieht das Geheimnis dafür nicht. Es bleibt im Container. Ist der Host weg, kommt `hostAway`, und der Platz bleibt trotzdem.
+Der Platz bleibt, bis der Gast `leave()` ruft oder der Host `endRoom()` aufruft. Dieselbe Id kommt zurück. Die OpenScrapp sieht das Geheimnis dafür nicht. Es bleibt im Container. Ist der Host weg, kommt `hostAway`, und der Platz bleibt trotzdem.
 
-Details: [MULTIPLAYER.md](https://raw.githubusercontent.com/Krust3nKaese3/EveryApp/main/docs/MULTIPLAYER.md).
+Details: [MULTIPLAYER.md](https://raw.githubusercontent.com/Krust3nKaese3/OpenScr/main/docs/MULTIPLAYER.md).
 
 ## Am PC testen
 
-Die Lobby-Vorlage hat ein Feld „Raumcode am PC“. Leer gelassen ruft sie `join({ scan: true })` auf, das ist der Weg in EveryApp. Im Browser trägt Tab 2 den vierstelligen Code aus Tab 1 ein. Die echte App versteht diesen Kurzcode nicht, nur die `everyapp-mp://`-Zeichenkette oder den Scanner.
+Die Lobby-Vorlage hat ein Feld „Raumcode am PC“. Leer gelassen ruft sie `join({ scan: true })` auf, das ist der Weg in OpenScr. Im Browser trägt Tab 2 den vierstelligen Code aus Tab 1 ein. Die echte App versteht diesen Kurzcode nicht, nur die `openscr-mp://`-Zeichenkette oder den Scanner.
 
-Ohne Handy die Attrappe laden, **vor** der Mini-App:
+Ohne Handy die Attrappe laden, **vor** der OpenScrapp:
 
 ```html
-<script src="https://raw.githubusercontent.com/Krust3nKaese3/EveryApp/main/examples/multiplayer-mock/everyapp-mock.js"></script>
+<script src="https://raw.githubusercontent.com/Krust3nKaese3/OpenScr/main/examples/multiplayer-mock/everyapp-mock.js"></script>
 <script src="app.js"></script>
 ```
 
 Oder lokal `examples/multiplayer-mock/everyapp-mock.js`. Zwei Browser-Tabs auf dieselbe Datei. Tab 1 ruft `host` auf und zeigt `roomCode`. Tab 2 tritt mit dem Code bei:
 
 ```javascript
-await EveryAppBridge.multiplayer.join({ payload: 'K7QP', name: 'Bea' });
+await OpenScrBridge.multiplayer.join({ payload: 'K7QP', name: 'Bea' });
 ```
 
-`join({ scan: true })` wirft einen Hinweis. Die Kamera gibt es nur in EveryApp. Die Attrappe spricht über `BroadcastChannel`. Ein Tab ist ein Gerät. Dieselben Grenzen: JSON, 32 KiB, Host verteilt, kein Echo. TCP-Fluten und das WLAN bildet sie nicht ab.
+`join({ scan: true })` wirft einen Hinweis. Die Kamera gibt es nur in OpenScr. Die Attrappe spricht über `BroadcastChannel`. Ein Tab ist ein Gerät. Dieselben Grenzen: JSON, 32 KiB, Host verteilt, kein Echo. TCP-Fluten und das WLAN bildet sie nicht ab.
 
 In Node, zwei Instanzen im selben Prozess:
 
 ```javascript
-const { installEveryAppMock } = require('./examples/multiplayer-mock/everyapp-mock.js');
-const host = installEveryAppMock({ global: {}, appId: 'mein-spiel' });
-const guest = installEveryAppMock({ global: {}, appId: 'mein-spiel' });
+const { installOpenScrMock } = require('./examples/multiplayer-mock/everyapp-mock.js');
+const host = installOpenScrMock({ global: {}, appId: 'mein-spiel' });
+const guest = installOpenScrMock({ global: {}, appId: 'mein-spiel' });
 ```
 
 Dieselbe `appId` und derselbe Kanal, sonst finden sie sich nicht.
@@ -167,6 +171,6 @@ Dieselbe `appId` und derselbe Kanal, sonst finden sie sich nicht.
 | Raumcode wirkt tot | Anderes WLAN, alter Build ohne TCP-Server, oder im Browser `scan: true` statt Raumcode |
 | Zähler springt | Gast und Host zählen beide. Nur der Host zählt, dann broadcast |
 
-## Was EveryApp nicht tut
+## Was OpenScr nicht tut
 
-Die Mini-App läuft in einer WebView. Sie kann die Nutzerin nicht an andere Apps binden und keine nativen Module nachladen. Speicher, Geheimnisse und Berechtigungen gehören nur zu dieser App und verschwinden beim Löschen. Ein Update löscht den Speicher nicht.
+Die OpenScrapp läuft in einer WebView. Sie kann die Nutzerin nicht an andere Apps binden und keine nativen Module nachladen. Speicher, Geheimnisse und Berechtigungen gehören nur zu dieser App und verschwinden beim Löschen. Ein Update löscht den Speicher nicht.

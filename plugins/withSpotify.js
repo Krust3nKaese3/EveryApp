@@ -8,7 +8,7 @@ const SPOTIFY_PACKAGES = [
   'com.spotify.music.partners',
 ];
 
-function ensureRedirect(application) {
+function ensureRedirect(application, scheme) {
   application.activity = application.activity || [];
   let activity = application.activity.find((a) => a.$['android:name'] === REDIRECT_ACTIVITY);
   if (!activity) {
@@ -20,7 +20,7 @@ function ensureRedirect(application) {
   }
   activity['intent-filter'] = activity['intent-filter'] || [];
   const has = activity['intent-filter'].some((filter) =>
-    (filter.data || []).some((d) => d.$['android:scheme'] === 'everyapp' && d.$['android:host'] === 'spotify-callback')
+    (filter.data || []).some((d) => d.$['android:scheme'] === scheme && d.$['android:host'] === 'spotify-callback')
   );
   if (!has) {
     activity['intent-filter'].push({
@@ -29,7 +29,7 @@ function ensureRedirect(application) {
         { $: { 'android:name': 'android.intent.category.DEFAULT' } },
         { $: { 'android:name': 'android.intent.category.BROWSABLE' } },
       ],
-      data: [{ $: { 'android:scheme': 'everyapp', 'android:host': 'spotify-callback' } }],
+      data: [{ $: { 'android:scheme': scheme, 'android:host': 'spotify-callback' } }],
     });
   }
 }
@@ -52,10 +52,11 @@ function ensureQueries(manifest) {
 
 /** Auth 5 no longer ships the redirect intent-filter. Playback still needs to see the Spotify app. */
 module.exports = function withSpotify(config) {
+  const scheme = config.scheme || 'openscr';
   return withAndroidManifest(config, (config) => {
     const manifest = config.modResults.manifest;
     const application = manifest.application && manifest.application[0];
-    if (application) ensureRedirect(application);
+    if (application) ensureRedirect(application, scheme);
     ensureQueries(manifest);
     return config;
   });

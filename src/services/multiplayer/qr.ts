@@ -1,6 +1,6 @@
 /**
  * Der QR-Code trägt die lokale Adresse, den Port, den Raumcode und ein Token.
- * Das Schema everyapp-mp:// ist kein GitHub-Link und wird nicht als Mini-App installiert.
+ * Das Schema openscr-mp:// ist kein GitHub-Link und wird nicht als OpenScrapp installiert.
  */
 import { MP_LIMITS } from './protocol';
 export interface JoinTarget {
@@ -58,7 +58,7 @@ export function encodeJoinUrl(target: JoinTarget): string {
   if (!isPrivateIPv4(target.host)) throw new Error('Nur Adressen im lokalen Netz sind erlaubt.');
   if (!Number.isInteger(target.port) || target.port < 1024 || target.port > 65535) throw new Error('Ungültiger Port.');
   if (!ROOM_RE.test(target.room) || !TOKEN_RE.test(target.token)) throw new Error('Raumdaten sind ungültig.');
-  if (!target.appId || target.appId.length > 200 || /[\u0000-\u001f\s<>"'`\\]/.test(target.appId)) throw new Error('Mini-App fehlt.');
+  if (!target.appId || target.appId.length > 200 || /[\u0000-\u001f\s<>"'`\\]/.test(target.appId)) throw new Error('OpenScrapp fehlt.');
   const query = new URLSearchParams({
     v: '1',
     host: target.host,
@@ -67,7 +67,7 @@ export function encodeJoinUrl(target: JoinTarget): string {
     token: target.token,
     app: target.appId,
   });
-  return `everyapp-mp://join?${query.toString()}`;
+  return `openscr-mp://join?${query.toString()}`;
 }
 
 export function decodeJoinUrl(text: string): JoinTarget {
@@ -77,9 +77,9 @@ export function decodeJoinUrl(text: string): JoinTarget {
   try {
     url = new URL(raw);
   } catch {
-    throw new Error('Das ist kein EveryApp-Spielraum.');
+    throw new Error('Das ist kein OpenScr-Spielraum.');
   }
-  if (url.protocol !== 'everyapp-mp:' || url.hostname !== 'join') throw new Error('Das ist kein EveryApp-Spielraum.');
+  if (url.protocol !== 'openscr-mp:' || url.hostname !== 'join') throw new Error('Das ist kein OpenScr-Spielraum.');
   if (url.searchParams.get('v') !== '1') throw new Error('Diese Einladung ist zu neu oder zu alt.');
   const host = url.searchParams.get('host') || '';
   if (!isPrivateIPv4(host)) throw new Error('Nur Adressen im lokalen Netz sind erlaubt.');
@@ -89,7 +89,7 @@ export function decodeJoinUrl(text: string): JoinTarget {
   const token = (url.searchParams.get('token') || '').toLowerCase();
   const appId = url.searchParams.get('app') || '';
   if (!ROOM_RE.test(room) || !TOKEN_RE.test(token)) throw new Error('Raumcode oder Token fehlt.');
-  if (!appIdOk(appId)) throw new Error('Mini-App fehlt.');
+  if (!appIdOk(appId)) throw new Error('OpenScrapp fehlt.');
   return { v: 1, host, port, room, token, appId };
 }
 

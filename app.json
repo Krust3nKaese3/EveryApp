@@ -1,13 +1,14 @@
 {
   "expo": {
-    "name": "EveryApp",
-    "slug": "everyapp",
+    "name": "OpenScr",
+    "slug": "openscr",
     "version": "1.0.0",
     "orientation": "default",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.openscr.app"
     },
     "android": {
       "versionCode": 1,
@@ -36,7 +37,7 @@
         "android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS",
         "com.google.android.gms.permission.AD_ID"
       ],
-      "package": "com.everyapp.container",
+      "package": "com.openscr.app",
       "predictiveBackGestureEnabled": false
     },
     "web": {
@@ -46,7 +47,7 @@
       [
         "expo-camera",
         {
-          "cameraPermission": "EveryApp uses the camera to scan QR codes for installing a mini-app or joining a local game.",
+          "cameraPermission": "OpenScr uses the camera to scan QR codes for installing an OpenScrapp or joining a local game.",
           "recordAudioAndroid": false
         }
       ],
@@ -75,6 +76,6 @@
       "spotifyClientId": ""
     },
     "owner": "krust3nkaese",
-    "scheme": "everyapp"
+    "scheme": "openscr"
   }
 }

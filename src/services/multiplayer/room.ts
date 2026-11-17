@@ -1,6 +1,6 @@
 /**
  * Autoritative Raumlogik. Spieler sprechen nicht direkt miteinander.
- * Nachrichten bleiben in dieser Mini-App und in diesem Token.
+ * Nachrichten bleiben in dieser OpenScrapp und in diesem Token.
  */
 import { MP_LIMITS, PlayerView, assertPayload, playerName } from './protocol';
 import { sameSecret } from './guard';
@@ -123,7 +123,7 @@ export class GameRoom {
     return this.members.map(viewOf);
   }
 
-  /** Für den App-Speicher. Die Mini-App bekommt diese Secrets nicht. */
+  /** Für den App-Speicher. Die OpenScrapp bekommt diese Secrets nicht. */
   exportMembers(): RoomMemberSeed[] {
     return this.members.map((member) => ({ id: member.id, secret: member.secret, name: member.name, host: member.host }));
   }

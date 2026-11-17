@@ -1,5 +1,6 @@
 // Extends app.json. The EAS "development" profile sets APP_VARIANT=development,
-// producing a separately installable dev-client app ("SrvEveryApp", package suffix .dev).
+// producing a separately installable dev-client app ("SrvOpenScr", package suffix .dev).
+// The dev-client deep link is exp+<slug> (exp+openscr). The custom scheme stays openscr.
 // CATALOG_ONLY / EXPO_PUBLIC_CATALOG_ONLY=1 hides free GitHub installs and offers own-repo developer mode.
 const IS_DEV = process.env.APP_VARIANT === 'development';
 const flagOn = (value) => ['1', 'true', 'yes'].includes(String(value || '').trim().toLowerCase());
@@ -16,7 +17,7 @@ module.exports = ({ config }) => {
   const fromConfig = config.extra && config.extra.spotifyClientId;
   return {
     ...config,
-    name: IS_DEV ? 'SrvEveryApp' : 'EveryApp',
+    name: IS_DEV ? 'SrvOpenScr' : 'OpenScr',
     android: {
       ...config.android,
       package: IS_DEV ? `${config.android.package}.dev` : config.android.package,
@@ -29,12 +30,13 @@ module.exports = ({ config }) => {
     },
     ios: {
       ...config.ios,
+      bundleIdentifier: IS_DEV ? `${config.ios.bundleIdentifier}.dev` : config.ios.bundleIdentifier,
       infoPlist: {
         ...(config.ios && config.ios.infoPlist),
         // Abfrage für Verbindungen im lokalen Netz. Der QR-Code ist die Einladung, Bonjour löst auf iOS oft erst die Systemfrage aus.
         NSLocalNetworkUsageDescription:
-          'EveryApp sucht Spiele in der Nähe und verbindet Mitspieler im selben WLAN oder Hotspot, ohne Internet.',
-        NSBonjourServices: ['_everyapp._tcp'],
+          'OpenScr sucht Spiele in der Nähe und verbindet Mitspieler im selben WLAN oder Hotspot, ohne Internet.',
+        NSBonjourServices: ['_openscr._tcp'],
       },
     },
     plugins: [...(config.plugins || []), 'with-react-native-tcp-socket'],

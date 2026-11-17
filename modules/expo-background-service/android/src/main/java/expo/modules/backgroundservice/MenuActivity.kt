@@ -69,7 +69,7 @@ class MenuActivity : Activity() {
       minimumWidth = dp(280)
     }
     root.addView(TextView(this).apply {
-      text = cfg?.optString("label")?.takeIf { it.isNotBlank() } ?: cfg?.optString("title") ?: "EveryApp"
+      text = cfg?.optString("label")?.takeIf { it.isNotBlank() } ?: cfg?.optString("title") ?: "OpenScr"
       setTextColor(Color.WHITE); textSize = 16f; setPadding(0, 0, 0, dp(8))
     })
 

@@ -27,7 +27,7 @@ export function classifyIcon(spec: string, rawBase?: string | null): IconKind {
   if (BUILTIN_ICONS.includes(name)) return { kind: 'builtin', value: name };
   if (ICON_ALIASES[name]) return { kind: 'builtin', value: ICON_ALIASES[name] };
   if (/^[\w./-]+\.(png|jpe?g|webp|gif|svg)$/i.test(s)) {
-    if (!rawBase) throw new Error(`Icon "${s}": Repo-Pfad, aber Repo-URL der Mini-App unbekannt`);
+    if (!rawBase) throw new Error(`Icon "${s}": Repo-Pfad, aber Repo-URL der OpenScrapp unbekannt`);
     const url = rawBase.replace(/\/+$/, '') + '/' + s.replace(/^\.?\/+/, '');
     return { kind: /\.svg$/i.test(s) ? 'svg' : 'url', value: url };
   }
@@ -56,7 +56,7 @@ export function normalizeTilePatch(p: any): Record<string, any> {
 
 export function checkTileOwner(slot: number, cur: { appId?: string } | undefined, appId: string) {
   if (!Number.isInteger(slot) || slot < 1 || slot > 5) throw new Error(`Kachel ${slot}: nur 1–5`);
-  if (cur?.appId && cur.appId !== appId) throw new Error(`Kachel ${slot} gehört der Mini-App "${cur.appId}" – erst dort freigeben (tile(${slot}).release())`);
+  if (cur?.appId && cur.appId !== appId) throw new Error(`Kachel ${slot} gehört der OpenScrapp "${cur.appId}" – erst dort freigeben (tile(${slot}).release())`);
 }
 
 const SIZE_RE = /^(auto|\d+(\.\d+)?%|\d+(\.\d+)?)$/;

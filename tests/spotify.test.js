@@ -53,24 +53,24 @@ test('client id format', () => {
   assert.strictEqual(normalizeSpotifyClientId('   ', true), '');
   assert.throws(() => normalizeSpotifyClientId(''), new RegExp(MISSING_SPOTIFY_CLIENT_ID));
   assert.throws(() => normalizeSpotifyClientId('not-a-client-id'), new RegExp(BAD_SPOTIFY_CLIENT_ID));
-  assert.strictEqual(SPOTIFY_REDIRECT_URI, 'everyapp://spotify-callback');
+  assert.strictEqual(SPOTIFY_REDIRECT_URI, 'openscr://spotify-callback');
 });
 
 test('dashboard package and sha-1 follow the running variant', () => {
   assert.strictEqual(SPOTIFY_DASHBOARD_URL, 'https://developer.spotify.com/dashboard');
-  assert.strictEqual(DEVELOPMENT_ANDROID_PACKAGE, 'com.everyapp.container.dev');
-  assert.strictEqual(PRODUCTION_ANDROID_PACKAGE, 'com.everyapp.container');
+  assert.strictEqual(DEVELOPMENT_ANDROID_PACKAGE, 'com.openscr.app.dev');
+  assert.strictEqual(PRODUCTION_ANDROID_PACKAGE, 'com.openscr.app');
   assert.strictEqual(DEVELOPMENT_DEBUG_SHA1, '5E:8F:16:06:2E:A3:CD:2C:4A:0D:54:78:76:BA:A6:F3:8C:AB:F6:25');
 
   const dev = spotifyAndroidDashboardTarget(DEVELOPMENT_ANDROID_PACKAGE);
   assert.strictEqual(dev.variant, 'development');
-  assert.strictEqual(dev.appName, 'SrvEveryApp');
+  assert.strictEqual(dev.appName, 'SrvOpenScr');
   assert.strictEqual(dev.packageName, DEVELOPMENT_ANDROID_PACKAGE);
   assert.strictEqual(dev.sha1, DEVELOPMENT_DEBUG_SHA1);
 
   const prod = spotifyAndroidDashboardTarget(PRODUCTION_ANDROID_PACKAGE);
   assert.strictEqual(prod.variant, 'production');
-  assert.strictEqual(prod.appName, 'EveryApp');
+  assert.strictEqual(prod.appName, 'OpenScr');
   assert.strictEqual(prod.packageName, PRODUCTION_ANDROID_PACKAGE);
   assert.strictEqual(prod.sha1, null);
 

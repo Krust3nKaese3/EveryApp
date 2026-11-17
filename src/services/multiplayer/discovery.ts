@@ -5,7 +5,7 @@
  */
 import { playerName } from './protocol';
 
-export const MDNS_TYPE = '_everyapp._tcp';
+export const MDNS_TYPE = '_openscr._tcp';
 
 export interface ServiceTxt {
   v: '1';
@@ -91,7 +91,7 @@ export interface LanService {
   txt: Record<string, unknown>;
 }
 
-/** Nur Räume derselben Mini-App. Die IP steht nicht in der Liste für die Mini-App. */
+/** Nur Räume derselben OpenScrapp. Die IP steht nicht in der Liste für die OpenScrapp. */
 export function visibleRooms(services: LanService[], appId: string): VisibleRoom[] {
   const out: VisibleRoom[] = [];
   const seen = new Set<string>();

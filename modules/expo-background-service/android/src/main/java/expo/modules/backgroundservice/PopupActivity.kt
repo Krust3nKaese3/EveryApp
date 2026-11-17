@@ -232,14 +232,15 @@ class PopupActivity : Activity() {
       addJavascriptInterface(Bridge(), "EveryAppPopupNative")
     }
     web = wv
-    val shimJs = """(function(){if(window.EveryAppPopup)return;var N=window.EveryAppPopupNative,L=[],D=[];
-window.EveryAppPopup={id:${JSONObject.quote(popupId)},state:$state,title:${JSONObject.quote(cfg.optString("title"))},
+    val shimJs = """(function(){if(window.OpenScrPopup||window.EveryAppPopup)return;var N=window.EveryAppPopupNative,L=[],D=[];
+window.OpenScrPopup={id:${JSONObject.quote(popupId)},state:$state,title:${JSONObject.quote(cfg.optString("title"))},
 send:function(e,v){N.post(String(e),JSON.stringify(v===undefined?null:v));},close:function(){N.close();},
 onMessage:function(cb){L.push(cb);},onDiag:function(cb){D.push(cb);},resize:function(h){N.resize(h==null?Math.ceil(document.documentElement.scrollHeight):Number(h));}};
+window.EveryAppPopup=window.OpenScrPopup;
 window.__eaPopupDiag=function(t){D.forEach(function(cb){try{cb(t);}catch(e){console.error(e);}});};
-window.__eaPopupRecv=function(d){for(var k in d)window.EveryAppPopup.state[k]=d[k];L.forEach(function(cb){try{cb(d);}catch(e){console.error(e);}});};
+window.__eaPopupRecv=function(d){for(var k in d)window.OpenScrPopup.state[k]=d[k];L.forEach(function(cb){try{cb(d);}catch(e){console.error(e);}});};
 document.documentElement.style.background='transparent';
-${if (autoHeight) "var rs=function(){window.EveryAppPopup.resize();};if(window.ResizeObserver)new ResizeObserver(rs).observe(document.documentElement);setTimeout(rs,50);" else ""}
+${if (autoHeight) "var rs=function(){window.OpenScrPopup.resize();};if(window.ResizeObserver)new ResizeObserver(rs).observe(document.documentElement);setTimeout(rs,50);" else ""}
 })();"""
     wv.webViewClient = object : WebViewClient() {
       override fun shouldOverrideUrlLoading(view: WebView, req: android.webkit.WebResourceRequest): Boolean {
@@ -248,7 +249,7 @@ ${if (autoHeight) "var rs=function(){window.EveryAppPopup.resize();};if(window.R
         return true
       }
       override fun onPageFinished(view: WebView, u: String?) {
-        view.evaluateJavascript("$shimJs;window.dispatchEvent(new Event('everyapp:popupready'));", null)
+        view.evaluateJavascript("$shimJs;window.dispatchEvent(new Event('openscr:popupready'));window.dispatchEvent(new Event('everyapp:popupready'));", null)
       }
     }
     val url = cfg.optString("url")
@@ -257,7 +258,7 @@ ${if (autoHeight) "var rs=function(){window.EveryAppPopup.resize();};if(window.R
       wv.loadUrl(url)
     } else {
       val html = cfg.optString("html").ifBlank { "<p style='color:#fff;font-family:sans-serif;padding:16px'>Popup \"$popupId\": kein html/url</p>" }
-      wv.loadDataWithBaseURL("https://everyapp.popup/", "<script>$shimJs</script>$html", "text/html", "utf-8", null)
+      wv.loadDataWithBaseURL("https://openscr.popup/", "<script>$shimJs</script>$html", "text/html", "utf-8", null)
     }
     c.addView(wv, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
     setContentView(scrim)
@@ -305,7 +306,7 @@ ${if (autoHeight) "var rs=function(){window.EveryAppPopup.resize();};if(window.R
     val q = JSONObject.quote(text)
     runOnUiThread {
       try {
-        web?.evaluateJavascript("(function(t){try{if(window.__eaPopupDiag)window.__eaPopupDiag(t);window.dispatchEvent(new CustomEvent('everyapp:popupdiag',{detail:t}));}catch(e){}})($q);", null)
+        web?.evaluateJavascript("(function(t){try{if(window.__eaPopupDiag)window.__eaPopupDiag(t);window.dispatchEvent(new CustomEvent('openscr:popupdiag',{detail:t}));window.dispatchEvent(new CustomEvent('everyapp:popupdiag',{detail:t}));}catch(e){}})($q);", null)
       } catch (e: Throwable) { Log.e("EveryAppPopup", "diag failed", e) }
     }
   }

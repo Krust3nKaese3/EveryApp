@@ -29,10 +29,10 @@ export const TERMS_MD = ${JSON.stringify(termsDe)};
 fs.writeFileSync(path.join(root, 'src/legal/documents.ts'), documents);
 
 const pages = [
-  ['datenschutz.html', 'de', 'Datenschutzerklärung – EveryApp', privacyDe, 'datenschutz.html', 'privacy.html'],
-  ['privacy.html', 'en', 'Privacy policy – EveryApp', privacyEn, 'datenschutz.html', 'privacy.html'],
-  ['nutzung.html', 'de', 'Nutzungsbedingungen und Impressum – EveryApp', termsDe, 'nutzung.html', 'terms.html'],
-  ['terms.html', 'en', 'Terms and legal notice – EveryApp', termsEn, 'nutzung.html', 'terms.html'],
+  ['datenschutz.html', 'de', 'Datenschutzerklärung – OpenScr', privacyDe, 'datenschutz.html', 'privacy.html'],
+  ['privacy.html', 'en', 'Privacy policy – OpenScr', privacyEn, 'datenschutz.html', 'privacy.html'],
+  ['nutzung.html', 'de', 'Nutzungsbedingungen und Impressum – OpenScr', termsDe, 'nutzung.html', 'terms.html'],
+  ['terms.html', 'en', 'Terms and legal notice – OpenScr', termsEn, 'nutzung.html', 'terms.html'],
 ];
 
 function page({ lang, title, body, deHref, enHref }) {
@@ -48,7 +48,7 @@ function page({ lang, title, body, deHref, enHref }) {
 </head>
 <body>
   <header>
-    <p>EveryApp</p>
+    <p>OpenScr</p>
     <nav>
       <a href="index.html">Übersicht</a>
       ${deLabel}
@@ -78,12 +78,12 @@ const index = `<!DOCTYPE html>
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>EveryApp – Rechtliches</title>
+  <title>OpenScr – Rechtliches</title>
   <link rel="stylesheet" href="site.css">
 </head>
 <body>
   <header>
-    <p>EveryApp</p>
+    <p>OpenScr</p>
     <nav>
       <a href="datenschutz.html">Datenschutz</a>
       <a href="privacy.html">Privacy</a>
@@ -93,14 +93,14 @@ const index = `<!DOCTYPE html>
   </header>
   <main>
     <h1>Rechtliches</h1>
-    <p>EveryApp ist eine Container-App. Mini-Apps aus GitHub laufen als HTML und JavaScript in einer WebView. Es gibt keinen eigenen Server, kein Nutzerkonto und kein Analyse-SDK.</p>
+    <p>OpenScr ist eine Container-App. OpenScrapps aus GitHub laufen als HTML und JavaScript in einer WebView. Es gibt keinen eigenen Server, kein Nutzerkonto und kein Analyse-SDK.</p>
     <ul>
       <li><a href="datenschutz.html">Datenschutzerklärung (Deutsch)</a></li>
       <li><a href="privacy.html">Privacy policy (English)</a></li>
       <li><a href="nutzung.html">Nutzungsbedingungen und Impressum (Deutsch)</a></li>
       <li><a href="terms.html">Terms of use and legal notice (English)</a></li>
     </ul>
-    <p>Für GitHub Pages die Quelle <code>/docs</code> auf dem Branch <code>main</code> wählen. Die Datenschutz-URL ist dann <code>https://&lt;owner&gt;.github.io/&lt;repo&gt;/site/datenschutz.html</code>.</p>
+    <p>Für GitHub Pages die Quelle <code>/docs</code> auf dem Branch <code>main</code> wählen. Die Datenschutz-URL ist <code>https://krust3nkaese3.github.io/OpenScr/site/datenschutz.html</code>.</p>
     <p>Anbieter: Manuel Di Liberto, Am Hasensprung 49, 60437 Frankfurt am Main, Deutschland, krust3nkaese@gmail.com. Nach einer Textänderung <code>node scripts/sync-legal.js</code> ausführen.</p>
   </main>
 </body>

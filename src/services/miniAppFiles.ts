@@ -84,7 +84,7 @@ export function virtualHost(appId: string): string {
   const a = (h1 >>> 0).toString(16).padStart(8, '0');
   const b = (h2 >>> 0).toString(16).padStart(8, '0');
   const label = appId.toLowerCase().replace(/[^a-z0-9]+/g, '').slice(0, 32) || 'app';
-  return `${a}.${label}.${b}.everyapp.invalid`;
+  return `${a}.${label}.${b}.openscr.invalid`;
 }
 
 export function mimeForPath(path: string): string {
@@ -174,15 +174,33 @@ export function assetUri(root: string, rel: string): string | null {
   return uri;
 }
 
-export function selectMiniAppPrefix(paths: string[]): { prefix: string } | { error: string } {
-  const manifests = paths.filter((path) => path === 'everyapp.json' || path.endsWith('/everyapp.json'));
-  if (manifests.includes('everyapp.json')) return { prefix: '' };
+/** New manifest name. `everyapp.json` is still accepted when no openscr.json is present. */
+export const MANIFEST_FILE = 'openscr.json';
+export const MANIFEST_FALLBACK = 'everyapp.json';
+
+function manifestHits(paths: string[], name: string): string[] {
+  return paths.filter((path) => path === name || path.endsWith(`/${name}`));
+}
+
+function prefixFor(manifests: string[], name: string): { prefix: string } | { error: string } {
+  if (manifests.includes(name)) return { prefix: '' };
   if (manifests.length === 1) {
     const path = manifests[0];
-    return { prefix: path.slice(0, path.length - 'everyapp.json'.length) };
+    return { prefix: path.slice(0, path.length - name.length) };
   }
-  if (manifests.length === 0) return { error: 'everyapp.json not found in repository' };
-  return { error: 'Multiple everyapp.json files found. Keep one at the repository root, or only one in the repository.' };
+  return { error: `Multiple ${name} files found. Keep one at the repository root, or only one in the repository.` };
+}
+
+export function selectMiniAppPrefix(paths: string[]): { prefix: string } | { error: string } {
+  const primary = manifestHits(paths, MANIFEST_FILE);
+  if (primary.length > 0) return prefixFor(primary, MANIFEST_FILE);
+  const fallback = manifestHits(paths, MANIFEST_FALLBACK);
+  if (fallback.length > 0) return prefixFor(fallback, MANIFEST_FALLBACK);
+  return { error: 'openscr.json not found in repository' };
+}
+
+export function isManifestRel(rel: string): boolean {
+  return rel === MANIFEST_FILE || rel === MANIFEST_FALLBACK;
 }
 
 export function listMiniAppFiles(items: GitBlob[]): { prefix: string; files: { path: string; rel: string; size: number }[] } {
@@ -201,8 +219,8 @@ export function listMiniAppFiles(items: GitBlob[]): { prefix: string; files: { p
     files.push({ path: item.path, rel, size: item.size });
   }
   assertWithinLimits(files);
-  if (!files.some((file) => file.rel === 'everyapp.json')) {
-    throw new Error('everyapp.json not found in repository');
+  if (!files.some((file) => isManifestRel(file.rel))) {
+    throw new Error('openscr.json not found in repository');
   }
   return { prefix, files };
 }
@@ -229,7 +247,7 @@ function isSkippedRel(rel: string): boolean {
 
 export function normalizeEntrypoint(entrypoint: string): string {
   if (typeof entrypoint !== 'string' || !entrypoint.trim()) {
-    throw new Error('Entrypoint missing in everyapp.json');
+    throw new Error('Entrypoint missing in openscr.json');
   }
   const rel = resolveAssetPath(entrypoint.trim(), '');
   if (!rel || !isStoredRelPath(rel)) throw new Error(`Entrypoint ${entrypoint} is not a file inside the mini-app`);

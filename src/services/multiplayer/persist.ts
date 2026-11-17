@@ -1,6 +1,6 @@
 /**
  * Raumdaten liegen nur im Speicher der Container-App.
- * Die Mini-App sieht weder Token noch Spielergeheimnis.
+ * Die OpenScrapp sieht weder Token noch Spielergeheimnis.
  */
 import { MP_LIMITS, playerName, type PlayerView } from './protocol';
 import type { RoomMemberSeed } from './room';

@@ -14,7 +14,7 @@ public class ExpoMdnsModule: Module {
 
     AsyncFunction("publish") { (name: String, port: Int, txt: [String: String]) in
       self.published?.stop()
-      let service = NetService(domain: "local.", type: "_everyapp._tcp.", name: String(name.prefix(50)), port: Int32(port))
+      let service = NetService(domain: "local.", type: "_openscr._tcp.", name: String(name.prefix(50)), port: Int32(port))
       var record: [String: Data] = [:]
       for (key, value) in txt where key.count <= 9 {
         record[key] = Data(value.utf8)
@@ -38,7 +38,7 @@ public class ExpoMdnsModule: Module {
       browser.delegate = delegate
       self.delegate = delegate
       self.browser = browser
-      browser.searchForServices(ofType: "_everyapp._tcp.", inDomain: "local.")
+      browser.searchForServices(ofType: "_openscr._tcp.", inDomain: "local.")
     }
 
     AsyncFunction("stopBrowse") {

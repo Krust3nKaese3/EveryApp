@@ -18,12 +18,12 @@ export function permissionDecision(category: string, granted: string[], denied: 
 export function checkBridgePermission(category: string, granted: string[]): void {
   if (permissionDecision(category, granted, []) === 'allow') return;
   if (category === 'popup' || category === 'tiles')
-    throw new Error(`${category === 'popup' ? 'Popups' : 'Kacheln'} nicht erlaubt: Die Mini-App muss "${category}" in den permissions ihres Manifests (everyapp.json) deklarieren und der Nutzer muss es erlauben`);
+    throw new Error(`${category === 'popup' ? 'Popups' : 'Kacheln'} nicht erlaubt: Die OpenScrapp muss "${category}" in den permissions ihres Manifests (openscr.json) deklarieren und der Nutzer muss es erlauben`);
   if (category === 'net')
-    throw new Error('Raw-Netzwerk nicht erlaubt: Die Mini-App muss "net" in den permissions ihres Manifests (everyapp.json) deklarieren und der Nutzer muss es erlauben');
+    throw new Error('Raw-Netzwerk nicht erlaubt: Die OpenScrapp muss "net" in den permissions ihres Manifests (openscr.json) deklarieren und der Nutzer muss es erlauben');
   if (category === 'ble')
-    throw new Error('BLE nicht erlaubt: Die Mini-App muss "ble" in den permissions ihres Manifests (everyapp.json) deklarieren und der Nutzer muss es erlauben');
+    throw new Error('BLE nicht erlaubt: Die OpenScrapp muss "ble" in den permissions ihres Manifests (openscr.json) deklarieren und der Nutzer muss es erlauben');
   if (category === 'spotify')
-    throw new Error('Spotify nicht erlaubt: Die Mini-App muss "spotify" in den permissions ihres Manifests (everyapp.json) deklarieren und der Nutzer muss es erlauben');
+    throw new Error('Spotify nicht erlaubt: Die OpenScrapp muss "spotify" in den permissions ihres Manifests (openscr.json) deklarieren und der Nutzer muss es erlauben');
   throw new Error(`Permission denied: ${category}`);
 }

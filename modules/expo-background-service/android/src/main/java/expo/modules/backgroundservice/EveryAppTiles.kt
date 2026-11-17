@@ -26,7 +26,7 @@ open class EveryAppTileBase(private val index: Int) : TileService() {
     try {
       val cfg = UiStore.getTile(this, index)
       val label = cfg?.optString("label")?.takeIf { it.isNotBlank() } ?: labelFor(this, index)
-      tile.label = label ?: "EveryApp $index"
+      tile.label = label ?: "OpenScr $index"
       if (Build.VERSION.SDK_INT >= 29) tile.subtitle = cfg?.optString("subtitle")?.takeIf { it.isNotBlank() }
       UiStore.iconBitmap(this, cfg?.optString("icon")?.takeIf { it.isNotBlank() })?.let { tile.icon = Icon.createWithBitmap(UiStore.alphaMask(it)) }
       tile.state = when {

@@ -39,7 +39,7 @@ import java.util.concurrent.Executors
  * The client id is read from [SpotifyClientIdStore] on every login/connect/play.
  */
 object SpotifyRuntime {
-  const val REDIRECT_URI = "everyapp://spotify-callback"
+  const val REDIRECT_URI = "openscr://spotify-callback"
   private const val REQUEST_CODE = 48151
   private val SCOPES = arrayOf(
     "app-remote-control",

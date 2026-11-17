@@ -33,7 +33,7 @@ test('QR lehnt öffentliche Ziele, Namen und Sonderports ab', () => {
   assert.strictEqual(isPrivateIPv4('169.254.1.1'), true);
   assert.strictEqual(isPrivateIPv4('192.168.001.1'), false);
   const url = baseUrl();
-  assert.throws(() => decodeJoinUrl('everyapp-mp://join?v=1&host=spiel.example&port=38421&room=K7QP&token=0123456789abcdef&app=wolf'), /lokalen Netz/);
+  assert.throws(() => decodeJoinUrl('openscr-mp://join?v=1&host=spiel.example&port=38421&room=K7QP&token=0123456789abcdef&app=wolf'), /lokalen Netz/);
   assert.throws(() => decodeJoinUrl(url.replace('host=192.168.1.20', 'host=8.8.8.8')), /lokalen Netz/);
   assert.throws(() => decodeJoinUrl(url.replace('host=192.168.1.20', 'host=169.254.169.254')), /lokalen Netz/);
   assert.throws(() => decodeJoinUrl(url.replace('port=38421', 'port=0')), /Port/);
@@ -41,7 +41,7 @@ test('QR lehnt öffentliche Ziele, Namen und Sonderports ab', () => {
   assert.throws(() => decodeJoinUrl(url.replace('port=38421', 'port=1e4')), /Port/);
   assert.throws(() => decodeJoinUrl(url.replace('port=38421', 'port=0x1f90')), /Port/);
   assert.throws(() => decodeJoinUrl(`${url}&pad=${'a'.repeat(MP_LIMITS.maxQrChars)}`), /zu lang/);
-  assert.throws(() => decodeJoinUrl(url.replace('app=wolf', 'app=%3Cscript%3E')), /Mini-App/);
+  assert.throws(() => decodeJoinUrl(url.replace('app=wolf', 'app=%3Cscript%3E')), /OpenScrapp/);
   assert.strictEqual(playerName('<img onerror=alert(1)>'), 'img onerror=alert(1)');
   assert.ok(!playerName('<b>Ada</b>').includes('<'));
 });
