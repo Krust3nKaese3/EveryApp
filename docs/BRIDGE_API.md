@@ -69,4 +69,4 @@ Events (nur diese Namen): `app.start`, `bluetooth.connected`, `bluetooth.disconn
 
 ## Melden
 
-„Melden“ öffnet eine E-Mail an `manueldiliberto1@gmail.com` (Betreff und Text sind vorausgefüllt). Es wird kein Ticket-Server aufgerufen.
+„Melden“ öffnet eine E-Mail an `krust3nkaese3@gmail.com` (Betreff und Text sind vorausgefüllt). Es wird kein Ticket-Server aufgerufen.

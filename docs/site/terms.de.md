@@ -40,7 +40,7 @@ Dateisystem, Kontakte und GPS-Koordinaten stellt OpenScr OpenScrapps nicht zur V
 
 ## Melden und Sperren
 
-„Melden“ öffnet eine E-Mail an manueldiliberto1@gmail.com mit den Daten der OpenScrapp. Es gibt keinen Melde-Server in der App. Eine ferne Sperrliste (`catalog/blocklist.json`) kann OpenScrapps für alle Installationen deaktivieren. Dann zeigt OpenScr den hinterlegten Grund und startet die OpenScrapp nicht.
+„Melden“ öffnet eine E-Mail an krust3nkaese3@gmail.com mit den Daten der OpenScrapp. Es gibt keinen Melde-Server in der App. Eine ferne Sperrliste (`catalog/blocklist.json`) kann OpenScrapps für alle Installationen deaktivieren. Dann zeigt OpenScr den hinterlegten Grund und startet die OpenScrapp nicht.
 
 ## Deine Pflichten
 

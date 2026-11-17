@@ -40,7 +40,7 @@ OpenScr does not give OpenScrapps the file system, contacts or GPS coordinates. 
 
 ## Reports and blocking
 
-“Melden” opens an email to manueldiliberto1@gmail.com with the OpenScrapp's details. There is no report server in the app. A remote blocklist (`catalog/blocklist.json`) can disable OpenScrapps for every install. OpenScr then shows the stored reason and does not start the OpenScrapp.
+“Melden” opens an email to krust3nkaese3@gmail.com with the OpenScrapp's details. There is no report server in the app. A remote blocklist (`catalog/blocklist.json`) can disable OpenScrapps for every install. OpenScr then shows the stored reason and does not start the OpenScrapp.
 
 ## Your duties
 

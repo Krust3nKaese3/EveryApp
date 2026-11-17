@@ -208,7 +208,7 @@ Persönliche Play-Konten, die nach dem 13. November 2023 angelegt wurden, brauch
 
 - Anbieter ist Manuel Di Liberto, Am Hasensprung 49, 60437 Frankfurt am Main. Der Entwurf zum deutschen Recht passt zu diesem Sitz und bleibt ohne anwaltliche Prüfung ein Entwurf.
 - Ob ein Datenschutzbeauftragter und eine Umsatzsteuer-ID nötig sind.
-- Meldungen gehen weiter an manueldiliberto1@gmail.com. Datenschutzanfragen gehen an krust3nkaese3@gmail.com.
+- Meldungen und Datenschutzanfragen gehen an krust3nkaese3@gmail.com.
 - Freie GitHub-Repositories im Play-Build oder nur Katalog (`production-catalog`), falls die Prüfung den nachgeladenen Code ablehnt.
 - WLAN-Name braucht Standortberechtigungen, die dieser Release nicht enthält.
 - Der erste AAB bekommt mit `autoIncrement` den `versionCode` 2.

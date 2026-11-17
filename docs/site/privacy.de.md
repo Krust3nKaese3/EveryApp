@@ -14,7 +14,7 @@ krust3nkaese3@gmail.com
 
 Ein Datenschutzbeauftragter ist nicht benannt. Besteht eine Bestellpflicht, wird die Kontaktstelle hier ergänzt.
 
-Meldungen zu OpenScrapps (Schaltfläche „Melden“) öffnen eine E-Mail an manueldiliberto1@gmail.com. Das ist kein Server der App. Datenschutzanfragen gehören an `krust3nkaese3@gmail.com`.
+Meldungen zu OpenScrapps (Schaltfläche „Melden“) und Datenschutzanfragen gehen an `krust3nkaese3@gmail.com`. Das ist kein Server der App.
 
 ## Was OpenScr ist
 
@@ -46,7 +46,7 @@ Aktualisieren einer OpenScrapp ersetzt nur die geladenen Dateien. Spielstände u
 - **OpenScrapps.** Erst nach deiner Zustimmung darf eine OpenScrapp selbst Verbindungen aufbauen (`http`, lokales Netz, Roh-TCP/UDP). Ziel und Inhalt bestimmt die OpenScrapp. Dazu können Daten gehören, die sie zuvor gelesen hat, etwa Speicher, WLAN-Name, Bluetooth-Geräte oder Spielnachrichten. Dafür ist der Betreiber dieser OpenScrapp verantwortlich. Im lokalen Netz ist unverschlüsseltes HTTP möglich.
 - **Spotify.** Steuerung läuft über die auf dem Gerät installierte Spotify-App (Spotify App Remote). Suche, Profil, Playlists, gespeicherte Titel und der Wiedergabestatus laufen über die Spotify-Web-API mit einem PKCE-Token, das in OpenScr bleibt. Spotify erhält die Client-ID, das Token und die Abfrage. Es gilt zusätzlich die Datenschutzerklärung von Spotify. Die OpenScrapp sieht Kontoname, Spotify-Benutzer-ID, Produkttyp, Playlist- und Titeldaten, wenn du die Berechtigung `spotify` erteilt hast, aber nicht das Token.
 - **Lokaler Mehrspieler.** Telefone im selben WLAN oder Hotspot verbinden sich direkt per TCP. Es gibt dafür keinen OpenScr-Server und keine Ende-zu-Ende-Verschlüsselung durch OpenScr. Die Bekanntgabe `_openscr._tcp` nennt OpenScrapp, Raumcode, Raum-Id, Anzeigename (höchstens 24 Zeichen) und Spielerzahlen. Token, Spielergeheimnis und IP stehen nicht darin. Die IP bleibt in der App. Der QR-Code zum Beitreten enthält die private IPv4-Adresse, den Port, den Raumcode, ein Token und die OpenScrapp-Id. Mitspieler im selben Netz sehen den Anzeigenamen und die Spielnachrichten, die die OpenScrapp sendet.
-- **Melden.** Die Schaltfläche öffnet deine Mail-App mit einer vorausgefüllten Nachricht an manueldiliberto1@gmail.com (Name, Repository, App-Kennung, Version, Commit). Gesendet wird sie nur, wenn du das selbst tust. Dann verarbeiten dein Mail-Anbieter und dieses Postfach die Nachricht, einschließlich deiner Absenderadresse.
+- **Melden.** Die Schaltfläche öffnet deine Mail-App mit einer vorausgefüllten Nachricht an krust3nkaese3@gmail.com (Name, Repository, App-Kennung, Version, Commit). Gesendet wird sie nur, wenn du das selbst tust. Dann verarbeiten dein Mail-Anbieter und dieses Postfach die Nachricht, einschließlich deiner Absenderadresse.
 
 ## Berechtigungen
 
@@ -74,7 +74,7 @@ Eine gesetzliche Pflicht, diese Daten bereitzustellen, besteht nicht. Ohne Netzv
 
 ## Empfänger
 
-OpenScr verkauft keine Daten und gibt sie nicht zu Werbezwecken weiter. Eine Übermittlung findet nur in den oben beschriebenen Fällen statt: GitHub (Microsoft), Spotify, von dir erlaubte Ziele einer OpenScrapp, Mitspieler im selben lokalen Netz, deine Mail-App und das Postfach manueldiliberto1@gmail.com, wenn du eine Meldung absendest.
+OpenScr verkauft keine Daten und gibt sie nicht zu Werbezwecken weiter. Eine Übermittlung findet nur in den oben beschriebenen Fällen statt: GitHub (Microsoft), Spotify, von dir erlaubte Ziele einer OpenScrapp, Mitspieler im selben lokalen Netz, deine Mail-App und das Postfach krust3nkaese3@gmail.com, wenn du eine Meldung absendest.
 
 ## Drittländer
 

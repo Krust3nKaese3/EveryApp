@@ -14,7 +14,7 @@ krust3nkaese3@gmail.com
 
 No data protection officer is appointed. If the law requires one, the contact will be added here.
 
-Reports about OpenScrapps (the “Melden” button) open an email to manueldiliberto1@gmail.com. That is not a server of the app. Privacy requests go to `krust3nkaese3@gmail.com`.
+Reports about OpenScrapps (the “Melden” button) and privacy requests go to `krust3nkaese3@gmail.com`. That is not a server of the app.
 
 ## What OpenScr is
 
@@ -46,7 +46,7 @@ Updating an OpenScrapp replaces only the downloaded files. Saves and other stora
 - **OpenScrapps.** Only after you allow it may an OpenScrapp open connections itself (`http`, local network, raw TCP/UDP). The OpenScrapp chooses the destination and the body. That can include data it has read, such as storage, a Wi-Fi name, Bluetooth devices or game messages. The operator of that OpenScrapp is responsible. Cleartext HTTP on the local network is possible.
 - **Spotify.** Playback control uses the Spotify app installed on the device (Spotify App Remote). Search, profile, playlists, saved tracks and playback state use the Spotify Web API with a PKCE token that stays inside OpenScr. Spotify receives the client id, the token and the query. Spotify's privacy policy applies as well. The OpenScrapp can see the account name, Spotify user id, product type, playlists and tracks if you granted `spotify`, but not the token.
 - **Local multiplayer.** Phones on the same Wi-Fi or hotspot connect directly over TCP. There is no OpenScr server and no end-to-end encryption by OpenScr. The `_openscr._tcp` advertisement carries the OpenScrapp, room code, room id, display name (at most 24 characters) and player counts. It does not carry the token, the player secret or the IP address. The IP stays inside the app. The join QR code contains the private IPv4 address, the port, the room code, a token and the OpenScrapp id. Players on the same network see the display name and the game messages the OpenScrapp sends.
-- **Report.** The button opens your mail app with a prefilled message to manueldiliberto1@gmail.com (name, repository, app id, version, commit). It is sent only if you send it. Your mail provider and that mailbox then process the message, including your From address.
+- **Report.** The button opens your mail app with a prefilled message to krust3nkaese3@gmail.com (name, repository, app id, version, commit). It is sent only if you send it. Your mail provider and that mailbox then process the message, including your From address.
 
 ## Permissions
 
@@ -74,7 +74,7 @@ There is no statutory duty to provide this data. Without a network connection th
 
 ## Recipients
 
-OpenScr does not sell data and does not share it for advertising. A transfer happens only in the cases above: GitHub (Microsoft), Spotify, destinations an OpenScrapp contacts after you allow it, players on the same local network, your mail app, and the mailbox manueldiliberto1@gmail.com if you send a report.
+OpenScr does not sell data and does not share it for advertising. A transfer happens only in the cases above: GitHub (Microsoft), Spotify, destinations an OpenScrapp contacts after you allow it, players on the same local network, your mail app, and the mailbox krust3nkaese3@gmail.com if you send a report.
 
 ## Countries outside the EEA
 
