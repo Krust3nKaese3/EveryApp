@@ -108,7 +108,7 @@ Host API (bridge `background.*`; guarded, saved but not shown on the current APK
 - Wi-Fi details:
   - `WifiWatcher.kt` registers a `PendingIntent` network callback while background mode is on and some active task has `wifiChanged`. The callback does not keep the process alive.
   - Debounce state (last SSID/BSSID, last emit time) is stored in prefs `everyapp_wifi`.
-  - It needs ACCESS_FINE_LOCATION plus ACCESS_BACKGROUND_LOCATION. Without them, Android redacts the BSSID and nothing fires; this is logged once as `FEHLER wifiChanged: BSSID verborgen`.
+  - Reading the SSID/BSSID needs ACCESS_FINE_LOCATION, and a background read also needs ACCESS_BACKGROUND_LOCATION. The Play release does not declare either permission (`android.blockedPermissions`), and nothing in the app prompts for them. Without them, Android redacts the BSSID and nothing fires; this is logged once as `FEHLER wifiChanged: BSSID verborgen`.
   - The PendingIntent overload cannot set `FLAG_INCLUDE_LOCATION_INFO`. The receiver reads `WifiInfo` from the active network. If the BSSID is still redacted, the same error line is written to NativeLog.
   - Bridge `network.getWifi()` and `network.requestLocation(background)` handle the two-step prompt.
 - Full Denon and Fritzbox/Repeater examples: EveryMacro MACROS.md.

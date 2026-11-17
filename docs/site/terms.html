@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Terms and legal notice – EveryApp</title>
+  <link rel="stylesheet" href="site.css">
+</head>
+<body>
+  <header>
+    <p>EveryApp</p>
+    <nav>
+      <a href="index.html">Übersicht</a>
+      <a href="nutzung.html">Deutsch</a>
+      <strong>English</strong>
+      <a href="datenschutz.html">Datenschutz</a>
+      <a href="privacy.html">Privacy</a>
+      <a href="nutzung.html">Nutzung</a>
+      <a href="terms.html">Terms</a>
+    </nav>
+  </header>
+  <main>
+<h1 id="terms-of-use-and-legal-notice-for-everyapp">Terms of use and legal notice for EveryApp</h1>
+<p>As of 16 November 2026</p>
+<p><strong>Draft, not legal advice.</strong> Have the text reviewed before publication.</p>
+<h2 id="legal-notice">Legal notice</h2>
+<p>Provider of this offering:</p>
+<p>Manuel Di Liberto</p>
+<p>Am Hasensprung 49, 60437 Frankfurt am Main, Deutschland</p>
+<p>Email: krust3nkaese@gmail.com</p>
+<p>Responsible for content: Manuel Di Liberto, address as above.</p>
+<p>A VAT identification number will be added here once the provider has one. The provider must check, for the place of establishment, whether further mandatory disclosures apply, such as a register or a professional title.</p>
+<h2 id="subject">Subject</h2>
+<p>EveryApp provides a runtime for mini-apps. Mini-apps are loaded from GitHub repositories that have a <code>main</code> branch and an <code>everyapp.json</code> file. They run as HTML, CSS and JavaScript in a WebView. Background tasks of a mini-app are JavaScript that EveryApp runs in its own JavaScript engine. EveryApp does not download native code (no DEX, no JAR, no <code>.so</code> file) from the mini-app repository. EveryApp is not the operator of those mini-apps.</p>
+<p>There is no EveryApp server, no user account and no tracking by EveryApp.</p>
+<h2 id="catalog-and-your-own-repositories">Catalog and your own repositories</h2>
+<p>Under “Empfohlen” you can install listed mini-apps with one tap. The catalog is the provider's selection. It is not a promise that a mini-app is correct, lawful or suitable for a given age. The age label is a recommendation, not an official rating.</p>
+<p>If you install an address that is not in the catalog (typed URL, QR code or link), EveryApp warns you first to add only sources you trust, and it names what the mini-app can use after you consent. Installation then needs an explicit confirmation.</p>
+<p>Builds with <code>EXPO_PUBLIC_CATALOG_ONLY=1</code> (profile <code>production-catalog</code>) do not allow free GitHub links. That build has the catalog and an optional developer mode. In developer mode you sign in with your GitHub account (device flow or a personal token stored only on this device). After that, only repositories owned by that account can be loaded. Other links, QR codes and add-links are rejected. Ownership is checked again on add, on update and on open. Signing out disables those mini-apps. That build is intended for a later iOS release. The Android build for Google Play keeps free installation with a warning.</p>
+<h2 id="permissions">Permissions</h2>
+<p>A mini-app receives Spotify, storage, multiplayer and other device features only after one-time consent for that mini-app. You can revoke consent in the app info. Without consent the feature stays off.</p>
+<p>EveryApp does not give mini-apps the file system, contacts or GPS coordinates. The camera reads QR codes. The microphone is not used. This release does not include a location permission.</p>
+<h2 id="reports-and-blocking">Reports and blocking</h2>
+<p>“Melden” opens an email to manueldiliberto1@gmail.com with the mini-app's details. There is no report server in the app. A remote blocklist (<code>catalog/blocklist.json</code>) can disable mini-apps for every install. EveryApp then shows the stored reason and does not start the mini-app.</p>
+<h2 id="your-duties">Your duties</h2>
+<p>Add only repositories you trust. You are responsible for not using or distributing mini-apps that break the law, spy on other people or damage devices. After you consent, mini-apps can use the network, Bluetooth or other granted features.</p>
+<p>In local multiplayer, players on the same Wi-Fi or hotspot see your display name and the messages the mini-app sends. Do not use a room to attack other devices or to harass people.</p>
+<h2 id="spotify">Spotify</h2>
+<p>Spotify features require the installed Spotify app and a Spotify account. Spotify's terms apply. EveryApp stores the client id and the Web API tokens locally and does not operate its own Spotify service.</p>
+<h2 id="updates">Updates</h2>
+<p>“Aktualisieren” loads the current commit of <code>main</code>. The mini-app's existing storage (for example a saved game) is kept. The app can check on open whether a newer commit exists.</p>
+<h2 id="deletion">Deletion</h2>
+<p>Delete removes the mini-app, its storage, its secrets, its permissions and related caches. Uninstalling removes EveryApp's data from the device. There is no EveryApp account that would have to be deleted on a server.</p>
+<h2 id="liability">Liability</h2>
+<p>The app and the loaded mini-apps are provided as they are. For damage caused by third-party mini-apps, the provider is liable only to the extent mandatory law requires, in particular for intent and gross negligence and for injury to life, body or health. This paragraph is a draft and is not legal advice.</p>
+<h2 id="governing-law">Governing law</h2>
+<p>Draft for an establishment in Germany: the law of the Federal Republic of Germany applies, excluding the UN Convention on Contracts for the International Sale of Goods. Mandatory consumer-protection rules of the country where you live remain in force. If the provider is not established in Germany, this section must be replaced.</p>
+<h2 id="changes">Changes</h2>
+<p>These terms are in the app under “Nutzung” and on this page. The version with the date above is the one that applies.</p>
+  </main>
+  <footer>Entwurf, keine Rechtsberatung. Anbieter: Manuel Di Liberto, Am Hasensprung 49, 60437 Frankfurt am Main, Deutschland, krust3nkaese@gmail.com.</footer>
+</body>
+</html>

@@ -1,6 +1,7 @@
 {
   "cli": {
-    "version": ">= 6.0.0"
+    "version": ">= 6.0.0",
+    "appVersionSource": "local"
   },
   "build": {
     "development": {
@@ -31,6 +32,15 @@
         "EXPO_PUBLIC_GITHUB_CLIENT_ID": "Ov23liZBUKxpmryUJW1a"
       }
     },
+    "production-play": {
+      "autoIncrement": true,
+      "android": {
+        "buildType": "app-bundle"
+      },
+      "env": {
+        "EXPO_PUBLIC_GITHUB_CLIENT_ID": "Ov23liZBUKxpmryUJW1a"
+      }
+    },
     "production-catalog": {
       "android": {
         "buildType": "app-bundle"
@@ -43,6 +53,17 @@
     }
   },
   "submit": {
-    "production": {}
+    "production": {
+      "android": {
+        "track": "internal",
+        "serviceAccountKeyPath": "{{PLAY_SERVICE_ACCOUNT_JSON}}"
+      }
+    },
+    "production-play": {
+      "android": {
+        "track": "internal",
+        "serviceAccountKeyPath": "{{PLAY_SERVICE_ACCOUNT_JSON}}"
+      }
+    }
   }
 }

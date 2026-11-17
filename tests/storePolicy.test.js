@@ -164,11 +164,27 @@ test('commit pin bypasses the cached main branch URL', () => {
 
 test('legal documents in the app match the markdown files', () => {
   const root = path.join(__dirname, '..');
-  assert.strictEqual(PRIVACY_MD, fs.readFileSync(path.join(root, 'PRIVACY.md'), 'utf8'));
-  assert.strictEqual(TERMS_MD, fs.readFileSync(path.join(root, 'TERMS.md'), 'utf8'));
-  assert.ok(PRIVACY_MD.includes('[BITTE AUSFÜLLEN: Anschrift'));
+  const { renderMarkdown } = require(path.join(root, 'docs/site/render.js'));
+  assert.strictEqual(PRIVACY_MD, fs.readFileSync(path.join(root, 'docs/site/privacy.de.md'), 'utf8'));
+  assert.strictEqual(TERMS_MD, fs.readFileSync(path.join(root, 'docs/site/terms.de.md'), 'utf8'));
+  for (const file of ['privacy.de.md', 'privacy.en.md', 'terms.de.md', 'terms.en.md']) {
+    const text = fs.readFileSync(path.join(root, 'docs/site', file), 'utf8');
+    assert.ok(text.includes('Manuel Di Liberto'), file);
+    assert.ok(text.includes('Am Hasensprung 49, 60437 Frankfurt am Main, Deutschland'), file);
+    assert.ok(text.includes('krust3nkaese@gmail.com'), file);
+    assert.ok(!text.includes('{{' + 'BETREIBER_'), file);
+    assert.ok(!text.includes('{{' + 'SUPPORT_EMAIL}}'), file);
+  }
   assert.ok(PRIVACY_MD.includes('manueldiliberto1@gmail.com'));
   assert.ok(PRIVACY_MD.includes('keinen eigenen Server'));
-  assert.ok(TERMS_MD.includes('[BITTE AUSFÜLLEN: Anschrift'));
   assert.ok(TERMS_MD.includes('EXPO_PUBLIC_CATALOG_ONLY'));
+  assert.ok(fs.readFileSync(path.join(root, 'PRIVACY.md'), 'utf8').includes('docs/site/privacy.de.md'));
+  assert.ok(fs.readFileSync(path.join(root, 'TERMS.md'), 'utf8').includes('docs/site/terms.de.md'));
+  const privacyHtml = fs.readFileSync(path.join(root, 'docs/site/datenschutz.html'), 'utf8');
+  const termsHtml = fs.readFileSync(path.join(root, 'docs/site/nutzung.html'), 'utf8');
+  assert.ok(privacyHtml.includes(renderMarkdown(PRIVACY_MD).slice(0, 120)));
+  assert.ok(termsHtml.includes(renderMarkdown(TERMS_MD).slice(0, 120)));
+  assert.ok(privacyHtml.includes('Manuel Di Liberto'));
+  assert.ok(!privacyHtml.includes('{{' + 'BETREIBER_'));
+  assert.ok(!privacyHtml.includes('{{' + 'SUPPORT_EMAIL}}'));
 });

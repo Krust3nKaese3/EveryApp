@@ -10,6 +10,7 @@
       "supportsTablet": true
     },
     "android": {
+      "versionCode": 1,
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/android-icon-foreground.png",
@@ -18,22 +19,22 @@
       },
       "permissions": [
         "CAMERA",
-        "BLUETOOTH",
-        "BLUETOOTH_ADMIN",
-        "BLUETOOTH_CONNECT",
-        "BLUETOOTH_SCAN",
-        "ACCESS_FINE_LOCATION",
         "INTERNET",
         "VIBRATE",
         "POST_NOTIFICATIONS",
         "FOREGROUND_SERVICE",
         "FOREGROUND_SERVICE_DATA_SYNC",
         "FOREGROUND_SERVICE_CONNECTED_DEVICE",
+        "FOREGROUND_SERVICE_SHORT_SERVICE",
         "RECEIVE_BOOT_COMPLETED",
-        "WAKE_LOCK",
-        "REQUEST_IGNORE_BATTERY_OPTIMIZATIONS",
-        "android.permission.CAMERA",
-        "android.permission.RECORD_AUDIO"
+        "WAKE_LOCK"
+      ],
+      "blockedPermissions": [
+        "android.permission.RECORD_AUDIO",
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.ACCESS_BACKGROUND_LOCATION",
+        "android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS",
+        "com.google.android.gms.permission.AD_ID"
       ],
       "package": "com.everyapp.container",
       "predictiveBackGestureEnabled": false
@@ -45,7 +46,16 @@
       [
         "expo-camera",
         {
-          "cameraPermission": "EveryApp needs camera access for mini-apps that request it."
+          "cameraPermission": "EveryApp uses the camera to scan QR codes for installing a mini-app or joining a local game.",
+          "recordAudioAndroid": false
+        }
+      ],
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "targetSdkVersion": 36
+          }
         }
       ],
       [

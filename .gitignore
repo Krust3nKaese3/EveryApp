@@ -39,3 +39,7 @@ yarn-error.*
 # generated native folders
 /ios
 /android
+
+# Play Console service account. Never commit the JSON key.
+/secrets/
+play-service-account.json
