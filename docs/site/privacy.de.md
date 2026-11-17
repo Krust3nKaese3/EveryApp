@@ -10,11 +10,11 @@ Manuel Di Liberto
 
 Am Hasensprung 49, 60437 Frankfurt am Main, Deutschland
 
-krust3nkaese@gmail.com
+krust3nkaese3@gmail.com
 
 Ein Datenschutzbeauftragter ist nicht benannt. Besteht eine Bestellpflicht, wird die Kontaktstelle hier ergänzt.
 
-Meldungen zu OpenScrapps (Schaltfläche „Melden“) öffnen eine E-Mail an manueldiliberto1@gmail.com. Das ist kein Server der App. Datenschutzanfragen gehören an `krust3nkaese@gmail.com`.
+Meldungen zu OpenScrapps (Schaltfläche „Melden“) öffnen eine E-Mail an manueldiliberto1@gmail.com. Das ist kein Server der App. Datenschutzanfragen gehören an `krust3nkaese3@gmail.com`.
 
 ## Was OpenScr ist
 
@@ -91,7 +91,7 @@ Daten auf dem Gerät bleiben, bis du die OpenScrapp löschst, die einzelne Funkt
 
 Soweit die DSGVO gilt, hast du Rechte auf Auskunft, Berichtigung, Löschung, Einschränkung, Datenübertragbarkeit und Widerspruch sowie das Recht, eine Einwilligung zu widerrufen und dich bei einer Aufsichtsbehörde zu beschweren. Zuständig ist in der Regel die Behörde deines Wohnorts oder des Sitzes des Verantwortlichen.
 
-Viele dieser Daten liegen nur auf deinem Gerät und lassen sich durch Löschen der OpenScrapp oder von OpenScr entfernen. Anfragen an: krust3nkaese@gmail.com
+Viele dieser Daten liegen nur auf deinem Gerät und lassen sich durch Löschen der OpenScrapp oder von OpenScr entfernen. Anfragen an: krust3nkaese3@gmail.com
 
 ## Automatisierte Entscheidungen
 

@@ -10,11 +10,11 @@ Manuel Di Liberto
 
 Am Hasensprung 49, 60437 Frankfurt am Main, Deutschland
 
-krust3nkaese@gmail.com
+krust3nkaese3@gmail.com
 
 No data protection officer is appointed. If the law requires one, the contact will be added here.
 
-Reports about OpenScrapps (the “Melden” button) open an email to manueldiliberto1@gmail.com. That is not a server of the app. Privacy requests go to `krust3nkaese@gmail.com`.
+Reports about OpenScrapps (the “Melden” button) open an email to manueldiliberto1@gmail.com. That is not a server of the app. Privacy requests go to `krust3nkaese3@gmail.com`.
 
 ## What OpenScr is
 
@@ -91,7 +91,7 @@ Data on the device stays until you delete the OpenScrapp, sign out of the featur
 
 Where the GDPR applies, you have the rights of access, rectification, erasure, restriction, portability and objection, the right to withdraw consent, and the right to lodge a complaint with a supervisory authority. That is usually the authority of your place of residence or of the controller's establishment.
 
-Much of this data exists only on your device and can be removed by deleting the OpenScrapp or OpenScr. Requests: krust3nkaese@gmail.com
+Much of this data exists only on your device and can be removed by deleting the OpenScrapp or OpenScr. Requests: krust3nkaese3@gmail.com
 
 ## Automated decisions
 

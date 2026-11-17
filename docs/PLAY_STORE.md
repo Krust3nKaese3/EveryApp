@@ -77,7 +77,7 @@ Grafiken liefert dieser Stand nicht: Symbol 512, Feature-Grafik 1024×500, minde
 - **Does your app collect or share any of the required user data types?** Yes. Es gibt keinen OpenScr-Server. „Collected“ ist in der Console auch eine Übermittlung an einen Dritten.
 - **Is all of the user data collected by your app encrypted in transit?** No. GitHub und Spotify nutzen HTTPS. Lokaler Mehrspieler ist unverschlüsseltes TCP im WLAN. OpenScrapps dürfen nach Zustimmung unverschlüsseltes HTTP im lokalen Netz verwenden.
 - **Which account-creation methods does your app support?** Die App legt kein OpenScr-Konto an. GitHub (Entwicklermodus) und Spotify sind optionale Konten dieser Dienste.
-- **Do you provide a way for users to request that their data is deleted?** Yes. URL: die Datenschutzerklärung. Löschen in der App entfernt die OpenScrapp, Abmelden löscht Token, Deinstallieren entfernt die App-Daten. Für eine gesendete Meldung: krust3nkaese@gmail.com.
+- **Do you provide a way for users to request that their data is deleted?** Yes. URL: die Datenschutzerklärung. Löschen in der App entfernt die OpenScrapp, Abmelden löscht Token, Deinstallieren entfernt die App-Daten. Für eine gesendete Meldung: krust3nkaese3@gmail.com.
 - Verkauf von Daten: No. Werbung: No. Kein Werbe-SDK, `AD_ID` ist blockiert.
 
 Punkt für Punkt. „Ephemeral“ nur ankreuzen, wenn die Console Daten meint, die nur im Speicher und nicht darüber hinaus liegen. Das trifft die gespeicherten Token nicht.
@@ -208,7 +208,7 @@ Persönliche Play-Konten, die nach dem 13. November 2023 angelegt wurden, brauch
 
 - Anbieter ist Manuel Di Liberto, Am Hasensprung 49, 60437 Frankfurt am Main. Der Entwurf zum deutschen Recht passt zu diesem Sitz und bleibt ohne anwaltliche Prüfung ein Entwurf.
 - Ob ein Datenschutzbeauftragter und eine Umsatzsteuer-ID nötig sind.
-- Meldungen gehen weiter an manueldiliberto1@gmail.com. Datenschutzanfragen gehen an krust3nkaese@gmail.com.
+- Meldungen gehen weiter an manueldiliberto1@gmail.com. Datenschutzanfragen gehen an krust3nkaese3@gmail.com.
 - Freie GitHub-Repositories im Play-Build oder nur Katalog (`production-catalog`), falls die Prüfung den nachgeladenen Code ablehnt.
 - WLAN-Name braucht Standortberechtigungen, die dieser Release nicht enthält.
 - Der erste AAB bekommt mit `autoIncrement` den `versionCode` 2.
