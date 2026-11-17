@@ -1,6 +1,6 @@
 # OpenScr
 
-**OpenScr** (Open Small Code Runner) is an Android container app that runs OpenScrapps loaded on demand from public Git repositories, without requiring app store deployments. Built with React Native, Expo, and TypeScript.
+**OpenScr** (Open Smartphone Code Runner) is an Android container app that runs OpenScrapps loaded on demand from public Git repositories, without requiring app store deployments. Built with React Native, Expo, and TypeScript.
 
 Empfehlung: Das Repository einer eigenen OpenScrapp heißt `<Name>Scrapps`, zum Beispiel `KrustenScrapps`. Der Name ist keine technische Voraussetzung.
 

@@ -1,6 +1,6 @@
 # OpenScr für OpenScrapp-Autoren
 
-> Einstieg für eine KI, die eine OpenScrapp in einem anderen Repository schreibt. OpenScr steht für Open Small Code Runner. Die OpenScrapp wird in OpenScr geladen. Sie spricht über `window.OpenScrBridge`. `window.EveryAppBridge` ist dasselbe Objekt und bleibt als Kompatibilität. Das Manifest heißt `openscr.json`; `everyapp.json` wird nur noch gelesen, wenn keine `openscr.json` da ist. Empfehlung für den Repository-Namen: `<Name>Scrapps`, zum Beispiel `KrustenScrapps`.
+> Einstieg für eine KI, die eine OpenScrapp in einem anderen Repository schreibt. OpenScr steht für Open Smartphone Code Runner. Die OpenScrapp wird in OpenScr geladen. Sie spricht über `window.OpenScrBridge`. `window.EveryAppBridge` ist dasselbe Objekt und bleibt als Kompatibilität. Das Manifest heißt `openscr.json`; `everyapp.json` wird nur noch gelesen, wenn keine `openscr.json` da ist. Empfehlung für den Repository-Namen: `<Name>Scrapps`, zum Beispiel `KrustenScrapps`.
 
 ## Zuerst lesen
 
