@@ -4,7 +4,7 @@
 
 The small apps are **OpenScrapps** (singular **OpenScrapp**).
 
-OpenScr is an Android container app that runs OpenScrapps loaded on demand from public Git repositories, without requiring app store deployments. Built with React Native, Expo, and TypeScript.
+OpenScr runs OpenScrapps loaded from Git repositories. The Android app can install the catalog and other public repositories. The iOS app is a learning and developer tool: after you sign in with GitHub it runs only repositories that account owns, on that device. Built with React Native, Expo, and TypeScript.
 
 Empfehlung: Das Repository eigener OpenScrapps heißt `<Name>Scrapps`, zum Beispiel `KrustenScrapps`. Der Name ist keine technische Voraussetzung.
 
@@ -27,11 +27,12 @@ Wer eine OpenScrapp in einem eigenen Repository schreibt, gibt der KI diesen Ein
 
 ## Store readiness
 
-- **Empfohlen:** `catalog/catalog.json` (name, repo URL, description, age rating). Fetched from the latest `main` commit, with the copy in the app as fallback. One tap installs it.
-- Repositories that are not in the catalog (typed URL, QR, add-link) require the warning „Nur vertrauenswürdige Quellen hinzufügen…“ and an explicit confirmation.
-- `EXPO_PUBLIC_CATALOG_ONLY=1` (mirrored from `CATALOG_ONLY` in `app.config.js` as `extra.catalogOnly`) disables free GitHub links. On that build, **Entwicklermodus** can load only repositories owned by the signed-in GitHub account (device flow or a personal token kept in the on-device secret store). Add, update, and open re-check ownership. Signing out disables those apps. The EAS profile `production-catalog` sets the flag for a later iOS build. Android builds leave the flag off and keep the free-add flow. Do not start that build unless you mean to.
+- **Android, Empfohlen:** `catalog/catalog.json` (name, repo URL, description, age rating). Fetched from the latest `main` commit, with the copy in the app as fallback. One tap installs it.
+- On Android, repositories that are not in the catalog (typed URL, QR, add-link) require the warning „Nur vertrauenswürdige Quellen hinzufügen…“ and an explicit confirmation.
+- **iOS** is a learning and developer tool. `Platform.OS === 'ios'` selects own-repos-only in the binary (`src/services/iosPolicy.ts`). The signed-in user can load only GitHub repositories that account owns. Add, update, and open re-check ownership. QR codes and add-links for any other repository are rejected. There is no curated catalog and no „Empfohlen“ list. `catalog/catalog.json` cannot turn catalog installs on. While an OpenScrapp runs, a bar reads „Entwicklungsumgebung · eigener Code“ and the page uses at most 80% of the height. Quelltext in the menu and on that bar shows the fetched HTML and JavaScript, read-only. The iOS bridge allows storage, sensors, HTTP, Bluetooth LE and vibration. Raw sockets, Tuya, background tasks, macros, tiles, popups and the other capabilities in [docs/BRIDGE_API.md](docs/BRIDGE_API.md) return a German error.
+- `EXPO_PUBLIC_CATALOG_ONLY=1` (mirrored from `CATALOG_ONLY` in `app.config.js` as `extra.catalogOnly`) is an Android switch. It disables free GitHub links and keeps the catalog plus **Entwicklermodus** for repositories owned by the signed-in GitHub account. The EAS profile `production-catalog` sets the flag. It does not apply to iOS. Android Play builds leave the flag off and keep the free-add flow.
 - Device flow is configured. The public GitHub OAuth client id is `Ov23liZBUKxpmryUJW1a` (Device Flow enabled, no client secret). Metro and every EAS profile use it when `EXPO_PUBLIC_GITHUB_CLIENT_ID` is unset; set that variable to override it. A personal token still works. The device flow never redirects into the app, so the GitHub OAuth app’s Authorization callback URL does not need to change for this rename. The client id stays the same.
-- Review notes for the two areas: [docs/APP_REVIEW.md](docs/APP_REVIEW.md). That file is not legal advice.
+- Review notes for the iOS learning tool: [docs/APP_REVIEW.md](docs/APP_REVIEW.md). That file is not legal advice.
 - **Melden** opens a prefilled email to `krust3nkaese3@gmail.com`. There is no report server.
 - `catalog/blocklist.json` disables listed `appId`s or repos for everyone and shows `reason`.
 - Privacy and terms: [docs/site/](docs/site/index.html) (German and English), linked in the app as „Datenschutz“ and „Nutzung“. After editing those pages, run `node scripts/sync-legal.js`. Play listing, data safety and the closed-test checklist: [docs/PLAY_STORE.md](docs/PLAY_STORE.md). Catalog age ratings are recommendations and need a check too.
@@ -618,7 +619,6 @@ everyapp/
 
 **Not implemented in v1** but architecture supports:
 
-- iOS compatibility (most code is cross-platform ready)
 - SQLite/database access
 - In-app purchases
 - Private repositories with token authentication
@@ -638,7 +638,7 @@ everyapp/
 - **No marketplace**: Repos are added by URL, in-app QR scan, or an add-link — there is no discovery UI
 - **Basic error handling**: Network errors may not be fully user-friendly
 - **Camera integration incomplete**: Requires additional native camera UI component
-- **Android only**: iOS support not yet implemented
+- **iOS** runs only repositories owned by the signed-in account, with the shorter bridge described above
 - **Single branch**: Always fetches from `main` branch
 - **No updates**: Apps are cached; changes require re-adding the repository
 - **Mini-app size**: At most 500 files, 40 MB total, and 15 MB per file, from the public `main` branch. `node_modules` is not downloaded
@@ -678,7 +678,6 @@ everyapp/
 
 Contributions are welcome! Areas for improvement:
 
-- iOS compatibility
 - Enhanced error handling
 - Asset bundling and caching
 - Private repository support

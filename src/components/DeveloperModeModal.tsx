@@ -11,9 +11,10 @@ interface DeveloperModeModalProps {
   visible: boolean;
   onClose: () => void;
   onChanged: () => void;
+  ownReposOnly?: boolean;
 }
 
-export const DeveloperModeModal: React.FC<DeveloperModeModalProps> = ({ visible, onClose, onChanged }) => {
+export const DeveloperModeModal: React.FC<DeveloperModeModalProps> = ({ visible, onClose, onChanged, ownReposOnly = false }) => {
   const [enabled, setEnabled] = useState(false);
   const [login, setLogin] = useState<string | null>(null);
   const [tokenDraft, setTokenDraft] = useState('');
@@ -75,6 +76,7 @@ export const DeveloperModeModal: React.FC<DeveloperModeModalProps> = ({ visible,
     setStatus('');
     try {
       await GithubSession.saveToken(tokenDraft);
+      if (ownReposOnly) await GithubSession.setDeveloperMode(true);
       setTokenDraft('');
       await changed();
       setStatus('Angemeldet.');
@@ -109,6 +111,7 @@ export const DeveloperModeModal: React.FC<DeveloperModeModalProps> = ({ visible,
         }
         if (poll.status === 'success') {
           await GithubSession.saveToken(poll.accessToken);
+          if (ownReposOnly) await GithubSession.setDeveloperMode(true);
           setUserCode(null);
           await changed();
           setStatus('Angemeldet.');
@@ -131,21 +134,20 @@ export const DeveloperModeModal: React.FC<DeveloperModeModalProps> = ({ visible,
       <View style={styles.overlay}>
         <View style={styles.card}>
           <ScrollView>
-            <Text style={styles.title}>Entwicklermodus</Text>
+            <Text style={styles.title}>{ownReposOnly ? 'GitHub-Anmeldung' : 'Entwicklermodus'}</Text>
             <Text style={styles.body}>
-              Der Katalog bleibt für alle nutzbar. Der Entwicklermodus ist zusätzlich und freiwillig.
-              Danach kannst du nur Repositories laden, deren Besitzer das angemeldete GitHub-Konto ist,
-              auch private. Fremde Links und QR-Codes werden abgelehnt. Das Token bleibt auf diesem Gerät.
-              Abmelden schaltet diese OpenScrapps aus.
+              {ownReposOnly
+                ? 'Melde dich mit dem GitHub-Konto an, dem deine Repositories gehören. Danach lädt OpenScr nur diese Repositories, auch private. Fremde Links und QR-Codes werden abgelehnt. Das Token bleibt auf diesem Gerät. Abmelden schaltet die geladenen OpenScrapps aus.'
+                : 'Der Katalog bleibt für alle nutzbar. Der Entwicklermodus ist zusätzlich und freiwillig. Danach kannst du nur Repositories laden, deren Besitzer das angemeldete GitHub-Konto ist, auch private. Fremde Links und QR-Codes werden abgelehnt. Das Token bleibt auf diesem Gerät. Abmelden schaltet diese OpenScrapps aus.'}
             </Text>
-            <View style={styles.row}>
+            {ownReposOnly ? null : <View style={styles.row}>
               <TouchableOpacity style={[styles.choice, enabled ? styles.choiceOn : null]} disabled={busy} onPress={() => { void toggle(true); }}>
                 <Text style={enabled ? styles.choiceOnText : styles.choiceText}>Ein</Text>
               </TouchableOpacity>
               <TouchableOpacity style={[styles.choice, !enabled ? styles.choiceOn : null]} disabled={busy} onPress={() => { void toggle(false); }}>
                 <Text style={!enabled ? styles.choiceOnText : styles.choiceText}>Aus</Text>
               </TouchableOpacity>
-            </View>
+            </View>}
             {login ? <Text style={styles.login}>Angemeldet als {login}</Text> : <Text style={styles.login}>Nicht angemeldet</Text>}
             {userCode ? (
               <View style={styles.codeBox}>

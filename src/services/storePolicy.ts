@@ -4,7 +4,8 @@
  */
 import { MiniApp, MiniAppOrigin } from '../types';
 import { githubRepoKey } from './deepLinks';
-import { normalizeLogin, OWN_REPO_MESSAGE, SIGN_IN_MESSAGE, urlOwnedBy } from './developerMode';
+import { IOS_SIGN_IN_MESSAGE, normalizeLogin, OWN_REPO_MESSAGE, SIGN_IN_MESSAGE, urlOwnedBy } from './developerMode';
+import { installModeForPlatform, InstallMode } from './iosPolicy';
 
 export const REPORT_EMAIL = 'krust3nkaese3@gmail.com';
 
@@ -60,6 +61,11 @@ export function isEnabledFlag(value: string | undefined | null): boolean {
  */
 export function isCatalogOnlyBuild(): boolean {
   return isEnabledFlag(process.env.EXPO_PUBLIC_CATALOG_ONLY);
+}
+
+/** Platform decides iOS. The catalog-only flag stays an Android build switch. */
+export function installMode(platform: string): InstallMode {
+  return installModeForPlatform(platform, isCatalogOnlyBuild());
 }
 
 export function parseCatalog(data: unknown): CatalogFile | null {
@@ -168,6 +174,8 @@ export function decideAdd(
     catalog: CatalogFile;
     blocklist: BlocklistFile;
     catalogOnly: boolean;
+    /** iOS. Catalog membership cannot install a repository. */
+    ownReposOnly?: boolean;
     appId?: string;
     /** Ignored unless catalogOnly. Android (flag off) keeps the free-add flow. */
     developerMode?: boolean;
@@ -181,6 +189,15 @@ export function decideAdd(
   const blocked = blockReasonFor(opts.appId || '', trimmed, opts.blocklist);
   if (blocked) {
     return { type: 'blocked', title: 'OpenScrapp gesperrt', message: blocked };
+  }
+  if (opts.ownReposOnly) {
+    if (!normalizeLogin(opts.signedInLogin)) {
+      return { type: 'reject', title: 'Anmeldung nötig', message: IOS_SIGN_IN_MESSAGE };
+    }
+    if (!urlOwnedBy(opts.signedInLogin, trimmed)) {
+      return { type: 'reject', title: 'Nur eigene Repositories', message: OWN_REPO_MESSAGE };
+    }
+    return { type: 'install-own' };
   }
   if (catalogEntryFor(trimmed, opts.catalog)) return { type: 'install', origin: 'catalog' };
   if (!opts.catalogOnly) {

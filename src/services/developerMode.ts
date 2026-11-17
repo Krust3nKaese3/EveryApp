@@ -1,5 +1,5 @@
 /**
- * Own-repo developer mode for catalog-only builds (the iOS / production-catalog flag).
+ * Own-repo checks. iOS always uses them. Android uses them only in the catalog-only build.
  * Pure checks: no network, no token values kept here. Callers pass the login GitHub returned.
  */
 import { githubRepoKey } from './deepLinks';
@@ -8,6 +8,9 @@ export type MiniAppOrigin = 'catalog' | 'developer' | 'free';
 
 export const SIGN_IN_MESSAGE =
   'Im Entwicklermodus kannst du nur Repositories laden, die deinem GitHub-Konto gehören. Melde dich dafür an.';
+
+export const IOS_SIGN_IN_MESSAGE =
+  'Melde dich mit deinem GitHub-Konto an. Danach kannst du nur Repositories laden, die diesem Konto gehören, und sie auf diesem Gerät ausführen.';
 
 export const OWN_REPO_MESSAGE =
   'Dieses Repository gehört nicht zum angemeldeten GitHub-Konto. Fremde Links, QR-Codes und Add-Links werden nicht installiert. Jede Person kann nur die eigenen Repositories auf dem eigenen Gerät ausführen.';
@@ -144,14 +147,30 @@ export type InstalledAccess =
   | { allowed: false; reason: string };
 
 /**
- * Catalog-only builds open catalog apps without a GitHub session.
- * Developer-mode apps additionally need the toggle, the same login that installed them,
- * and a later API check (`verifyOwnership`). Flag off: same as before, no ownership gate.
+ * ownReposOnly (iOS): only a developer-origin app owned by the signed-in login, then a live API check.
+ * Catalog membership does not open it. catalogOnly (Android flag): catalog apps skip the session.
+ * Flag off: same as before, no ownership gate.
  */
 export function installedAppAccess(
   app: { origin?: MiniAppOrigin; ownerLogin?: string; repoUrl: string },
-  opts: { catalogOnly: boolean; developerMode: boolean; signedInLogin: string | null | undefined; inCatalog: boolean },
+  opts: {
+    catalogOnly: boolean;
+    ownReposOnly?: boolean;
+    developerMode: boolean;
+    signedInLogin: string | null | undefined;
+    inCatalog: boolean;
+  },
 ): InstalledAccess {
+  if (opts.ownReposOnly) {
+    if (app.origin !== 'developer') {
+      return { allowed: false, reason: 'Diese OpenScrapp gehört nicht zu deinem GitHub-Konto. Es lassen sich nur eigene Repositories laden.' };
+    }
+    if (!normalizeLogin(opts.signedInLogin)) return { allowed: false, reason: SIGNED_OUT_MESSAGE };
+    if (!ownsRepo(opts.signedInLogin, app.ownerLogin) || !urlOwnedBy(opts.signedInLogin, app.repoUrl)) {
+      return { allowed: false, reason: OWN_REPO_MESSAGE };
+    }
+    return { allowed: true, verifyOwnership: true };
+  }
   if (!opts.catalogOnly) return { allowed: true, verifyOwnership: false };
   const catalogApp = app.origin === 'catalog' || (app.origin !== 'developer' && app.origin !== 'free' && opts.inCatalog);
   if (catalogApp) return { allowed: true, verifyOwnership: false };

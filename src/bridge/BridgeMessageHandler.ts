@@ -1,4 +1,6 @@
+import { Platform } from 'react-native';
 import { checkBridgePermission, permissionDecision } from './permissions';
+import { iosBlockedCapability } from '../services/iosPolicy';
 import { Permission } from '../types';
 import { NativeCapabilities } from './NativeCapabilities';
 import { BRIDGE_EVENTS, RATE_LIMIT_ERROR, bridgeMethod, parseBridgeMessage, takeRate } from './allowlist';
@@ -37,7 +39,11 @@ export class BridgeMessageHandler {
     if (parsed.kind === 'event') {
       try {
         const needed = BRIDGE_EVENTS[parsed.event];
-        if (needed) await this.ensurePermission(needed);
+        if (needed) {
+          const blocked = iosBlockedCapability(Platform.OS, needed);
+          if (blocked) return { id: parsed.id, success: false, error: blocked };
+          await this.ensurePermission(needed);
+        }
         this.handleEventSubscription({ event: parsed.event, action: parsed.action });
         return { id: parsed.id, success: true };
       } catch (error: any) {
@@ -47,6 +53,8 @@ export class BridgeMessageHandler {
 
     const spec = bridgeMethod(parsed.method);
     if (!spec) return { id: parsed.id, success: false, error: `Unbekannte Methode: ${parsed.method}` };
+    const blocked = iosBlockedCapability(Platform.OS, spec.category);
+    if (blocked) return { id: parsed.id, success: false, error: blocked };
     let args: unknown[];
     try {
       args = spec.validate(parsed.args);

@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { View, StyleSheet, StatusBar, BackHandler, ActivityIndicator, Text, ScrollView, TouchableOpacity } from 'react-native';
+import { View, StyleSheet, StatusBar, BackHandler, ActivityIndicator, Text, ScrollView, TouchableOpacity, Platform, useWindowDimensions } from 'react-native';
 import WebView, { WebViewMessageEvent } from 'react-native-webview';
 import * as ScreenOrientation from 'expo-screen-orientation';
 import * as FileSystem from 'expo-file-system/legacy';
@@ -13,6 +13,8 @@ import { NativeCapabilities } from '../bridge/NativeCapabilities';
 import { takeDeepLink, onDeepLinkQueued, deepLinkInjection } from '../services/deepLinks';
 import { setupGlobalErrorHandler, removeGlobalErrorHandler } from '../utils/errorHandler';
 import { MultiplayerOverlay } from './MultiplayerOverlay';
+import { SourceCodeModal } from './SourceCodeModal';
+import { learningPaneHeights, permissionsOfferedOnPlatform, showsLearningChrome } from '../services/iosPolicy';
 import { cancelMpScan, detachMultiplayer, dismissMpUi, endRoom, submitMpScan, subscribeMpUi, approveJoin, denyJoin, resumeMultiplayer, type MpUiState } from '../services/multiplayer/session';
 import {
   assetRuntimeSource,
@@ -47,6 +49,9 @@ export const MiniAppRunner: React.FC<MiniAppRunnerProps> = ({ app, onClose }) =>
   const consentResolve = useRef<((ok: boolean) => void) | null>(null);
   const capabilitiesRef = useRef<NativeCapabilities | null>(null);
   const [error, setError] = useState<{ message: string; stack?: string } | null>(null);
+  const [showSource, setShowSource] = useState(false);
+  const learning = showsLearningChrome(Platform.OS);
+  const panes = learningPaneHeights(useWindowDimensions().height);
 
   const webLoadedRef = useRef(false);
   const deliverDeepLink = () => {
@@ -100,7 +105,7 @@ export const MiniAppRunner: React.FC<MiniAppRunnerProps> = ({ app, onClose }) =>
     grantedRef.current = existingPermissions;
     deniedRef.current = deniedPermissions;
     setGrantedPermissions(existingPermissions);
-    const undecided = declaredPermissions().filter((permission) => !existingPermissions.includes(permission) && !deniedPermissions.includes(permission));
+    const undecided = permissionsOfferedOnPlatform(Platform.OS, declaredPermissions()).filter((permission) => !existingPermissions.includes(permission) && !deniedPermissions.includes(permission));
     if (undecided.length > 0) {
       setInstallPermissions(undecided);
       setShowPermissionModal(true);
@@ -353,10 +358,24 @@ export const MiniAppRunner: React.FC<MiniAppRunnerProps> = ({ app, onClose }) =>
     );
   }
 
+  const codePane = learning ? { height: panes.code, maxHeight: '80%' as const } : { flex: 1 };
   return (
     <View style={styles.container}>
-      <StatusBar hidden />
-      
+      <StatusBar hidden={!learning} />
+      {learning ? (
+        <View style={[styles.devBar, { height: panes.bar }]}>
+          <Text style={styles.devBarTitle}>Entwicklungsumgebung · eigener Code</Text>
+          <View style={styles.devBarActions}>
+            <TouchableOpacity style={styles.devBarButton} onPress={onClose} accessibilityLabel="Zurück">
+              <Text style={styles.devBarButtonText}>Zurück</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.devBarButton} onPress={() => setShowSource(true)} accessibilityLabel="Quelltext">
+              <Text style={styles.devBarButtonText}>Quelltext</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      ) : null}
+      <View style={codePane}>
       {loading ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#2196F3" />
@@ -398,6 +417,7 @@ export const MiniAppRunner: React.FC<MiniAppRunnerProps> = ({ app, onClose }) =>
         />
       )}
 
+      {learning ? null : (
       <TouchableOpacity
         onPress={onClose}
         style={{ position: 'absolute', top: 8, right: 8, width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(0,0,0,0.45)', alignItems: 'center', justifyContent: 'center', zIndex: 10 }}
@@ -405,6 +425,8 @@ export const MiniAppRunner: React.FC<MiniAppRunnerProps> = ({ app, onClose }) =>
       >
         <Text style={{ color: 'white', fontSize: 18, fontWeight: '700' }}>✕</Text>
       </TouchableOpacity>
+      )}
+      </View>
 
       <PermissionRequestModal
         visible={showPermissionModal}
@@ -424,6 +446,9 @@ export const MiniAppRunner: React.FC<MiniAppRunnerProps> = ({ app, onClose }) =>
         onGrant={() => { void finishConsent(true); }}
         onDeny={() => { void finishConsent(false); }}
       />
+      {learning ? (
+        <SourceCodeModal app={app} visible={showSource} onClose={() => setShowSource(false)} />
+      ) : (
       <MultiplayerOverlay
         state={mpUi}
         onDone={dismissMpUi}
@@ -433,6 +458,7 @@ export const MiniAppRunner: React.FC<MiniAppRunnerProps> = ({ app, onClose }) =>
         onApprove={(id) => { void approveJoin(app.id, id); }}
         onDeny={(id) => { void denyJoin(app.id, id); }}
       />
+      )}
     </View>
   );
 };
@@ -456,6 +482,31 @@ const styles = StyleSheet.create({
   webview: {
     flex: 1,
     backgroundColor: 'transparent',
+  },
+  devBar: {
+    backgroundColor: '#0d47a1',
+    paddingHorizontal: 12,
+    justifyContent: 'center',
+  },
+  devBarTitle: {
+    color: 'white',
+    fontWeight: '700',
+    fontSize: 15,
+  },
+  devBarActions: {
+    flexDirection: 'row',
+    marginTop: 8,
+  },
+  devBarButton: {
+    backgroundColor: 'white',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    marginRight: 8,
+  },
+  devBarButtonText: {
+    color: '#0d47a1',
+    fontWeight: '700',
   },
   loadingContainer: {
     flex: 1,

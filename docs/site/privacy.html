@@ -21,7 +21,7 @@
   </header>
   <main>
 <h1 id="privacy-policy-for-openscr">Privacy policy for OpenScr</h1>
-<p>As of 16 November 2026</p>
+<p>As of 17 November 2026</p>
 <p><strong>Draft, not legal advice.</strong> Have the text reviewed before publication. Age labels in the catalog are the publisher's recommendations, not an official rating.</p>
 <h2 id="controller">Controller</h2>
 <p>Manuel Di Liberto</p>
@@ -62,8 +62,8 @@
 <p>OpenScr does not request a location permission. <code>ACCESS_FINE_LOCATION</code> and <code>ACCESS_BACKGROUND_LOCATION</code> are not part of this release. GPS coordinates are not read. On current Android versions the Wi-Fi name is not available without that permission, so it stays hidden. Bluetooth scanning is not used to derive a location (<code>neverForLocation</code>).</p>
 <p>A foreground service with a visible notification (“OpenScr aktiv”) runs only while an OpenScrapp needs an interval, a due or connected Bluetooth LE notification, or a hosted game room. The notification does not leave the device.</p>
 <h2 id="catalog-and-blocklist">Catalog and blocklist</h2>
-<p>“Empfohlen” shows OpenScrapps from the catalog (name, repository, description, age label). A blocklist can disable an OpenScrapp for every install; the app then shows the reason and does not start it. There is no separate user database for that.</p>
-<p>The build flag <code>EXPO_PUBLIC_CATALOG_ONLY</code> turns free GitHub links off. That build has the catalog and, if you turn it on, developer mode: sign in with your own GitHub account, then only repositories owned by that account. Signing out deletes the token and disables those OpenScrapps. Builds without the flag keep free installation with a warning. The Play build leaves the flag off.</p>
+<p>On Android, “Empfohlen” shows OpenScrapps from the catalog (name, repository, description, age label). A blocklist can disable an OpenScrapp for every install; the app then shows the reason and does not start it. There is no separate user database for that. The iOS version does not have this list. There you sign in with your GitHub account and load only repositories owned by that account. Signing out deletes the token and disables those OpenScrapps. A remote catalog file cannot turn the catalog on for iOS.</p>
+<p>On iOS an OpenScrapp can use only storage, sensors, HTTP, Bluetooth LE and vibration. An Android build flag <code>EXPO_PUBLIC_CATALOG_ONLY</code> turns free GitHub links off and keeps the catalog plus developer mode. Builds without the flag keep free installation with a warning. The Play build leaves the flag off.</p>
 <h2 id="legal-bases">Legal bases</h2>
 <ul>
 <li>Art. 6 (1) (b) GDPR where processing is needed to perform the feature you start: load and store an OpenScrapp, update it, play locally, control Spotify, or load your own repository in developer mode.</li>

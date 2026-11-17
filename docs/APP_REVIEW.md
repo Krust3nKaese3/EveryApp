@@ -1,87 +1,89 @@
-# App Review: Katalog und Entwicklermodus
+# App Review: Lern- und Entwicklerwerkzeug
 
-Stand: 14. November 2026
+Stand: 17. November 2026
 
-**Das ist keine Rechtsberatung und keine Aussage, dass Apple OpenScr bereits freigegeben hat.** Die Richtlinie wird auf [developer.apple.com/app-store/review/guidelines](https://developer.apple.com/app-store/review/guidelines/) gepflegt. Unten steht, was die App tatsächlich tut, und wie sich das zu den Punkten verhält, die Review bei 2.5.2 und 4.7 prüft. Was die App nicht tut, ist ausdrücklich genannt, damit es in den Review-Notizen nicht behauptet wird.
+**Das ist keine Rechtsberatung und keine Aussage, dass Apple OpenScr bereits freigegeben hat.** Die Richtlinie wird auf [developer.apple.com/app-store/review/guidelines](https://developer.apple.com/app-store/review/guidelines/) gepflegt. Unten steht, was die iOS-App tatsächlich tut. Was die App nicht tut, ist ausdrücklich genannt, damit es in den Review-Notizen nicht behauptet wird.
 
-## Zwei Bereiche
+## Was die iOS-App ist
 
-Der Build mit `EXPO_PUBLIC_CATALOG_ONLY=1` (EAS-Profil `production-catalog`, vorgesehen für iOS) hat zwei getrennte Bereiche.
+Die iOS-Version ist ein Werkzeug, mit dem eine Person eigene OpenScrapps schreibt und auf dem eigenen Gerät ausführt. Eine OpenScrapp ist HTML, CSS und JavaScript plus `openscr.json` in einem GitHub-Repository.
 
-1. **Katalog („Empfohlen“).** Jede Person kann die gelisteten OpenScrapps installieren und öffnen, ohne GitHub-Anmeldung. Quelle ist `catalog/catalog.json` (Name, Repository, Beschreibung, Altersempfehlung). Eine Sperrliste kann Einträge für alle deaktivieren. „Melden“ öffnet eine E-Mail. Es gibt keinen OpenScr-Server.
-2. **Entwicklermodus.** Freiwillig, in den Einstellungen einzuschalten. Danach ist eine Anmeldung mit dem eigenen GitHub-Konto nötig. Der OAuth Device Flow ist eingerichtet: die öffentliche Client-ID `Ov23liZBUKxpmryUJW1a` gilt, wenn `EXPO_PUBLIC_GITHUB_CLIENT_ID` nicht gesetzt ist (Metro und alle EAS-Profile). Ein Client Secret gibt es nicht. Ein persönliches Token geht ebenfalls. Das Token liegt nur auf dem Gerät (Secret Store). OpenScr schickt es ausschließlich als `Authorization` an GitHub. Der Gerätefluss ruft keine Callback-URL auf. In der GitHub-OAuth-App muss die Authorization callback URL für diese Umbenennung nicht geändert werden. Die Client-ID bleibt.
+Die Person meldet sich mit dem eigenen GitHub-Konto an (OAuth Device Flow oder ein persönliches Token). Der Device Flow ist eingerichtet: die öffentliche Client-ID `Ov23liZBUKxpmryUJW1a` gilt, wenn `EXPO_PUBLIC_GITHUB_CLIENT_ID` nicht gesetzt ist. Ein Client Secret gibt es nicht. Das Token liegt nur auf dem Gerät und geht nur als `Authorization` an GitHub.
 
-Ohne das Flag (Android) bleibt die bisherige freie Installation mit der Warnung „Nur vertrauenswürdige Quellen hinzufügen…“. Der Entwicklermodus ersetzt diesen Weg nicht.
+Danach gilt:
 
-## Nur eigene Repositories
-
-Im Entwicklermodus gilt:
-
-- Installiert wird ein Repository nur, wenn der Besitzer in der GitHub-URL **und** `owner.login` aus `GET /repos/{owner}/{repo}` dem angemeldeten Benutzer entsprechen. Groß- und Kleinschreibung spielt keine Rolle. Organisationen und fremde Repositories, auch wenn das Token sie lesen kann, zählen nicht.
+- Installiert wird ein Repository nur, wenn der Besitzer in der GitHub-URL **und** `owner.login` aus `GET /repos/{owner}/{repo}` dem angemeldeten Benutzer entsprechen. Groß- und Kleinschreibung spielt keine Rolle. Organisationen und fremde Repositories zählen nicht, auch wenn das Token sie lesen kann.
 - Private Repositories des angemeldeten Kontos sind erlaubt. Der Download nutzt dasselbe Token.
-- Fremde Links, QR-Codes und Add-Links (`openscr://add?url=…`) werden abgelehnt. Es gibt keine Bestätigung „trotzdem hinzufügen“ und keine Weitergabe an ein anderes Konto.
-- Dieselbe Prüfung läuft beim Hinzufügen, bei jedem Aktualisieren und bei jedem Öffnen. Ohne erfolgreiche Antwort von GitHub startet eine Entwickler-OpenScrapp nicht.
-- Abmelden löscht das Token. Die OpenScrapps bleiben installiert, lassen sich aber nicht öffnen oder aktualisieren, bis sich dasselbe Konto wieder anmeldet.
+- Fremde Links, QR-Codes und Add-Links (`openscr://add?url=…`) werden abgelehnt. Die Meldung ist deutsch. Es gibt keine Bestätigung „trotzdem hinzufügen“.
+- Dieselbe Prüfung läuft beim Hinzufügen, bei jedem Aktualisieren und bei jedem Öffnen. Ohne erfolgreiche Antwort von GitHub startet die OpenScrapp nicht.
+- Abmelden löscht das Token. Die Dateien bleiben auf dem Gerät, lassen sich aber nicht öffnen oder aktualisieren, bis sich dasselbe Konto wieder anmeldet.
 
-Der Katalog ist davon ausgenommen. Eine Katalog-App bleibt ohne Anmeldung nutzbar.
+Es gibt auf iOS keinen Katalog und keine Liste „Empfohlen“. `catalog/catalog.json` und jede andere ferne Datei können das nicht einschalten. Die Entscheidung ist `Platform.OS === 'ios'` im Programm (`src/services/iosPolicy.ts`).
 
-## Richtlinie 2.5.2
+„Melden“ öffnet eine E-Mail. Die Sperrliste kann ein Repository deaktivieren und nennt den Grund. Es gibt keinen OpenScr-Server.
 
-2.5.2 verlangt, dass Apps in ihrem Bundle enthalten sind und keinen Code nachladen, der Funktionen der App verändert. Genannt ist eine enge Ausnahme für Lern-Apps, die ausführbaren Code zum Üben bereitstellen, und dass dieser Quelltext für die nutzende Person einsehbar und bearbeitbar sein muss.
+## Quelltext und Entwicklungsumgebung
 
-Der Entwicklermodus ist an dem Muster gebaut, das Expo für Expo Go auf dem iPhone beschreibt, nicht an einem offenen Laden für fremde Software:
+Der Quelltext einer geladenen OpenScrapp lässt sich nur lesen, nicht in der App ändern. Die Ansicht zeigt die geladenen HTML- und JavaScript-Dateien, die Einstiegsdatei zuerst. Sie liegt im Menü der OpenScrapp und auf der Leiste der Entwicklungsumgebung.
 
-- [Expo-Dokumentation „You need to be signed in to Expo Go and Expo CLI“](https://docs.expo.dev/troubleshooting/expo-go-sign-in-required): Auf einem physischen iOS-Gerät öffnet Expo Go ein Projekt vom Development-Server nur, wenn Expo Go und die Expo CLI im **selben Expo-Konto** angemeldet sind. Weichen die Konten ab, öffnet sich das Projekt nicht. Die Prüfung gilt dort für den Development-Server auf dem physischen Gerät, nicht für Android und nicht für den Simulator.
-- OpenScr prüft nicht ein Expo-Konto, sondern den GitHub-Besitzer. Zweck ist derselbe: Auf dem Gerät läuft nur Code, der zum angemeldeten Konto gehört. Ein anderes Konto auf demselben oder einem anderen Gerät kann dieses Repository nicht über den Entwicklermodus laden.
+Während eine OpenScrapp läuft, bleibt die Leiste „Entwicklungsumgebung · eigener Code“ sichtbar, mit „Zurück“ und „Quelltext“. Die Seite nutzt höchstens 80 Prozent der Höhe. Sie füllt den Bildschirm nicht aus.
 
-Weitere Apps im App Store führen Code aus, den die nutzende Person selbst schreibt oder in ihre eigene Bibliothek holt. Das ist eine Beschreibung ihrer Funktion, keine Entscheidung von Apple über OpenScr:
+## Bridge auf iOS
 
-- **Swift Playgrounds** (Apple) führt Swift aus, den man auf dem Gerät schreibt, in einer von Apple gelieferten Lernumgebung.
-- **Scriptable** führt JavaScript aus, das man in der App schreibt oder in die eigene Bibliothek übernimmt. Es ist kein öffentlicher Katalog fremder OpenScrapps.
-- **Pythonista** ist eine Python-Umgebung auf dem Gerät. Skripte schreibt oder importiert man selbst.
-- **a-Shell** ist eine lokale Shell. Befehle und Skripte laufen in der Sandbox der App, ausgelöst von der Person am Gerät.
-- **Pyto** führt Python aus, das man auf dem Gerät schreibt, einschließlich Pakete, die man selbst installiert.
+Die OpenScrapp erreicht das Gerät nur über die Allowlist. Auf iOS sind das:
 
-Diese Apps sind keine HTML-OpenScrapp-Läden. Sie zeigen, dass Apple Umgebungen akzeptiert hat, in denen Personen ihren eigenen Code auf dem eigenen Gerät ausführen. Ob Review OpenScr genauso einordnet, entscheidet Apple.
+- Speicher: `storage.get`, `storage.set`, `storage.remove`
+- HTTP: `http.fetch`, `http.request` (nur `http:` und `https:`)
+- Sensoren: `sensors.getAccelerometer`, `sensors.getGyroscope`
+- Bluetooth LE: `ble.isAvailable`, `ble.scan`, `ble.connect`, `ble.disconnect`, `ble.write`, `ble.read`, `ble.notify`
+- Vibration, solange die OpenScrapp sichtbar ist: `vibration.vibrate`
+- das Event `app.start`
 
-## Richtlinie 4.7
+Jede dieser Kategorien braucht eine einmalige Zustimmung, außer dem Event-Kanal. Dateisystem, Kontakte und Standort gibt es nicht.
 
-4.7 erlaubt bestimmte Software außerhalb des Binaries, darunter HTML5- und JavaScript-OpenScrapps. Der Anbieter bleibt für diese Software verantwortlich. 4.7.1 bis 4.7.5 gelten zusätzlich.
+Auf iOS nicht verfügbar, auch nicht durch eine ferne Datei: Roh-TCP, Roh-UDP, Tuya, Hintergrundaufgaben, Makros, Kacheln, Popups, klassisches Bluetooth, Benachrichtigungen, Kamera, Spotify, Medientasten, WLAN-Info, Zwischenablage, Geheimnisse, Kryptografie und Mehrspieler. Der Aufruf antwortet auf Deutsch: „Diese Funktion ist auf iOS nicht verfügbar. Erlaubt sind Speicher, Sensoren, HTTP, Bluetooth LE und Vibration.“
 
-Was dieser Build dafür hat:
+Die Android-App ist ein anderes Programm: Katalog, freie öffentliche Repositories nach Warnung, und die längere Bridge. Diese Notiz beschreibt die iOS-App.
 
-- Der Katalog ist das Verzeichnis der OpenScrapps, die allen angeboten werden, mit Name, Beschreibung, Repository und Altersempfehlung.
-- „Melden“ und die Sperrliste sind der Weg, einen Eintrag zu beanstanden und für alle zu deaktivieren.
-- Gerätefunktionen (Speicher, Spotify, Netzwerk und die übrigen Brücken-Methoden) gibt es nur nach einmaliger Zustimmung pro OpenScrapp. Die Brücke ist eine Allowlist. Dateisystem, Kontakte und Standort sind nicht dabei. Siehe `docs/BRIDGE_API.md`.
+## Richtlinie 2.5.2 und der Developer Program License Agreement
 
-Was dieser Build **nicht** tut und in den Notizen nicht behauptet werden darf:
+2.5.2 verlangt, dass Apps in ihrem Bundle enthalten sind und keinen Code nachladen, der die Funktionen der App verändert. Genannt ist eine Ausnahme für Apps, die ausführbaren Code zum Lernen, Entwickeln oder Testen bereitstellen, und dass dieser Quelltext für die nutzende Person einsehbar sein muss. Abschnitt 3.3.1(B) des Apple Developer Program License Agreement beschreibt dieselbe Ausnahme.
 
-- 4.7.4 verlangt Universal Links auf jede angebotene Software. Die App hat ein Verzeichnis im Programm, aber keine Universal Links pro OpenScrapp.
-- 4.7.5 verlangt eine Altersschranke anhand eines geprüften oder erklärten Alters. Die Altersangaben im Katalog sind Empfehlungen. Die App prüft das Alter nicht.
-- 4.7.2 untersagt, native Plattform-APIs an nicht eingebettete Software weiterzugeben, ohne vorherige Erlaubnis von Apple. Die Brücke gibt nach Zustimmung der nutzenden Person ausgewählte Gerätefunktionen frei. Das ist nicht dieselbe Erlaubnis. Diese Notiz behauptet nicht, dass Apple sie schon erteilt hat.
+OpenScr auf iOS folgt dem Muster, das Expo für Expo Go auf dem iPhone beschreibt, und dem Muster von Lernumgebungen, die eigenen Code auf dem eigenen Gerät ausführen:
 
-Der Entwicklermodus ist kein zweiter Katalog und kein Weg, 4.7 für fremde Repositories zu umgehen. Fremde Repositories lassen sich in diesem Build nicht installieren.
+- [Expo-Dokumentation „You need to be signed in to Expo Go and Expo CLI“](https://docs.expo.dev/troubleshooting/expo-go-sign-in-required): Auf einem physischen iOS-Gerät öffnet Expo Go ein Projekt vom Development-Server nur, wenn Expo Go und die Expo CLI im selben Expo-Konto angemeldet sind.
+- OpenScr prüft den GitHub-Besitzer. Auf dem Gerät läuft nur Code, der zum angemeldeten Konto gehört.
+- **Swift Playgrounds** (Apple) führt Swift aus, den man auf dem Gerät schreibt.
+- **Scriptable** führt JavaScript aus, das man selbst schreibt oder in die eigene Bibliothek übernimmt.
+- **Pythonista** führt Python aus, das man selbst schreibt oder importiert.
 
-## Lokales Netz
+Das sind Beschreibungen dieser Apps, keine Entscheidung von Apple über OpenScr.
 
-OpenScr sucht Spiele in der Nähe und verbindet Mitspieler im selben WLAN oder Hotspot, ohne Internet. Dafür steht unter iOS `NSLocalNetworkUsageDescription` und der Bonjour-Dienst `_openscr._tcp`. Die Ankündigung nennt OpenScrapp, Raumcode, Raum-Id, Anzeigename und Spielerzahl. Token und Spielergeheimnis stehen nicht darin. Android nutzt NSD ohne Standort-Berechtigung. `CHANGE_WIFI_MULTICAST_STATE` gilt nur, solange ein Raum angekündigt oder gesucht wird. Ein gehosteter Raum hält auf Android den vorhandenen Vordergrunddienst mit der sichtbaren Zeile „Spielraum“. iOS läuft dafür nicht im Hintergrund. Der Raum geht beim Schließen der App nicht verloren und startet beim nächsten Öffnen mit derselben Raum-Id neu.
+## Was diese Notiz nicht behauptet
+
+- Die iOS-App bietet keine Verzeichnis-Software für beliebige Personen an und erfüllt die Notiz nicht über einen Katalog nach 4.7.
+- Es gibt keine Universal Links pro OpenScrapp.
+- Es gibt keine Altersschranke. Die iOS-App zeigt keine Katalog-Altersangaben.
+- Die Brücke gibt keine nativen Schnittstellen frei, die außerhalb der sichtbaren Entwicklungsumgebung laufen. Diese Notiz behauptet nicht, dass Apple eine darüber hinausgehende Erlaubnis erteilt hat.
 
 ## English section for App Store Connect review notes
 
-OpenScr has two areas in the `EXPO_PUBLIC_CATALOG_ONLY=1` build (the iOS build). This note describes the binary. It is not legal advice and it is not a claim that Apple has approved the app.
+The iOS build of OpenScr is a learning and developer tool. It runs HTML/JavaScript OpenScrapps from GitHub repositories owned by the GitHub account that is signed in on that device. This note describes that binary. It is not legal advice and it is not a claim that Apple has approved the app.
 
-**Catalog.** Anyone can install the curated OpenScrapps listed under “Empfohlen” without a GitHub login. The list is `catalog/catalog.json` (name, repository, description, age recommendation). A remote blocklist can disable an entry for every install. “Melden” opens a prefilled email to the developer. There is no OpenScr account server.
+Sign-in uses the GitHub device flow (public client id `Ov23liZBUKxpmryUJW1a` when `EXPO_PUBLIC_GITHUB_CLIENT_ID` is unset, no client secret) or a personal access token stored only on the device. The token is sent only to GitHub. Signing out deletes it.
 
-**Developer mode.** The user turns it on in settings. They then sign in with their own GitHub account. The OAuth device flow is configured: the public client id `Ov23liZBUKxpmryUJW1a` is used when `EXPO_PUBLIC_GITHUB_CLIENT_ID` is unset (Metro and every EAS profile). There is no client secret. A personal access token also works. The token is stored only on the device and is sent only to GitHub. Signing out deletes it.
+A repository is installed only when both the owner in the URL and `owner.login` from `GET /repos/{owner}/{repo}` equal the authenticated user. The check is case-insensitive. Organization repositories and repositories owned by anyone else are rejected, even if the token can read them. Private repositories owned by that user are allowed. The same check runs on add, on every update, and on every open. QR codes and `openscr://add` links for any other repository are rejected. There is no confirmation that overrides the check.
 
-After sign-in, the app installs a repository only when both the owner in the GitHub URL and `owner.login` from `GET /repos/{owner}/{repo}` equal the authenticated user. The check is case-insensitive. Organization repositories and repositories owned by anyone else are rejected, even if the token can read them. Private repositories owned by that user are allowed. The same check runs on add, on every update, and on every open. If GitHub cannot confirm ownership, the OpenScrapp does not start. QR codes and `openscr://add` links for any other repository are rejected. There is no share path to another account. Signing out leaves the files on the device but disables open and update until the same account signs in again. Catalog OpenScrapps keep working without a session.
+The iOS app has no curated catalog and no “Empfohlen” list. `catalog/catalog.json` cannot enable catalog installs. The choice is `Platform.OS === 'ios'` in `src/services/iosPolicy.ts`. “Melden” opens an email. A blocklist can still disable a repository and show the reason. There is no OpenScr account server.
 
-This follows the pattern Expo documents for Expo Go on a physical iPhone: Expo Go opens a development-server project only when Expo Go and Expo CLI are signed into the same Expo account, and a different account cannot open it (https://docs.expo.dev/troubleshooting/expo-go-sign-in-required). OpenScr uses the GitHub repository owner instead of an Expo account. The same idea appears in apps that run code the user writes on their own device: Swift Playgrounds (Apple’s Swift learning environment), Scriptable (the user’s own JavaScript library), Pythonista and Pyto (the user’s own Python), and a-Shell (a local shell in the app sandbox). Those are descriptions of what those apps do, not a determination that OpenScr is in the same category.
+The user can read the fetched HTML and JavaScript (the entry file first) from the app menu and from the development bar. The view is read-only. While an OpenScrapp runs, a persistent bar says “Entwicklungsumgebung · eigener Code” and offers Back and Source. The page uses at most 80% of the screen height.
 
-Builds without the catalog-only flag (Android) keep the existing flow: a repository outside the catalog requires an explicit warning and confirmation. Developer mode does not replace that flow.
+iOS bridge methods are storage, HTTP fetch, accelerometer and gyroscope, Bluetooth LE, vibration, and the `app.start` event. Each category needs one-time consent except the event channel. The app does not expose the file system, contacts, or location. Calls to raw TCP/UDP, Tuya, background tasks, macros, tiles, popups, classic Bluetooth, notifications, camera, Spotify, media keys, Wi-Fi info, clipboard, secrets, crypto, and multiplayer return a German error and do not run. A remote file cannot add those methods back.
 
-Please do not read this note as claiming the following, because the app does not do them: universal links for each OpenScrapp (Guideline 4.7.4), an age gate based on verified or declared age (4.7.5; catalog ages are recommendations only), or prior permission from Apple to expose native APIs to OpenScrapps (4.7.2). Native capabilities are an allowlist and require one-time consent per OpenScrapp. The app does not expose the file system, contacts, or location.
+Android is a different build: a catalog, public repositories after a warning, and the longer bridge. This note is about iOS.
 
-**Local network.** The local-multiplayer feature looks for nearby games and connects players on the same Wi-Fi or hotspot, without the Internet. iOS shows the local-network prompt because of `NSLocalNetworkUsageDescription` and the Bonjour service `_openscr._tcp`. The advertisement carries the OpenScrapp id, a room code, a room id, a display name, and the player count. It does not carry the join token or a player secret. Android uses NSD and does not request location for that. The multicast lock is held only while a room is advertised or a search is running. A hosted room keeps the existing Android foreground service up, with a visible “Spielraum” notification, while the app is in the background. iOS does not keep the host running in the background. Closing the app does not end the room. Opening it again restarts the same room id.
+This follows the pattern Expo documents for Expo Go on a physical iPhone (https://docs.expo.dev/troubleshooting/expo-go-sign-in-required) and the pattern of Swift Playgrounds, Scriptable, and Pythonista: the person runs code they can read, on their own device, from their own account. Those are descriptions of what those apps do, not a determination that OpenScr is in the same category.
 
-To review developer mode, sign in with any GitHub account you control. A repository that account does not own will not install. Catalog apps do not need a login.
+Please do not read this note as claiming a public catalog under Guideline 4.7, universal links for each OpenScrapp, an age gate, or permission from Apple to expose native APIs beyond the list above.
+
+To review: sign in with a GitHub account you control, open “Dein erstes OpenScrapp”, and load a repository that account owns. A repository that account does not own will not install. Open Quelltext from the app menu or from the bar while it runs. A call such as a raw socket or a background task returns the German unavailable message.

@@ -1,6 +1,6 @@
 # Datenschutzerklärung für OpenScr
 
-Stand: 16. November 2026
+Stand: 17. November 2026
 
 **Entwurf, keine Rechtsberatung.** Den Text vor der Veröffentlichung rechtlich prüfen lassen. Altersangaben im Katalog sind Empfehlungen des Anbieters, keine behördliche Kennzeichnung.
 
@@ -60,9 +60,9 @@ Ein Vordergrunddienst mit sichtbarer Benachrichtigung („OpenScr aktiv“) läu
 
 ## Katalog und Sperrliste
 
-„Empfohlen“ zeigt OpenScrapps aus dem Katalog (Name, Repository, Beschreibung, Altersangabe). Eine Sperrliste kann eine OpenScrapp für alle Installationen deaktivieren; die App zeigt dann den Grund und startet sie nicht. Es gibt keine zusätzliche Nutzerdatenbank dafür.
+Auf Android zeigt „Empfohlen“ OpenScrapps aus dem Katalog (Name, Repository, Beschreibung, Altersangabe). Eine Sperrliste kann eine OpenScrapp für alle Installationen deaktivieren; die App zeigt dann den Grund und startet sie nicht. Es gibt keine zusätzliche Nutzerdatenbank dafür. Die iOS-Version hat diese Liste nicht. Dort meldest du dich mit deinem GitHub-Konto an und lädst nur Repositories, deren Besitzer dieses Konto ist. Abmelden löscht das Token und schaltet diese OpenScrapps aus. Eine ferne Katalogdatei schaltet den Katalog auf iOS nicht ein.
 
-Eine Build-Einstellung `EXPO_PUBLIC_CATALOG_ONLY` schaltet freie GitHub-Links ab. In dem Build gibt es den Katalog und, wenn du ihn einschaltest, den Entwicklermodus: Anmeldung mit dem eigenen GitHub-Konto, danach nur Repositories, deren Besitzer dieses Konto ist. Abmelden löscht das Token und schaltet diese OpenScrapps aus. Builds ohne diese Einstellung behalten die freie Installation mit Warnung. Der Play-Build lässt die Einstellung aus.
+Auf iOS kann eine OpenScrapp nur Speicher, Sensoren, HTTP, Bluetooth LE und Vibration nutzen. Eine Android-Build-Einstellung `EXPO_PUBLIC_CATALOG_ONLY` schaltet freie GitHub-Links ab und behält den Katalog plus den Entwicklermodus. Builds ohne diese Einstellung behalten die freie Installation mit Warnung. Der Play-Build lässt die Einstellung aus.
 
 ## Rechtsgrundlagen
 
