@@ -35,16 +35,20 @@ test('flag off keeps free adds even if developer mode is passed in', () => {
 });
 
 test('catalog entries install without a GitHub session on a catalog-only build', () => {
-  const url = 'https://github.com/Krust3nKaese3/evryWerwolf';
-  const decision = decideAdd(url, {
-    catalog,
-    blocklist,
-    catalogOnly: true,
-    developerMode: false,
-    signedInLogin: null,
-  });
-  assert.strictEqual(decision.type, 'install');
-  assert.strictEqual(decision.origin, 'catalog');
+  for (const url of [
+    'https://github.com/Krust3nKaese3/WerwolfScrapp',
+    'https://github.com/Krust3nKaese3/evryWerwolf.git',
+  ]) {
+    const decision = decideAdd(url, {
+      catalog,
+      blocklist,
+      catalogOnly: true,
+      developerMode: false,
+      signedInLogin: null,
+    });
+    assert.strictEqual(decision.type, 'install', url);
+    assert.strictEqual(decision.origin, 'catalog');
+  }
 });
 
 test('catalog-only developer mode accepts only the signed-in owner', () => {
@@ -84,7 +88,7 @@ test('signing out or a different login disables developer-mode apps', () => {
   assert.ok(other.reason.includes(OWN_REPO_MESSAGE.slice(0, 20)));
   const modeOff = installedAppAccess(app, { ...open, developerMode: false });
   assert.strictEqual(modeOff.allowed, false);
-  const catalogApp = { origin: 'catalog', repoUrl: 'https://github.com/Krust3nKaese3/evryWerwolf' };
+  const catalogApp = { origin: 'catalog', repoUrl: 'https://github.com/Krust3nKaese3/WerwolfScrapp' };
   assert.deepStrictEqual(
     installedAppAccess(catalogApp, { catalogOnly: true, developerMode: false, signedInLogin: null, inCatalog: true }),
     { allowed: true, verifyOwnership: false },

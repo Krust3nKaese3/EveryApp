@@ -19,7 +19,7 @@ Beim Mehrspieler: Callbacks vor host/join/resume, der Host ist allein zuständig
 
 Empfehlung für den Repository-Namen: `<Name>Scrapps`, zum Beispiel `KrustenScrapps`. OpenScr verlangt den Namen nicht.
 
-`openscr.json` im Ordner, den OpenScr als Wurzel nimmt. Liegt keine `openscr.json` im Repository, gilt weiter `everyapp.json` (so sind evryWerwolf, evryGuessTheSong, EveryMacro und EveryRollDice gebaut). Neue OpenScrapps legen `openscr.json` an:
+`openscr.json` im Ordner, den OpenScr als Wurzel nimmt. Liegt keine `openscr.json` im Repository, gilt weiter `everyapp.json` (so sind WerwolfScrapp, GuessTheSongScrapp, MacroScrapp und EveryRollDice gebaut). Neue OpenScrapps legen `openscr.json` an:
 
 ```json
 {

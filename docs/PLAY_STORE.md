@@ -104,7 +104,7 @@ So antworten, weil der Android-Build freie GitHub-Repositories zulässt und das 
 - Gewalt, Sexualität, derbe Sprache, Drogen, Glücksspiel um echtes oder simuliertes Geld, In-App-Käufe: **Nein** für den Container. Der Würfel ist ein Würfel, keine Glücksspielmechanik. Keine Werbung.
 - Können Nutzer miteinander interagieren oder Inhalte austauschen? **Ja.** Nur lokal im selben WLAN oder Hotspot, kein öffentliches soziales Netz, kein Standort an andere Nutzer.
 - Teilt die App den Standort mit anderen Nutzern? **Nein.**
-- Enthält die App oder ermöglicht sie den Zugang zu Inhalten aus dem offenen Internet, die nicht für jedes Alter geeignet sein müssen? **Ja.** Katalog plus jedes öffentliche Repository, das die nutzende Person einträgt. Die Alterszeilen im Katalog sind Empfehlungen (höchstes Label im mitgelieferten Katalog: ab 16 bei EveryMacro) und keine geprüfte Schranke.
+- Enthält die App oder ermöglicht sie den Zugang zu Inhalten aus dem offenen Internet, die nicht für jedes Alter geeignet sein müssen? **Ja.** Katalog plus jedes öffentliche Repository, das die nutzende Person einträgt. Die Alterszeilen im Katalog sind Empfehlungen (höchstes Label im mitgelieferten Katalog: ab 16 bei MacroScrapp) und keine geprüfte Schranke.
 
 Die berechnete Stufe übernehmen, nicht eine eigene Zahl einsetzen. Wegen der freien Repositories ist mit **PEGI 18 / Mature 17+** oder einer ähnlich hohen Stufe zu rechnen. Eine niedrigere Stufe wäre nur vertretbar, wenn der Play-Build freie Repositories abschaltet (`production-catalog`). Das ist hier bewusst nicht der Fall.
 

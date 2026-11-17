@@ -111,7 +111,7 @@ Host API (bridge `background.*`; guarded, saved but not shown on the current APK
   - Reading the SSID/BSSID needs ACCESS_FINE_LOCATION, and a background read also needs ACCESS_BACKGROUND_LOCATION. The Play release does not declare either permission (`android.blockedPermissions`), and nothing in the app prompts for them. Without them, Android redacts the BSSID and nothing fires; this is logged once as `FEHLER wifiChanged: BSSID verborgen`.
   - The PendingIntent overload cannot set `FLAG_INCLUDE_LOCATION_INFO`. The receiver reads `WifiInfo` from the active network. If the BSSID is still redacted, the same error line is written to NativeLog.
   - Bridge `network.getWifi()` and `network.requestLocation(background)` handle the two-step prompt.
-- Full Denon and Fritzbox/Repeater examples: EveryMacro MACROS.md.
+- Full Denon and Fritzbox/Repeater examples: MacroScrapp MACROS.md.
 
 ## BLE GATT (native module `modules/expo-ble-gatt`, next build)
 - Implementation: Kotlin `BleManager` is a process-wide singleton, so it works the same from the UI and from headless tasks.

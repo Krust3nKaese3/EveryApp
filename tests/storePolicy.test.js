@@ -36,10 +36,10 @@ const sha = 'a'.repeat(40);
 
 test('bundled catalog lists the four curated repos', () => {
   for (const url of [
-    'https://github.com/Krust3nKaese3/evryWerwolf',
-    'https://github.com/Krust3nKaese3/evryGuessTheSong',
+    'https://github.com/Krust3nKaese3/WerwolfScrapp',
+    'https://github.com/Krust3nKaese3/GuessTheSongScrapp',
     'https://github.com/Krust3nKaese3/EveryRollDice',
-    'https://github.com/Krust3nKaese3/EveryMacro',
+    'https://github.com/Krust3nKaese3/MacroScrapp',
   ]) {
     const entry = catalogEntryFor(url, catalog);
     assert.ok(entry, url);
@@ -47,6 +47,50 @@ test('bundled catalog lists the four curated repos', () => {
     assert.strictEqual(decideAdd(url, { catalog, blocklist, catalogOnly: false }).type, 'install');
     assert.strictEqual(decideAdd(url + '.git', { catalog, blocklist, catalogOnly: true }).type, 'install');
   }
+  assert.strictEqual(catalogEntryFor('https://github.com/Krust3nKaese3/WerwolfScrapp', catalog).name, 'WerwolfScrapp');
+  assert.strictEqual(catalogEntryFor('https://github.com/Krust3nKaese3/GuessTheSongScrapp', catalog).name, 'GuessTheSongScrapp');
+  assert.strictEqual(catalogEntryFor('https://github.com/Krust3nKaese3/MacroScrapp', catalog).name, 'MacroScrapp');
+  assert.strictEqual(catalogEntryFor('https://github.com/Krust3nKaese3/EveryRollDice', catalog).name, 'Würfel Roller');
+});
+
+test('renamed catalog repos still match the URLs already installed on phones', () => {
+  const pairs = [
+    ['https://github.com/Krust3nKaese3/evryWerwolf', 'WerwolfScrapp'],
+    ['https://github.com/Krust3nKaese3/evryGuessTheSong.git', 'GuessTheSongScrapp'],
+    ['HTTPS://github.com/Krust3nKaese3/EveryMacro/', 'MacroScrapp'],
+  ];
+  for (const [url, name] of pairs) {
+    const entry = catalogEntryFor(url, catalog);
+    assert.strictEqual(entry && entry.name, name, url);
+    const decision = decideAdd(url, { catalog, blocklist, catalogOnly: true, developerMode: false, signedInLogin: null });
+    assert.strictEqual(decision.type, 'install');
+    assert.strictEqual(decision.origin, 'catalog');
+  }
+  const parsed = parseCatalog({
+    version: 1,
+    notice: 'ignored',
+    apps: [{
+      name: 'MacroScrapp',
+      repoUrl: 'https://github.com/Krust3nKaese3/MacroScrapp',
+      description: 'Makros',
+      ageRating: 'Empfehlung: ab 16',
+      aliases: ['https://github.com/Krust3nKaese3/EveryMacro.git', 'not-a-url', 3],
+      unexpected: { keep: true },
+    }],
+  });
+  assert.strictEqual(parsed.apps.length, 1);
+  assert.deepStrictEqual(parsed.apps[0].aliases, ['https://github.com/Krust3nKaese3/EveryMacro.git']);
+  assert.strictEqual(catalogEntryFor('https://github.com/Krust3nKaese3/EveryMacro', parsed).name, 'MacroScrapp');
+  const withoutAliases = parseCatalog({
+    apps: [{
+      name: 'Würfel Roller',
+      repoUrl: 'https://github.com/Krust3nKaese3/EveryRollDice',
+      description: 'Würfel',
+      ageRating: 'Empfehlung: ohne Altersbeschränkung',
+      aliases: 'https://github.com/Krust3nKaese3/old',
+    }],
+  });
+  assert.strictEqual(withoutAliases.apps[0].aliases, undefined);
 });
 
 test('foreign repos need an explicit warning unless catalog-only rejects them', () => {
