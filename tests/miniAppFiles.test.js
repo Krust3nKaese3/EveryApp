@@ -31,7 +31,7 @@ function filesFrom(map) {
 }
 
 test('parseGitHubRepo accepts public repo URLs', () => {
-  assert.deepStrictEqual(parseGitHubRepo('https://github.com/Krust3nKaese3/EveryApp'), { owner: 'Krust3nKaese3', repo: 'EveryApp' });
+  assert.deepStrictEqual(parseGitHubRepo('https://github.com/Krust3nKaese3/OpenScr'), { owner: 'Krust3nKaese3', repo: 'OpenScr' });
   assert.deepStrictEqual(parseGitHubRepo('https://github.com/a/b.git'), { owner: 'a', repo: 'b' });
   assert.throws(() => parseGitHubRepo('https://gitlab.com/a/b'), /Invalid GitHub/);
 });

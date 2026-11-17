@@ -503,8 +503,8 @@ https://github.com/YOUR_USERNAME/YOUR_REPO/tree/main/examples/http-demo
 
 1. Clone the repository:
 ```bash
-git clone <repository-url>
-cd EveryApp
+git clone https://github.com/Krust3nKaese3/OpenScr.git
+cd OpenScr
 ```
 
 2. Install dependencies:

@@ -103,4 +103,4 @@ Der Katalog nennt eine Altersempfehlung. Die App prüft das Alter nicht und rich
 
 ## Änderungen
 
-Diese Erklärung liegt in der App unter „Datenschutz“ und auf dieser Seite: https://krust3nkaese3.github.io/OpenScr/site/datenschutz.html. Das Repository heißt OpenScr. Die frühere Adresse unter `/EveryApp/` antwortet nicht mehr. Es gilt die Fassung mit dem Datum oben.
+Diese Erklärung liegt in der App unter „Datenschutz“ und auf dieser Seite: https://krust3nkaese3.github.io/OpenScr/site/datenschutz.html. Es gilt die Fassung mit dem Datum oben.

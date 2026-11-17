@@ -4,20 +4,20 @@
 
 ## Zuerst lesen
 
-- [Guide für KIs](https://raw.githubusercontent.com/Krust3nKaese3/EveryApp/main/docs/MINIAPP_AI_GUIDE.md): Aufbau, Berechtigungen, Bridge, Mehrspieler, Fehler, kopierbarer Auftrag.
-- [Bridge-API](https://raw.githubusercontent.com/Krust3nKaese3/EveryApp/main/docs/BRIDGE_API.md): erlaubte Methoden und Grenzen.
-- [Mehrspieler](https://raw.githubusercontent.com/Krust3nKaese3/EveryApp/main/docs/MULTIPLAYER.md): Host, Suche in der Nähe, QR, Wiederbeitritt, 32 KiB. Die OpenScrapp speichert den Spielstand selbst.
-- [Mehrspieler-Sicherheit](https://raw.githubusercontent.com/Krust3nKaese3/EveryApp/main/docs/MULTIPLAYER_SECURITY.md): was das WLAN nicht leistet.
+- [Guide für KIs](https://raw.githubusercontent.com/Krust3nKaese3/OpenScr/main/docs/MINIAPP_AI_GUIDE.md): Aufbau, Berechtigungen, Bridge, Mehrspieler, Fehler, kopierbarer Auftrag.
+- [Bridge-API](https://raw.githubusercontent.com/Krust3nKaese3/OpenScr/main/docs/BRIDGE_API.md): erlaubte Methoden und Grenzen.
+- [Mehrspieler](https://raw.githubusercontent.com/Krust3nKaese3/OpenScr/main/docs/MULTIPLAYER.md): Host, Suche in der Nähe, QR, Wiederbeitritt, 32 KiB. Die OpenScrapp speichert den Spielstand selbst.
+- [Mehrspieler-Sicherheit](https://raw.githubusercontent.com/Krust3nKaese3/OpenScr/main/docs/MULTIPLAYER_SECURITY.md): was das WLAN nicht leistet.
 
 ## Vorlage
 
-- [Lobby](https://raw.githubusercontent.com/Krust3nKaese3/EveryApp/main/examples/multiplayer-lobby/index.html): Name, Host, Beitritt, Liste, Runde, Zähler, Abstimmung.
-- [Spielregeln](https://raw.githubusercontent.com/Krust3nKaese3/EveryApp/main/examples/multiplayer-lobby/logic.js)
-- [App-Skript](https://raw.githubusercontent.com/Krust3nKaese3/EveryApp/main/examples/multiplayer-lobby/app.js)
-- [Manifest](https://raw.githubusercontent.com/Krust3nKaese3/EveryApp/main/examples/multiplayer-lobby/openscr.json)
-- [Browser-Attrappe](https://raw.githubusercontent.com/Krust3nKaese3/EveryApp/main/examples/multiplayer-mock/everyapp-mock.js): zwei Tabs, ein Raum, kein Handy.
+- [Lobby](https://raw.githubusercontent.com/Krust3nKaese3/OpenScr/main/examples/multiplayer-lobby/index.html): Name, Host, Beitritt, Liste, Runde, Zähler, Abstimmung.
+- [Spielregeln](https://raw.githubusercontent.com/Krust3nKaese3/OpenScr/main/examples/multiplayer-lobby/logic.js)
+- [App-Skript](https://raw.githubusercontent.com/Krust3nKaese3/OpenScr/main/examples/multiplayer-lobby/app.js)
+- [Manifest](https://raw.githubusercontent.com/Krust3nKaese3/OpenScr/main/examples/multiplayer-lobby/openscr.json)
+- [Browser-Attrappe](https://raw.githubusercontent.com/Krust3nKaese3/OpenScr/main/examples/multiplayer-mock/everyapp-mock.js): zwei Tabs, ein Raum, kein Handy.
 
 ## Optional
 
-- [Hintergrund](https://raw.githubusercontent.com/Krust3nKaese3/EveryApp/main/docs/BACKGROUND.md)
-- [Store-Hinweise](https://raw.githubusercontent.com/Krust3nKaese3/EveryApp/main/docs/APP_REVIEW.md): kein Rechtsrat.
+- [Hintergrund](https://raw.githubusercontent.com/Krust3nKaese3/OpenScr/main/docs/BACKGROUND.md)
+- [Store-Hinweise](https://raw.githubusercontent.com/Krust3nKaese3/OpenScr/main/docs/APP_REVIEW.md): kein Rechtsrat.

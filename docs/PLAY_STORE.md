@@ -66,7 +66,7 @@ Datenschutz-URL, sobald GitHub Pages für den Ordner `/docs` auf `main` aktiv is
 
 `https://krust3nkaese3.github.io/OpenScr/site/datenschutz.html`
 
-Die englische Fassung liegt daneben als `privacy.html`, die Nutzungsbedingungen als `nutzung.html` und `terms.html`. Das Repository heißt bereits OpenScr. `https://krust3nkaese3.github.io/EveryApp/...` antwortet mit 404 und ist keine gültige Store-URL mehr.
+Die englische Fassung liegt daneben als `privacy.html`, die Nutzungsbedingungen als `nutzung.html` und `terms.html`.
 
 Grafiken liefert dieser Stand nicht: Symbol 512, Feature-Grafik 1024×500, mindestens zwei Telefon-Screenshots. Die liegen bei EveryMan.
 

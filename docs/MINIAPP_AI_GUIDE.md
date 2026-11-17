@@ -6,7 +6,7 @@ Sag deiner KI:
 
 ```text
 Baue eine OpenScrapp für OpenScr. Lies zuerst
-https://raw.githubusercontent.com/Krust3nKaese3/EveryApp/main/llms.txt
+https://raw.githubusercontent.com/Krust3nKaese3/OpenScr/main/llms.txt
 und halte dich an den Guide, die Bridge-API und, falls Mehrspieler vorkommt, an MULTIPLAYER.md.
 Lege openscr.json, eine Einstiegsdatei und nur die Berechtigungen an, die du brauchst.
 Nutze ausschließlich window.OpenScrBridge. Schreibe Namen und Spielnachrichten mit textContent, nie mit innerHTML.
@@ -37,7 +37,7 @@ Eine fertige Lobby steht unter `examples/multiplayer-lobby/`.
 
 ## Bridge
 
-Im Spiel gibt es `window.OpenScrBridge`. `window.EveryAppBridge` ist dasselbe Objekt und nur der Kompatibilitätsname. Neue OpenScrapps nutzen `OpenScrBridge`. Die vollständige Liste steht in [BRIDGE_API.md](https://raw.githubusercontent.com/Krust3nKaese3/EveryApp/main/docs/BRIDGE_API.md).
+Im Spiel gibt es `window.OpenScrBridge`. `window.EveryAppBridge` ist dasselbe Objekt und nur der Kompatibilitätsname. Neue OpenScrapps nutzen `OpenScrBridge`. Die vollständige Liste steht in [BRIDGE_API.md](https://raw.githubusercontent.com/Krust3nKaese3/OpenScr/main/docs/BRIDGE_API.md).
 
 Aufrufe geben ein Promise zurück. Fehler kommen als Ablehnung mit deutschem Text.
 
@@ -124,7 +124,7 @@ await mp.endRoom();
 
 Der Platz bleibt, bis der Gast `leave()` ruft oder der Host `endRoom()` aufruft. Dieselbe Id kommt zurück. Die OpenScrapp sieht das Geheimnis dafür nicht. Es bleibt im Container. Ist der Host weg, kommt `hostAway`, und der Platz bleibt trotzdem.
 
-Details: [MULTIPLAYER.md](https://raw.githubusercontent.com/Krust3nKaese3/EveryApp/main/docs/MULTIPLAYER.md).
+Details: [MULTIPLAYER.md](https://raw.githubusercontent.com/Krust3nKaese3/OpenScr/main/docs/MULTIPLAYER.md).
 
 ## Am PC testen
 
@@ -133,7 +133,7 @@ Die Lobby-Vorlage hat ein Feld „Raumcode am PC“. Leer gelassen ruft sie `joi
 Ohne Handy die Attrappe laden, **vor** der OpenScrapp:
 
 ```html
-<script src="https://raw.githubusercontent.com/Krust3nKaese3/EveryApp/main/examples/multiplayer-mock/everyapp-mock.js"></script>
+<script src="https://raw.githubusercontent.com/Krust3nKaese3/OpenScr/main/examples/multiplayer-mock/everyapp-mock.js"></script>
 <script src="app.js"></script>
 ```
 

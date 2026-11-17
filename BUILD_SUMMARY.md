@@ -151,7 +151,7 @@ Nach Installation der APK:
 1. App öffnen
 2. GitHub-URL eingeben:
    ```
-   https://github.com/Krust3nKaese3/EveryApp
+   https://github.com/Krust3nKaese3/OpenScr
    ```
    (Anmerkung: Der Service lädt aus dem `main` Branch und sucht nach `examples/dice-game/openscr.json`)
 
@@ -247,9 +247,9 @@ npx tsc --noEmit
 
 ## 🔗 Links
 
-- **Pull Request:** https://github.com/Krust3nKaese3/EveryApp/pull/1
+- **Pull Request:** https://github.com/Krust3nKaese3/OpenScr/pull/1
 - **Branch:** `cursor/everyapp-v1-implementation-92d8`
-- **Repository:** https://github.com/Krust3nKaese3/EveryApp
+- **Repository:** https://github.com/Krust3nKaese3/OpenScr
 
 ## 🎯 Fazit
 

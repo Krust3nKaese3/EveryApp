@@ -29,7 +29,7 @@ test('Doku und Vorlage nutzen dieselben Bridge-Methoden', () => {
     assert.match(mock, new RegExp(name + '\\('));
     assert.match(guide, new RegExp(name));
   }
-  assert.match(read('llms.txt'), /raw\.githubusercontent\.com\/Krust3nKaese3\/EveryApp\/main\/docs\/MINIAPP_AI_GUIDE\.md/);
+  assert.match(read('llms.txt'), /raw\.githubusercontent\.com\/Krust3nKaese3\/OpenScr\/main\/docs\/MINIAPP_AI_GUIDE\.md/);
   assert.match(mock, /window\.OpenScrBridge/);
   assert.match(mock, /EveryAppBridge/);
   assert.match(mock, /openscr-mp:\/\//);

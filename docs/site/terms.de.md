@@ -70,4 +70,4 @@ Entwurf für einen Sitz in Deutschland: Es gilt das Recht der Bundesrepublik Deu
 
 ## Änderungen
 
-Diese Bedingungen liegen in der App unter „Nutzung“ und auf dieser Seite: https://krust3nkaese3.github.io/OpenScr/site/nutzung.html. Das Repository heißt OpenScr. Die frühere Adresse unter `/EveryApp/` antwortet nicht mehr. Es gilt die Fassung mit dem Datum oben.
+Diese Bedingungen liegen in der App unter „Nutzung“ und auf dieser Seite: https://krust3nkaese3.github.io/OpenScr/site/nutzung.html. Es gilt die Fassung mit dem Datum oben.

@@ -70,4 +70,4 @@ Draft for an establishment in Germany: the law of the Federal Republic of German
 
 ## Changes
 
-These terms are in the app under “Nutzung” and on this page: https://krust3nkaese3.github.io/OpenScr/site/terms.html. The repository is named OpenScr. The previous `/EveryApp/` address no longer responds. The version with the date above is the one that applies.
+These terms are in the app under “Nutzung” and on this page: https://krust3nkaese3.github.io/OpenScr/site/terms.html. The version with the date above is the one that applies.
