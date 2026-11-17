@@ -192,7 +192,7 @@ eas submit --platform android --profile production-play --latest
 Persönliche Play-Konten, die nach dem 13. November 2023 angelegt wurden, brauchen vor der Produktion einen geschlossenen Test mit mindestens **12 Testern**, die **14 aufeinanderfolgende Tage** angemeldet bleiben. Ob dieses Konto darunterfällt, sagt der Hinweis beim Produktionszugang. Die 14 Tage zählen die Anmeldung (opt-in), nicht tägliche Nutzung. In den 14 Tagen niemanden aus dem Test nehmen.
 
 1. GitHub Pages: Quelle `/docs`, Branch `main`. Datenschutz-URL im Browser öffnen. Nach einer Textänderung `node scripts/sync-legal.js` ausführen.
-2. Play Console: App anlegen, Paket `com.openscr.app`, iOS-Bundle später `com.openscr.app`, Standardsprache, Play App Signing einschalten. Die EAS-projectId bleibt `5c71baaf-8aca-4641-8ba7-c7d02f238288`. Ein neues Paket ist in der Play Console eine neue App.
+2. Play Console: App anlegen, Paket `com.openscr.app`, iOS-Bundle später `com.openscr.app`, Standardsprache, Play App Signing einschalten. Die EAS-projectId bleibt `5c71baaf-8aca-4641-8ba7-c7d02f238288`. Der Expo-Slug in `app.json` bleibt intern `everyapp`, weil diese projectId zum Expo-Projekt mit dem Slug `everyapp` gehört. Ein anderer Slug bricht den EAS-Build ab. Ein neues Paket ist in der Play Console eine neue App.
 3. Store-Eintrag: Name, beide Kurztexte, beide Langtexte, Kategorie Tools, Symbol, Feature-Grafik, Screenshots, Datenschutz-URL.
 4. Datensicherheit wie oben ausfüllen. Vorschau lesen: es dürfen keine Analyse- und keine Werbedaten erscheinen.
 5. IARC abschicken und die berechnete Stufe übernehmen. Zielgruppe nicht für Kinder.
