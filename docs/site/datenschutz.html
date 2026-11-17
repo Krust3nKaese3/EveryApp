@@ -28,7 +28,7 @@
 <p>Am Hasensprung 49, 60437 Frankfurt am Main, Deutschland</p>
 <p>krust3nkaese3@gmail.com</p>
 <p>Ein Datenschutzbeauftragter ist nicht benannt. Besteht eine Bestellpflicht, wird die Kontaktstelle hier ergänzt.</p>
-<p>Meldungen zu OpenScrapps (Schaltfläche „Melden“) öffnen eine E-Mail an manueldiliberto1@gmail.com. Das ist kein Server der App. Datenschutzanfragen gehören an <code>krust3nkaese3@gmail.com</code>.</p>
+<p>Meldungen zu OpenScrapps (Schaltfläche „Melden“) und Datenschutzanfragen gehen an <code>krust3nkaese3@gmail.com</code>. Das ist kein Server der App.</p>
 <h2 id="was-openscr-ist">Was OpenScr ist</h2>
 <p>OpenScr ist eine Container-App für das Handy. Sie lädt OpenScrapps aus GitHub-Repositories (Branch <code>main</code>) und zeigt sie in einer WebView. Eine OpenScrapp besteht aus HTML, JavaScript, CSS und Mediendateien plus der Datei <code>openscr.json</code>. Liegt keine <code>openscr.json</code> im Repository, liest die App weiter <code>everyapp.json</code>.</p>
 <p>Es gibt kein OpenScr-Benutzerkonto und keinen eigenen Server von OpenScr. Die App enthält kein Analyse- und kein Werbe-SDK und bildet kein Nutzungsprofil. Diese statische Website setzt keine Cookies und ruft keine Analyse auf.</p>
@@ -54,7 +54,7 @@
 <li><strong>OpenScrapps.</strong> Erst nach deiner Zustimmung darf eine OpenScrapp selbst Verbindungen aufbauen (<code>http</code>, lokales Netz, Roh-TCP/UDP). Ziel und Inhalt bestimmt die OpenScrapp. Dazu können Daten gehören, die sie zuvor gelesen hat, etwa Speicher, WLAN-Name, Bluetooth-Geräte oder Spielnachrichten. Dafür ist der Betreiber dieser OpenScrapp verantwortlich. Im lokalen Netz ist unverschlüsseltes HTTP möglich.</li>
 <li><strong>Spotify.</strong> Steuerung läuft über die auf dem Gerät installierte Spotify-App (Spotify App Remote). Suche, Profil, Playlists, gespeicherte Titel und der Wiedergabestatus laufen über die Spotify-Web-API mit einem PKCE-Token, das in OpenScr bleibt. Spotify erhält die Client-ID, das Token und die Abfrage. Es gilt zusätzlich die Datenschutzerklärung von Spotify. Die OpenScrapp sieht Kontoname, Spotify-Benutzer-ID, Produkttyp, Playlist- und Titeldaten, wenn du die Berechtigung <code>spotify</code> erteilt hast, aber nicht das Token.</li>
 <li><strong>Lokaler Mehrspieler.</strong> Telefone im selben WLAN oder Hotspot verbinden sich direkt per TCP. Es gibt dafür keinen OpenScr-Server und keine Ende-zu-Ende-Verschlüsselung durch OpenScr. Die Bekanntgabe <code>_openscr._tcp</code> nennt OpenScrapp, Raumcode, Raum-Id, Anzeigename (höchstens 24 Zeichen) und Spielerzahlen. Token, Spielergeheimnis und IP stehen nicht darin. Die IP bleibt in der App. Der QR-Code zum Beitreten enthält die private IPv4-Adresse, den Port, den Raumcode, ein Token und die OpenScrapp-Id. Mitspieler im selben Netz sehen den Anzeigenamen und die Spielnachrichten, die die OpenScrapp sendet.</li>
-<li><strong>Melden.</strong> Die Schaltfläche öffnet deine Mail-App mit einer vorausgefüllten Nachricht an manueldiliberto1@gmail.com (Name, Repository, App-Kennung, Version, Commit). Gesendet wird sie nur, wenn du das selbst tust. Dann verarbeiten dein Mail-Anbieter und dieses Postfach die Nachricht, einschließlich deiner Absenderadresse.</li>
+<li><strong>Melden.</strong> Die Schaltfläche öffnet deine Mail-App mit einer vorausgefüllten Nachricht an krust3nkaese3@gmail.com (Name, Repository, App-Kennung, Version, Commit). Gesendet wird sie nur, wenn du das selbst tust. Dann verarbeiten dein Mail-Anbieter und dieses Postfach die Nachricht, einschließlich deiner Absenderadresse.</li>
 </ul>
 <h2 id="berechtigungen">Berechtigungen</h2>
 <p>Spotify, Speicher, Mehrspieler und jede andere Brücken-Funktion brauchen eine eigene Zustimmung pro OpenScrapp. Die Entscheidung wird zu dieser OpenScrapp gespeichert. In „Info und Berechtigungen“ kannst du sie widerrufen.</p>
@@ -72,7 +72,7 @@
 </ul>
 <p>Eine gesetzliche Pflicht, diese Daten bereitzustellen, besteht nicht. Ohne Netzverbindung lassen sich Katalog und OpenScrapps nicht neu laden. Entwicklermodus und Spotify setzen voraus, dass du dich bei GitHub beziehungsweise Spotify anmeldest.</p>
 <h2 id="empfänger">Empfänger</h2>
-<p>OpenScr verkauft keine Daten und gibt sie nicht zu Werbezwecken weiter. Eine Übermittlung findet nur in den oben beschriebenen Fällen statt: GitHub (Microsoft), Spotify, von dir erlaubte Ziele einer OpenScrapp, Mitspieler im selben lokalen Netz, deine Mail-App und das Postfach manueldiliberto1@gmail.com, wenn du eine Meldung absendest.</p>
+<p>OpenScr verkauft keine Daten und gibt sie nicht zu Werbezwecken weiter. Eine Übermittlung findet nur in den oben beschriebenen Fällen statt: GitHub (Microsoft), Spotify, von dir erlaubte Ziele einer OpenScrapp, Mitspieler im selben lokalen Netz, deine Mail-App und das Postfach krust3nkaese3@gmail.com, wenn du eine Meldung absendest.</p>
 <h2 id="drittländer">Drittländer</h2>
 <p>GitHub und Spotify verarbeiten Daten auch in den USA. OpenScr betreibt die Übermittlung nicht über einen eigenen Server; die Verbindung geht vom Gerät zu diesen Diensten, sobald du die Funktion nutzt. Welche Garantien sie verwenden, steht in ihren Erklärungen, insbesondere zum EU-US Data Privacy Framework und zu Standardvertragsklauseln:</p>
 <ul>

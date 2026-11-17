@@ -219,7 +219,7 @@ test('legal documents in the app match the markdown files', () => {
     assert.ok(!text.includes('{{' + 'BETREIBER_'), file);
     assert.ok(!text.includes('{{' + 'SUPPORT_EMAIL}}'), file);
   }
-  assert.ok(PRIVACY_MD.includes('manueldiliberto1@gmail.com'));
+  assert.ok(PRIVACY_MD.includes('Meldungen zu OpenScrapps (Schaltfläche „Melden“) und Datenschutzanfragen gehen an `krust3nkaese3@gmail.com`'));
   assert.ok(PRIVACY_MD.includes('keinen eigenen Server'));
   assert.ok(TERMS_MD.includes('EXPO_PUBLIC_CATALOG_ONLY'));
   assert.ok(fs.readFileSync(path.join(root, 'PRIVACY.md'), 'utf8').includes('docs/site/privacy.de.md'));

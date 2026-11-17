@@ -6,7 +6,7 @@ import { MiniApp, MiniAppOrigin } from '../types';
 import { githubRepoKey } from './deepLinks';
 import { normalizeLogin, OWN_REPO_MESSAGE, SIGN_IN_MESSAGE, urlOwnedBy } from './developerMode';
 
-export const REPORT_EMAIL = 'manueldiliberto1@gmail.com';
+export const REPORT_EMAIL = 'krust3nkaese3@gmail.com';
 
 export const POLICY_REPO = { owner: 'Krust3nKaese3', repo: 'OpenScr' };
 export const CATALOG_PATH = 'catalog/catalog.json';
