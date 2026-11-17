@@ -100,7 +100,7 @@ const index = `<!DOCTYPE html>
       <li><a href="nutzung.html">Nutzungsbedingungen und Impressum (Deutsch)</a></li>
       <li><a href="terms.html">Terms of use and legal notice (English)</a></li>
     </ul>
-    <p>Für GitHub Pages die Quelle <code>/docs</code> auf dem Branch <code>main</code> wählen. Solange das Repository EveryApp heißt, ist die Datenschutz-URL <code>https://krust3nkaese3.github.io/EveryApp/site/datenschutz.html</code>. Wird das Repository umbenannt, wechselt diese Adresse.</p>
+    <p>Für GitHub Pages die Quelle <code>/docs</code> auf dem Branch <code>main</code> wählen. Die Datenschutz-URL ist <code>https://krust3nkaese3.github.io/OpenScr/site/datenschutz.html</code>. Die frühere Adresse unter <code>/EveryApp/</code> antwortet nicht mehr.</p>
     <p>Anbieter: Manuel Di Liberto, Am Hasensprung 49, 60437 Frankfurt am Main, Deutschland, krust3nkaese@gmail.com. Nach einer Textänderung <code>node scripts/sync-legal.js</code> ausführen.</p>
   </main>
 </body>

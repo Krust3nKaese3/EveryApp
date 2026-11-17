@@ -103,4 +103,4 @@ The catalog shows an age recommendation. The app does not check age and is not d
 
 ## Changes
 
-This policy is in the app under “Datenschutz” and on this page: https://krust3nkaese3.github.io/EveryApp/site/privacy.html. The GitHub repository is still named EveryApp. If that repository is renamed, this address changes. The version with the date above is the one that applies.
+This policy is in the app under “Datenschutz” and on this page: https://krust3nkaese3.github.io/OpenScr/site/privacy.html. The repository is named OpenScr. The previous `/EveryApp/` address no longer responds. The version with the date above is the one that applies.

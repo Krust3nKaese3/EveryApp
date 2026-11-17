@@ -64,9 +64,9 @@ The privacy policy and the terms are linked from the store listing. OpenScrapps 
 
 Datenschutz-URL, sobald GitHub Pages für den Ordner `/docs` auf `main` aktiv ist:
 
-`https://krust3nkaese3.github.io/EveryApp/site/datenschutz.html`
+`https://krust3nkaese3.github.io/OpenScr/site/datenschutz.html`
 
-Die englische Fassung liegt daneben als `privacy.html`, die Nutzungsbedingungen als `nutzung.html` und `terms.html`. Die URL gilt, sobald GitHub Pages für `/docs` auf `main` aktiv ist. Das Repository heißt weiter EveryApp. Wird das Repository umbenannt, wechselt die GitHub-Pages-Adresse.
+Die englische Fassung liegt daneben als `privacy.html`, die Nutzungsbedingungen als `nutzung.html` und `terms.html`. Das Repository heißt bereits OpenScr. `https://krust3nkaese3.github.io/EveryApp/...` antwortet mit 404 und ist keine gültige Store-URL mehr.
 
 Grafiken liefert dieser Stand nicht: Symbol 512, Feature-Grafik 1024×500, mindestens zwei Telefon-Screenshots. Die liegen bei EveryMan.
 
