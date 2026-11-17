@@ -1,6 +1,6 @@
 # Lokaler Mehrspieler
 
-OpenScrapps wie evryWerwolf oder evryGuessTheSong brauchen keine eigene Netzwerklogik. Ein Gerät ist der Host im selben WLAN oder im Handy-Hotspot. Die anderen finden den Raum in der Nähe oder treten per QR-Code bei. Es geht ohne Internet und zwischen Android und iOS, sobald beide OpenScr aus einem Build mit `react-native-tcp-socket` und dem Modul `expo-mdns` starten.
+OpenScrapps wie WerwolfScrapp oder GuessTheSongScrapp brauchen keine eigene Netzwerklogik. Ein Gerät ist der Host im selben WLAN oder im Handy-Hotspot. Die anderen finden den Raum in der Nähe oder treten per QR-Code bei. Es geht ohne Internet und zwischen Android und iOS, sobald beide OpenScr aus einem Build mit `react-native-tcp-socket` und dem Modul `expo-mdns` starten.
 
 Der Host ist allein zuständig: Nachrichten laufen nur über ihn, nie direkt von Gast zu Gast. Alles ist JSON. Eine Nachricht ist höchstens 32 KiB. Die OpenScrapp speichert ihren Spielstand selbst über `OpenScrBridge.storage`. OpenScr merkt sich nur den Raum.
 
@@ -99,7 +99,7 @@ Eine fremde Ankündigung mit demselben Namen ist möglich. Die Liste zeigt desha
 
 Der Code enthält die private IPv4-Adresse, den Port, einen Raumcode aus vier Zeichen und ein Token aus 16 Hex-Zeichen, dazu die Id der OpenScrapp. Beispiel:
 
-`openscr-mp://join?v=1&host=192.168.1.20&port=38421&room=K7QP&token=0123456789abcdef&app=evryWerwolf`
+`openscr-mp://join?v=1&host=192.168.1.20&port=38421&room=K7QP&token=0123456789abcdef&app=WerwolfScrapp`
 
 Öffentliche Adressen werden abgelehnt. Der Installations-Scanner auf dem Startbildschirm ignoriert dieses Schema.
 

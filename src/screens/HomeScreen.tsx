@@ -27,6 +27,7 @@ import {
   REPORT_EMAIL,
   blockReasonFor,
   catalogEntryFor,
+  catalogRepoNames,
   decideAdd,
   isCatalogOnlyBuild,
   reportMailto,
@@ -52,6 +53,8 @@ export const HomeScreen: React.FC = () => {
   const [apps, setApps] = useState<MiniApp[]>([]);
   const [folders, setFolders] = useState<Folder[]>([]);
   const [catalog, setCatalog] = useState<CatalogFile>(() => bundledCatalogFile());
+  const catalogRef = useRef(catalog);
+  catalogRef.current = catalog;
   const [blocklist, setBlocklist] = useState<BlocklistFile>(() => bundledBlocklistFile());
   const [latestSha, setLatestSha] = useState<Record<string, string>>({});
   const [infoApp, setInfoApp] = useState<MiniApp | null>(null);
@@ -176,7 +179,10 @@ export const HomeScreen: React.FC = () => {
         }
         const link = classified.link;
         const all = await StorageService.getApps();
-        const target = all.find((a) => matchesMiniApp(link, a));
+        const target = all.find((a) => {
+          const entry = catalogEntryFor(a.repoUrl, catalogRef.current);
+          return matchesMiniApp(link, a, entry ? catalogRepoNames(entry) : []);
+        });
         if (!target) { Alert.alert('Deep-Link', `OpenScrapp "${link.miniapp}" ist nicht installiert.\n\n${url}`); return; }
         queueDeepLink(target.id, link);
         await openAppRef.current(target);
@@ -611,7 +617,7 @@ export const HomeScreen: React.FC = () => {
               <View>
                 <Text style={styles.sectionTitle}>Empfohlen</Text>
                 {catalog.apps.map((entry) => {
-                  const installed = apps.find((app) => githubRepoKey(app.repoUrl) === githubRepoKey(entry.repoUrl));
+                  const installed = apps.find((app) => catalogEntryFor(app.repoUrl, catalog)?.repoUrl === entry.repoUrl);
                   const blocked = blockReasonFor(installed?.id || '', entry.repoUrl, blocklist);
                   return (
                     <View key={entry.repoUrl} style={styles.appItem}>

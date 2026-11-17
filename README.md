@@ -71,10 +71,10 @@ The host `add` is reserved (it is not an OpenScrapp name). The GitHub URL is the
 | Production **OpenScr** | `com.openscr.app` | `openscr://add?url=<encoded https GitHub URL>` |
 | Dev client **SrvOpenScr** | `com.openscr.app.dev` | `exp+openscr://add?url=<encoded https GitHub URL>` (preferred; this scheme is what opens the dev client). `openscr://add?url=…` is also accepted if that build is the one that handles the scheme. |
 
-Example for `https://github.com/Krust3nKaese3/evryGuessTheSong`:
+Example for `https://github.com/Krust3nKaese3/GuessTheSongScrapp`:
 
-- Dev client (SrvOpenScr): `exp+openscr://add?url=https%3A%2F%2Fgithub.com%2FKrust3nKaese3%2FevryGuessTheSong`
-- Production OpenScr: `openscr://add?url=https%3A%2F%2Fgithub.com%2FKrust3nKaese3%2FevryGuessTheSong`
+- Dev client (SrvOpenScr): `exp+openscr://add?url=https%3A%2F%2Fgithub.com%2FKrust3nKaese3%2FGuessTheSongScrapp`
+- Production OpenScr: `openscr://add?url=https%3A%2F%2Fgithub.com%2FKrust3nKaese3%2FGuessTheSongScrapp`
 
 Opening one of those links (app already running, or cold start) runs the same fetch and save as **Add**, including the success and error alerts. Existing OpenScrapp links such as `openscr://EveryMacro/...` are unchanged. `openscr://spotify-callback` and the dev-launcher URL `exp+openscr://expo-development-client/...` are not install links.
 
@@ -82,7 +82,7 @@ Opening one of those links (app already running, or cold start) runs the same fe
 
 ### Directory Structure
 
-An OpenScrapp is started from `openscr.json` and its `entrypoint`. `everyapp.json` is still accepted when the repository has no `openscr.json` (evryWerwolf, evryGuessTheSong, EveryMacro, and EveryRollDice). Everything else is up to you: one HTML file, or HTML plus scripts, styles, and assets in any folders you want. Paths are relative to the file that contains them (`app.js` next to `index.html`, `assets/buzz.mp3` from that HTML, `url(../img/a.png)` from a stylesheet).
+An OpenScrapp is started from `openscr.json` and its `entrypoint`. `everyapp.json` is still accepted when the repository has no `openscr.json` (WerwolfScrapp, GuessTheSongScrapp, MacroScrapp, and EveryRollDice). Everything else is up to you: one HTML file, or HTML plus scripts, styles, and assets in any folders you want. Paths are relative to the file that contains them (`app.js` next to `index.html`, `assets/buzz.mp3` from that HTML, `url(../img/a.png)` from a stylesheet).
 
 ```
 KrustenScrapps/
@@ -417,9 +417,9 @@ window.OpenScrBridge.events.off('app.start', callback);
 - `bluetooth.disconnected` - Classic Bluetooth device disconnected (requires `bluetooth` permission)
 - `spotify.connected` / `spotify.disconnected` / `spotify.player` / `spotify.error` - Spotify App Remote (requires `spotify` permission to call the API; events arrive on the same event bus)
 
-## EveryMacro Use Case
+## MacroScrapp Use Case
 
-The **EveryMacro** OpenScrapp is a prime example of the new capabilities:
+The **MacroScrapp** OpenScrapp (deep links still use `openscr://EveryMacro/…`) is a prime example of the new capabilities:
 
 **Scenario:** A macro automation app that monitors classic Bluetooth device connections (e.g., car, headphones, smart home devices) and triggers HTTP requests to control LAN devices.
 

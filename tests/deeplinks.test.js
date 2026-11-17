@@ -12,9 +12,14 @@ test('match mini-app', () => {
   assert.ok(D.matchesMiniApp(l, { id: 'z', repoUrl: 'https://github.com/K/EveryMacro.git', manifest: { name: 'Other' } }));
   assert.ok(D.matchesMiniApp(l, { id: 'z', manifest: { name: 'Every Macro' } }));
   assert.ok(!D.matchesMiniApp(l, { id: 'z', manifest: { name: 'Foo' } }));
+  const renamed = { id: 'z', repoUrl: 'https://github.com/Krust3nKaese3/MacroScrapp', manifest: { name: 'MacroScrapp' } };
+  assert.ok(D.matchesMiniApp(l, renamed, ['MacroScrapp', 'EveryMacro']));
+  assert.ok(D.matchesMiniApp(D.parseDeepLink('openscr://MacroScrapp/run'), renamed));
+  const installedAsOld = { id: 'z', repoUrl: 'https://github.com/Krust3nKaese3/EveryMacro.git', manifest: { name: 'Other' } };
+  assert.ok(D.matchesMiniApp(D.parseDeepLink('openscr://MacroScrapp/run'), installedAsOld, ['MacroScrapp', 'EveryMacro']));
 });
 test('add links on both schemes are reserved', () => {
-  const repo = 'https://github.com/Krust3nKaese3/evryGuessTheSong';
+  const repo = 'https://github.com/Krust3nKaese3/GuessTheSongScrapp';
   const q = encodeURIComponent(repo);
   for (const url of ['openscr://add?url=' + q, 'exp+openscr://add?url=' + q, 'EXP+OpenScr://ADD?url=' + q]) {
     const link = D.parseDeepLink(url);

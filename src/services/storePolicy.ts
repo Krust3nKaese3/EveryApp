@@ -28,6 +28,11 @@ export interface CatalogApp {
   repoUrl: string;
   description: string;
   ageRating: string;
+  /**
+   * Earlier GitHub URLs for the same OpenScrapp (renames). Optional.
+   * Older app builds ignore this field: parseCatalog only copies known keys.
+   */
+  aliases?: string[];
 }
 
 export interface BlockEntry {
@@ -68,11 +73,13 @@ export function parseCatalog(data: unknown): CatalogFile | null {
     if (typeof row.name !== 'string' || typeof row.repoUrl !== 'string') continue;
     if (typeof row.description !== 'string' || typeof row.ageRating !== 'string') continue;
     if (!githubRepoKey(row.repoUrl)) continue;
+    const aliases = parseAliasUrls(row.aliases);
     parsed.push({
       name: row.name.trim(),
       repoUrl: row.repoUrl.trim(),
       description: row.description.trim(),
       ageRating: row.ageRating.trim(),
+      ...(aliases.length ? { aliases } : {}),
     });
   }
   return { apps: parsed };
@@ -96,10 +103,42 @@ export function parseBlocklist(data: unknown): BlocklistFile | null {
   return { entries: parsed };
 }
 
-export function catalogEntryFor(repoUrl: string, catalog: CatalogFile): CatalogApp | null {
+/** Unknown or malformed `aliases` are skipped. A bad alias never drops the catalog row. */
+function parseAliasUrls(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  const urls: string[] = [];
+  for (const item of value) {
+    if (typeof item !== 'string') continue;
+    const trimmed = item.trim();
+    if (!githubRepoKey(trimmed)) continue;
+    urls.push(trimmed);
+  }
+  return urls;
+}
+
+export function catalogCovers(repoUrl: string, entry: CatalogApp): boolean {
   const key = githubRepoKey(repoUrl);
-  if (!key) return null;
-  return catalog.apps.find((app) => githubRepoKey(app.repoUrl) === key) || null;
+  if (!key) return false;
+  if (githubRepoKey(entry.repoUrl) === key) return true;
+  return (entry.aliases || []).some((alias) => githubRepoKey(alias) === key);
+}
+
+/** Repo slugs of the current URL and aliases, for deep links such as openscr://EveryMacro/… */
+export function catalogRepoNames(entry: CatalogApp): string[] {
+  const names: string[] = [];
+  const add = (url: string) => {
+    const key = githubRepoKey(url);
+    const repo = key?.split('/')[1];
+    if (!repo || names.some((name) => name.toLowerCase() === repo.toLowerCase())) return;
+    names.push(repo);
+  };
+  add(entry.repoUrl);
+  for (const alias of entry.aliases || []) add(alias);
+  return names;
+}
+
+export function catalogEntryFor(repoUrl: string, catalog: CatalogFile): CatalogApp | null {
+  return catalog.apps.find((app) => catalogCovers(repoUrl, app)) || null;
 }
 
 export function reposMatch(a: string, b: string): boolean {

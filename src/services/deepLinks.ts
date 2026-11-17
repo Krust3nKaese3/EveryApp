@@ -77,12 +77,20 @@ export function repoUrlFromQr(data: string): QrInstall {
   return { ok: false, message: QR_UNSUPPORTED };
 }
 
-/** Matches by manifest name (case/space-insensitive), app id, or repo name. */
-export function matchesMiniApp(link: DeepLink, app: { id: string; repoUrl?: string; manifest: { name: string } }): boolean {
+/**
+ * Matches by manifest name (case/space-insensitive), app id, or repo name.
+ * `extraNames` keeps renamed catalog repos reachable under the previous repo slug
+ * (`openscr://EveryMacro/…` after the GitHub repo became MacroScrapp).
+ */
+export function matchesMiniApp(
+  link: DeepLink,
+  app: { id: string; repoUrl?: string; manifest: { name: string } },
+  extraNames: string[] = [],
+): boolean {
   if (link.miniapp === ADD_LINK_HOST) return false;
   const norm = (s: string) => (s || '').toLowerCase().replace(/[\s_-]+/g, '');
-  const repo = (app.repoUrl || '').replace(/\.git$/, '').split('/').pop() || '';
-  return [app.manifest.name, app.id, repo].some((n) => norm(n) === norm(link.miniapp));
+  const repo = (app.repoUrl || '').replace(/\.git$/i, '').split('/').pop() || '';
+  return [app.manifest.name, app.id, repo, ...extraNames].some((n) => norm(n) === norm(link.miniapp));
 }
 
 const pending = new Map<string, DeepLink>();
