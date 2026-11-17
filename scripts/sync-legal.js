@@ -62,7 +62,7 @@ function page({ lang, title, body, deHref, enHref }) {
   <main>
 ${body.trimEnd()}
   </main>
-  <footer>Entwurf. Platzhalter {{BETREIBER_NAME}}, {{BETREIBER_ADRESSE}} und {{SUPPORT_EMAIL}} vor der Veröffentlichung ersetzen. Keine Rechtsberatung.</footer>
+  <footer>Entwurf, keine Rechtsberatung. Anbieter: Manuel Di Liberto, Am Hasensprung 49, 60437 Frankfurt am Main, Deutschland, krust3nkaese@gmail.com.</footer>
 </body>
 </html>
 `;
@@ -101,7 +101,7 @@ const index = `<!DOCTYPE html>
       <li><a href="terms.html">Terms of use and legal notice (English)</a></li>
     </ul>
     <p>Für GitHub Pages die Quelle <code>/docs</code> auf dem Branch <code>main</code> wählen. Die Datenschutz-URL ist dann <code>https://&lt;owner&gt;.github.io/&lt;repo&gt;/site/datenschutz.html</code>.</p>
-    <p>Vor der Veröffentlichung <code>{{BETREIBER_NAME}}</code>, <code>{{BETREIBER_ADRESSE}}</code> und <code>{{SUPPORT_EMAIL}}</code> in den Markdown-Dateien ersetzen und <code>node scripts/sync-legal.js</code> ausführen.</p>
+    <p>Anbieter: Manuel Di Liberto, Am Hasensprung 49, 60437 Frankfurt am Main, Deutschland, krust3nkaese@gmail.com. Nach einer Textänderung <code>node scripts/sync-legal.js</code> ausführen.</p>
   </main>
 </body>
 </html>

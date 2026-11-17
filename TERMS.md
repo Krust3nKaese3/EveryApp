@@ -8,4 +8,4 @@ Die deutsche Fassung, die auch in der App unter „Nutzung“ erscheint, steht i
 node scripts/sync-legal.js
 ```
 
-Vor der Veröffentlichung diese Platzhalter ersetzen: `{{BETREIBER_NAME}}`, `{{BETREIBER_ADRESSE}}`, `{{SUPPORT_EMAIL}}`.
+Anbieter: Manuel Di Liberto, Am Hasensprung 49, 60437 Frankfurt am Main, Deutschland, krust3nkaese@gmail.com.

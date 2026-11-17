@@ -169,9 +169,11 @@ test('legal documents in the app match the markdown files', () => {
   assert.strictEqual(TERMS_MD, fs.readFileSync(path.join(root, 'docs/site/terms.de.md'), 'utf8'));
   for (const file of ['privacy.de.md', 'privacy.en.md', 'terms.de.md', 'terms.en.md']) {
     const text = fs.readFileSync(path.join(root, 'docs/site', file), 'utf8');
-    assert.ok(text.includes('{{BETREIBER_NAME}}'), file);
-    assert.ok(text.includes('{{BETREIBER_ADRESSE}}'), file);
-    assert.ok(text.includes('{{SUPPORT_EMAIL}}'), file);
+    assert.ok(text.includes('Manuel Di Liberto'), file);
+    assert.ok(text.includes('Am Hasensprung 49, 60437 Frankfurt am Main, Deutschland'), file);
+    assert.ok(text.includes('krust3nkaese@gmail.com'), file);
+    assert.ok(!text.includes('{{' + 'BETREIBER_'), file);
+    assert.ok(!text.includes('{{' + 'SUPPORT_EMAIL}}'), file);
   }
   assert.ok(PRIVACY_MD.includes('manueldiliberto1@gmail.com'));
   assert.ok(PRIVACY_MD.includes('keinen eigenen Server'));
@@ -182,5 +184,7 @@ test('legal documents in the app match the markdown files', () => {
   const termsHtml = fs.readFileSync(path.join(root, 'docs/site/nutzung.html'), 'utf8');
   assert.ok(privacyHtml.includes(renderMarkdown(PRIVACY_MD).slice(0, 120)));
   assert.ok(termsHtml.includes(renderMarkdown(TERMS_MD).slice(0, 120)));
-  assert.ok(privacyHtml.includes('{{BETREIBER_NAME}}'));
+  assert.ok(privacyHtml.includes('Manuel Di Liberto'));
+  assert.ok(!privacyHtml.includes('{{' + 'BETREIBER_'));
+  assert.ok(!privacyHtml.includes('{{' + 'SUPPORT_EMAIL}}'));
 });

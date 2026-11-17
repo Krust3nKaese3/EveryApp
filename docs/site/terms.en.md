@@ -2,19 +2,19 @@
 
 As of 16 November 2026
 
-**Draft, not legal advice.** Before publication, replace `{{BETREIBER_NAME}}`, `{{BETREIBER_ADRESSE}}` and `{{SUPPORT_EMAIL}}` and have the text reviewed.
+**Draft, not legal advice.** Have the text reviewed before publication.
 
 ## Legal notice
 
 Provider of this offering:
 
-{{BETREIBER_NAME}}
+Manuel Di Liberto
 
-{{BETREIBER_ADRESSE}}
+Am Hasensprung 49, 60437 Frankfurt am Main, Deutschland
 
-Email: {{SUPPORT_EMAIL}}
+Email: krust3nkaese@gmail.com
 
-Responsible for content: {{BETREIBER_NAME}}, address as above.
+Responsible for content: Manuel Di Liberto, address as above.
 
 A VAT identification number will be added here once the provider has one. The provider must check, for the place of establishment, whether further mandatory disclosures apply, such as a register or a professional title.
 

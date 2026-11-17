@@ -28,7 +28,7 @@ Wer eine Mini-App in einem eigenen Repository schreibt, gibt der KI diesen Einst
 - Review notes for the two areas: [docs/APP_REVIEW.md](docs/APP_REVIEW.md). That file is not legal advice.
 - **Melden** opens a prefilled email to `manueldiliberto1@gmail.com`. There is no report server.
 - `catalog/blocklist.json` disables listed `appId`s or repos for everyone and shows `reason`.
-- Privacy and terms: [docs/site/](docs/site/index.html) (German and English), linked in the app as „Datenschutz“ and „Nutzung“. Replace `{{BETREIBER_NAME}}`, `{{BETREIBER_ADRESSE}}` and `{{SUPPORT_EMAIL}}`, then run `node scripts/sync-legal.js`. Play listing, data safety and the closed-test checklist: [docs/PLAY_STORE.md](docs/PLAY_STORE.md). Catalog age ratings are recommendations and need a check too.
+- Privacy and terms: [docs/site/](docs/site/index.html) (German and English), linked in the app as „Datenschutz“ and „Nutzung“. After editing those pages, run `node scripts/sync-legal.js`. Play listing, data safety and the closed-test checklist: [docs/PLAY_STORE.md](docs/PLAY_STORE.md). Catalog age ratings are recommendations and need a check too.
 - Delete removes that mini-app’s files, `@miniapp_<appId>_` keys, secrets, permissions, and caches. Update keeps storage.
 - Bridge allowlist: [docs/BRIDGE_API.md](docs/BRIDGE_API.md). Local multiplayer for mini-apps: [docs/MULTIPLAYER.md](docs/MULTIPLAYER.md).
 - **Mehrspieler**: Ein Handy ist Host im selben WLAN oder Hotspot, die anderen treten per QR bei. Nur mit der Berechtigung `multiplayer`. Braucht einen neuen nativen Build.

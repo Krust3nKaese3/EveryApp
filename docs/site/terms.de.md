@@ -2,19 +2,19 @@
 
 Stand: 16. November 2026
 
-**Entwurf, keine Rechtsberatung.** Vor der Veröffentlichung die Platzhalter `{{BETREIBER_NAME}}`, `{{BETREIBER_ADRESSE}}` und `{{SUPPORT_EMAIL}}` ersetzen und den Text prüfen lassen.
+**Entwurf, keine Rechtsberatung.** Den Text vor der Veröffentlichung rechtlich prüfen lassen.
 
 ## Impressum
 
 Angaben zum Anbieter dieses Angebots:
 
-{{BETREIBER_NAME}}
+Manuel Di Liberto
 
-{{BETREIBER_ADRESSE}}
+Am Hasensprung 49, 60437 Frankfurt am Main, Deutschland
 
-E-Mail: {{SUPPORT_EMAIL}}
+E-Mail: krust3nkaese@gmail.com
 
-Verantwortlich für den Inhalt: {{BETREIBER_NAME}}, Anschrift wie oben.
+Verantwortlich für den Inhalt: Manuel Di Liberto, Anschrift wie oben.
 
 Eine Umsatzsteuer-Identifikationsnummer wird hier genannt, sobald der Betreiber eine hat. Ob weitere Pflichtangaben nötig sind, etwa ein Register oder eine Berufsbezeichnung, muss der Betreiber für seinen Sitz prüfen lassen.
 

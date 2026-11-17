@@ -2,19 +2,19 @@
 
 As of 16 November 2026
 
-**Draft, not legal advice.** Before publication, replace `{{BETREIBER_NAME}}`, `{{BETREIBER_ADRESSE}}` and `{{SUPPORT_EMAIL}}` and have the text reviewed. Age labels in the catalog are the publisher's recommendations, not an official rating.
+**Draft, not legal advice.** Have the text reviewed before publication. Age labels in the catalog are the publisher's recommendations, not an official rating.
 
 ## Controller
 
-{{BETREIBER_NAME}}
+Manuel Di Liberto
 
-{{BETREIBER_ADRESSE}}
+Am Hasensprung 49, 60437 Frankfurt am Main, Deutschland
 
-{{SUPPORT_EMAIL}}
+krust3nkaese@gmail.com
 
 No data protection officer is appointed. If the law requires one, the contact will be added here.
 
-Reports about mini-apps (the “Melden” button) open an email to manueldiliberto1@gmail.com. That is not a server of the app. Privacy requests go to `{{SUPPORT_EMAIL}}`.
+Reports about mini-apps (the “Melden” button) open an email to manueldiliberto1@gmail.com. That is not a server of the app. Privacy requests go to `krust3nkaese@gmail.com`.
 
 ## What EveryApp is
 
@@ -91,7 +91,7 @@ Data on the device stays until you delete the mini-app, sign out of the feature,
 
 Where the GDPR applies, you have the rights of access, rectification, erasure, restriction, portability and objection, the right to withdraw consent, and the right to lodge a complaint with a supervisory authority. That is usually the authority of your place of residence or of the controller's establishment.
 
-Much of this data exists only on your device and can be removed by deleting the mini-app or EveryApp. Requests: {{SUPPORT_EMAIL}}
+Much of this data exists only on your device and can be removed by deleting the mini-app or EveryApp. Requests: krust3nkaese@gmail.com
 
 ## Automated decisions
 

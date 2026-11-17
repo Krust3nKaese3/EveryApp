@@ -66,7 +66,7 @@ Datenschutz-URL, sobald GitHub Pages für den Ordner `/docs` auf `main` aktiv is
 
 `https://krust3nkaese3.github.io/EveryApp/site/datenschutz.html`
 
-Die englische Fassung liegt daneben als `privacy.html`, die Nutzungsbedingungen als `nutzung.html` und `terms.html`. Die URL erst eintragen, wenn die Platzhalter in der öffentlichen Fassung ersetzt sind.
+Die englische Fassung liegt daneben als `privacy.html`, die Nutzungsbedingungen als `nutzung.html` und `terms.html`. Die URL gilt, sobald GitHub Pages für `/docs` auf `main` aktiv ist.
 
 Grafiken liefert dieser Stand nicht: Symbol 512, Feature-Grafik 1024×500, mindestens zwei Telefon-Screenshots. Die liegen bei EveryMan.
 
@@ -77,7 +77,7 @@ Grafiken liefert dieser Stand nicht: Symbol 512, Feature-Grafik 1024×500, minde
 - **Does your app collect or share any of the required user data types?** Yes. Es gibt keinen EveryApp-Server. „Collected“ ist in der Console auch eine Übermittlung an einen Dritten.
 - **Is all of the user data collected by your app encrypted in transit?** No. GitHub und Spotify nutzen HTTPS. Lokaler Mehrspieler ist unverschlüsseltes TCP im WLAN. Mini-Apps dürfen nach Zustimmung unverschlüsseltes HTTP im lokalen Netz verwenden.
 - **Which account-creation methods does your app support?** Die App legt kein EveryApp-Konto an. GitHub (Entwicklermodus) und Spotify sind optionale Konten dieser Dienste.
-- **Do you provide a way for users to request that their data is deleted?** Yes. URL: die Datenschutzerklärung. Löschen in der App entfernt die Mini-App, Abmelden löscht Token, Deinstallieren entfernt die App-Daten. Für eine gesendete Meldung: `{{SUPPORT_EMAIL}}`.
+- **Do you provide a way for users to request that their data is deleted?** Yes. URL: die Datenschutzerklärung. Löschen in der App entfernt die Mini-App, Abmelden löscht Token, Deinstallieren entfernt die App-Daten. Für eine gesendete Meldung: krust3nkaese@gmail.com.
 - Verkauf von Daten: No. Werbung: No. Kein Werbe-SDK, `AD_ID` ist blockiert.
 
 Punkt für Punkt. „Ephemeral“ nur ankreuzen, wenn die Console Daten meint, die nur im Speicher und nicht darüber hinaus liegen. Das trifft die gespeicherten Token nicht.
@@ -191,7 +191,7 @@ eas submit --platform android --profile production-play --latest
 
 Persönliche Play-Konten, die nach dem 13. November 2023 angelegt wurden, brauchen vor der Produktion einen geschlossenen Test mit mindestens **12 Testern**, die **14 aufeinanderfolgende Tage** angemeldet bleiben. Ob dieses Konto darunterfällt, sagt der Hinweis beim Produktionszugang. Die 14 Tage zählen die Anmeldung (opt-in), nicht tägliche Nutzung. In den 14 Tagen niemanden aus dem Test nehmen.
 
-1. Platzhalter in `docs/site/*.md` ersetzen, `node scripts/sync-legal.js`, committen. GitHub Pages: Quelle `/docs`, Branch `main`. Datenschutz-URL im Browser öffnen und sehen, dass keine geschweiften Platzhalter mehr dastehen.
+1. GitHub Pages: Quelle `/docs`, Branch `main`. Datenschutz-URL im Browser öffnen. Nach einer Textänderung `node scripts/sync-legal.js` ausführen.
 2. Play Console: App anlegen, Paket `com.everyapp.container`, Standardsprache, Play App Signing einschalten.
 3. Store-Eintrag: Name, beide Kurztexte, beide Langtexte, Kategorie Tools, Symbol, Feature-Grafik, Screenshots, Datenschutz-URL.
 4. Datensicherheit wie oben ausfüllen. Vorschau lesen: es dürfen keine Analyse- und keine Werbedaten erscheinen.
@@ -206,9 +206,9 @@ Persönliche Play-Konten, die nach dem 13. November 2023 angelegt wurden, brauch
 
 ## Offene Punkte
 
-- Name, Anschrift und Kontakt sind Platzhalter. Sitz außerhalb Deutschlands: den Abschnitt zum anwendbaren Recht ersetzen.
+- Anbieter ist Manuel Di Liberto, Am Hasensprung 49, 60437 Frankfurt am Main. Der Entwurf zum deutschen Recht passt zu diesem Sitz und bleibt ohne anwaltliche Prüfung ein Entwurf.
 - Ob ein Datenschutzbeauftragter und eine Umsatzsteuer-ID nötig sind.
-- Ob das Melde-Postfach `manueldiliberto1@gmail.com` das spätere `{{SUPPORT_EMAIL}}` sein soll. Der Code sendet weiter an die feste Adresse.
+- Meldungen gehen weiter an manueldiliberto1@gmail.com. Datenschutzanfragen gehen an krust3nkaese@gmail.com.
 - Freie GitHub-Repositories im Play-Build oder nur Katalog (`production-catalog`), falls die Prüfung den nachgeladenen Code ablehnt.
 - WLAN-Name braucht Standortberechtigungen, die dieser Release nicht enthält.
 - Der erste AAB bekommt mit `autoIncrement` den `versionCode` 2.

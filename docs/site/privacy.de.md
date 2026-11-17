@@ -2,19 +2,19 @@
 
 Stand: 16. November 2026
 
-**Entwurf, keine Rechtsberatung.** Vor der Veröffentlichung die Platzhalter `{{BETREIBER_NAME}}`, `{{BETREIBER_ADRESSE}}` und `{{SUPPORT_EMAIL}}` ersetzen und den Text prüfen lassen. Altersangaben im Katalog sind Empfehlungen des Anbieters, keine behördliche Kennzeichnung.
+**Entwurf, keine Rechtsberatung.** Den Text vor der Veröffentlichung rechtlich prüfen lassen. Altersangaben im Katalog sind Empfehlungen des Anbieters, keine behördliche Kennzeichnung.
 
 ## Verantwortliche Stelle
 
-{{BETREIBER_NAME}}
+Manuel Di Liberto
 
-{{BETREIBER_ADRESSE}}
+Am Hasensprung 49, 60437 Frankfurt am Main, Deutschland
 
-{{SUPPORT_EMAIL}}
+krust3nkaese@gmail.com
 
 Ein Datenschutzbeauftragter ist nicht benannt. Besteht eine Bestellpflicht, wird die Kontaktstelle hier ergänzt.
 
-Meldungen zu Mini-Apps (Schaltfläche „Melden“) öffnen eine E-Mail an manueldiliberto1@gmail.com. Das ist kein Server der App. Datenschutzanfragen gehören an `{{SUPPORT_EMAIL}}`.
+Meldungen zu Mini-Apps (Schaltfläche „Melden“) öffnen eine E-Mail an manueldiliberto1@gmail.com. Das ist kein Server der App. Datenschutzanfragen gehören an `krust3nkaese@gmail.com`.
 
 ## Was EveryApp ist
 
@@ -91,7 +91,7 @@ Daten auf dem Gerät bleiben, bis du die Mini-App löschst, die einzelne Funktio
 
 Soweit die DSGVO gilt, hast du Rechte auf Auskunft, Berichtigung, Löschung, Einschränkung, Datenübertragbarkeit und Widerspruch sowie das Recht, eine Einwilligung zu widerrufen und dich bei einer Aufsichtsbehörde zu beschweren. Zuständig ist in der Regel die Behörde deines Wohnorts oder des Sitzes des Verantwortlichen.
 
-Viele dieser Daten liegen nur auf deinem Gerät und lassen sich durch Löschen der Mini-App oder von EveryApp entfernen. Anfragen an: {{SUPPORT_EMAIL}}
+Viele dieser Daten liegen nur auf deinem Gerät und lassen sich durch Löschen der Mini-App oder von EveryApp entfernen. Anfragen an: krust3nkaese@gmail.com
 
 ## Automatisierte Entscheidungen
 
