@@ -1,6 +1,6 @@
-// Die Mini-App speichert den Spielstand selbst. EveryApp merkt sich nur den Raum.
-const mp = window.EveryAppBridge.multiplayer;
-const storage = window.EveryAppBridge.storage;
+// Die OpenScrapp speichert den Spielstand selbst. OpenScr merkt sich nur den Raum.
+const mp = window.OpenScrBridge.multiplayer;
+const storage = window.OpenScrBridge.storage;
 const statusNode = document.getElementById('status');
 const playersNode = document.getElementById('players');
 const roundNode = document.getElementById('round');
@@ -175,7 +175,7 @@ document.getElementById('join').onclick = async () => {
   try {
     const name = document.getElementById('name').value;
     const code = document.getElementById('code').value.trim();
-    // Leer: EveryApp öffnet die Kamera. Ein Code oder die everyapp-mp-Zeichenkette ist für die Browser-Attrappe.
+    // Leer: OpenScr öffnet die Kamera. Ein Code oder die openscr-mp-Zeichenkette ist für die Browser-Attrappe.
     const room = code ? await mp.join({ payload: code, name: name }) : await mp.join({ scan: true, name: name });
     isHost = false;
     selfId = room.playerId;

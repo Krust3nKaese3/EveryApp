@@ -50,7 +50,7 @@
     </receiver>
     <service
       android:name="expo.modules.backgroundservice.EveryAppTile1"
-      android:label="EveryApp 1"
+      android:label="OpenScr 1"
       android:icon="@android:drawable/ic_media_play"
       android:exported="true"
       android:permission="android.permission.BIND_QUICK_SETTINGS_TILE">
@@ -58,7 +58,7 @@
     </service>
     <service
       android:name="expo.modules.backgroundservice.EveryAppTile2"
-      android:label="EveryApp 2"
+      android:label="OpenScr 2"
       android:icon="@android:drawable/ic_media_play"
       android:exported="true"
       android:permission="android.permission.BIND_QUICK_SETTINGS_TILE">
@@ -66,7 +66,7 @@
     </service>
     <service
       android:name="expo.modules.backgroundservice.EveryAppTile3"
-      android:label="EveryApp 3"
+      android:label="OpenScr 3"
       android:icon="@android:drawable/ic_media_play"
       android:exported="true"
       android:permission="android.permission.BIND_QUICK_SETTINGS_TILE">
@@ -74,7 +74,7 @@
     </service>
     <service
       android:name="expo.modules.backgroundservice.EveryAppTile4"
-      android:label="EveryApp 4"
+      android:label="OpenScr 4"
       android:icon="@android:drawable/ic_media_play"
       android:exported="true"
       android:permission="android.permission.BIND_QUICK_SETTINGS_TILE">
@@ -82,7 +82,7 @@
     </service>
     <service
       android:name="expo.modules.backgroundservice.EveryAppTile5"
-      android:label="EveryApp 5"
+      android:label="OpenScr 5"
       android:icon="@android:drawable/ic_media_play"
       android:exported="true"
       android:permission="android.permission.BIND_QUICK_SETTINGS_TILE">

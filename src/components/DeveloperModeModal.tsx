@@ -136,7 +136,7 @@ export const DeveloperModeModal: React.FC<DeveloperModeModalProps> = ({ visible,
               Der Katalog bleibt für alle nutzbar. Der Entwicklermodus ist zusätzlich und freiwillig.
               Danach kannst du nur Repositories laden, deren Besitzer das angemeldete GitHub-Konto ist,
               auch private. Fremde Links und QR-Codes werden abgelehnt. Das Token bleibt auf diesem Gerät.
-              Abmelden schaltet diese Mini-Apps aus.
+              Abmelden schaltet diese OpenScrapps aus.
             </Text>
             <View style={styles.row}>
               <TouchableOpacity style={[styles.choice, enabled ? styles.choiceOn : null]} disabled={busy} onPress={() => { void toggle(true); }}>

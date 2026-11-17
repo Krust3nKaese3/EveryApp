@@ -1,6 +1,6 @@
 # Erlaubte Bridge-API
 
-`window.EveryAppBridge` ist die einzige Schnittstelle einer Mini-App zu Gerätefunktionen. Der native Teil nimmt nur Nachrichten an, die auf dieser Liste stehen. Unbekannte Methoden, unbekannte Events und unbekannte Nachrichtentypen werden abgelehnt. Argumente werden geprüft (Typ, Länge, `http`/`https` statt `file:` oder `content:`).
+`window.OpenScrBridge` ist die Schnittstelle einer OpenScrapp zu Gerätefunktionen. `window.EveryAppBridge` ist dasselbe Objekt und bleibt nur als Kompatibilität für bestehende OpenScrapps. Der native Teil nimmt nur Nachrichten an, die auf dieser Liste stehen. Unbekannte Methoden, unbekannte Events und unbekannte Nachrichtentypen werden abgelehnt. Argumente werden geprüft (Typ, Länge, `http`/`https` statt `file:` oder `content:`). Das Manifest heißt `openscr.json`. `everyapp.json` wird weiter gelesen, wenn keine `openscr.json` im Repository liegt.
 
 Quelle der Liste: `src/bridge/allowlist.ts`.
 
@@ -8,22 +8,22 @@ Quelle der Liste: `src/bridge/allowlist.ts`.
 
 Die Bridge hat keine Methoden für das Dateisystem des Geräts, für Kontakte oder für den Standort. Es gibt keine GPS-Koordinaten. `network.requestLocation` ist entfernt. Der WLAN-Name hängt an der Berechtigung `network` und liefert keine Koordinaten.
 
-Dateien der Mini-App selbst liest die WebView nur innerhalb ihres eigenen Ordners. Pfade mit `..` oder `file://` auf den Rest des Geräts werden verworfen.
+Dateien der OpenScrapp selbst liest die WebView nur innerhalb ihres eigenen Ordners. Pfade mit `..` oder `file://` auf den Rest des Geräts werden verworfen.
 
 ## Zustimmung
 
-Jede Kategorie außer dem reinen Event-Kanal braucht eine einmalige Zustimmung pro Mini-App. Sie wird unter `@everyapp_permissions` bzw. `@everyapp_permission_denied` gespeichert und kann unter „Info und Berechtigungen“ widerrufen werden. Steht die Funktion im Manifest, fragt EveryApp beim ersten Öffnen. Sonst beim ersten Aufruf.
+Jede Kategorie außer dem reinen Event-Kanal braucht eine einmalige Zustimmung pro OpenScrapp. Sie wird unter `@everyapp_permissions` bzw. `@everyapp_permission_denied` gespeichert und kann unter „Info und Berechtigungen“ widerrufen werden. Steht die Funktion im Manifest, fragt OpenScr beim ersten Öffnen. Sonst beim ersten Aufruf.
 
 ## Speicher
 
 - Schlüssel werden zu `@miniapp_<appId>_<schlüssel>`.
 - Schlüssel: 1–128 Zeichen, keine Steuerzeichen.
 - Werte: Text, höchstens 256 KiB.
-- Löschen der Mini-App entfernt alle Schlüssel mit diesem Präfix, die Geheimnisse und die Berechtigungen. Ein Update tut das nicht.
+- Löschen der OpenScrapp entfernt alle Schlüssel mit diesem Präfix, die Geheimnisse und die Berechtigungen. Ein Update tut das nicht.
 
 ## Rate-Limits
 
-Laute Aufrufe sind begrenzt, darunter Scans, HTTP, Sensoren, Benachrichtigungen und UDP. Bei Überschreitung antwortet die Bridge mit „Zu viele Anfragen. Bitte kurz warten.“ Die Zähler gelten pro Mini-App und Methode.
+Laute Aufrufe sind begrenzt, darunter Scans, HTTP, Sensoren, Benachrichtigungen und UDP. Bei Überschreitung antwortet die Bridge mit „Zu viele Anfragen. Bitte kurz warten.“ Die Zähler gelten pro OpenScrapp und Methode.
 
 ## Methoden
 
@@ -65,7 +65,7 @@ Zwischenablage: `clipboard.setString`, `clipboard.getString`
 
 Mehrspieler (Berechtigung `multiplayer`, Details in [MULTIPLAYER.md](MULTIPLAYER.md)): `multiplayer.host`, `multiplayer.join`, `multiplayer.send`, `multiplayer.broadcast`, `multiplayer.leave`, `multiplayer.showQr`, `multiplayer.discover`, `multiplayer.stopDiscovery`, `multiplayer.setDiscoverable`, `multiplayer.approveJoin`, `multiplayer.denyJoin`, `multiplayer.endRoom`, `multiplayer.resume`
 
-Events (nur diese Namen): `app.start`, `bluetooth.connected`, `bluetooth.disconnected`, `spotify.connected`, `spotify.disconnected`, `spotify.player`, `spotify.error`, `multiplayer.message`, `multiplayer.players`, `multiplayer.rooms`, `multiplayer.joinRequest`, `multiplayer.resumed`, `multiplayer.hostAway`. Bluetooth-, Spotify- und Mehrspieler-Events brauchen die passende Berechtigung. Die Mini-App speichert ihren Spielstand selbst. Token und Spielergeheimnis gibt die Bridge nicht heraus.
+Events (nur diese Namen): `app.start`, `bluetooth.connected`, `bluetooth.disconnected`, `spotify.connected`, `spotify.disconnected`, `spotify.player`, `spotify.error`, `multiplayer.message`, `multiplayer.players`, `multiplayer.rooms`, `multiplayer.joinRequest`, `multiplayer.resumed`, `multiplayer.hostAway`. Bluetooth-, Spotify- und Mehrspieler-Events brauchen die passende Berechtigung. Die OpenScrapp speichert ihren Spielstand selbst. Token und Spielergeheimnis gibt die Bridge nicht heraus.
 
 ## Melden
 

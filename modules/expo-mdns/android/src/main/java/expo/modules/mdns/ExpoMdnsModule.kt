@@ -10,7 +10,7 @@ import expo.modules.kotlin.modules.Module
 import expo.modules.kotlin.modules.ModuleDefinition
 
 /**
- * Kündigt den schon offenen TCP-Port an und sucht `_everyapp._tcp`.
+ * Kündigt den schon offenen TCP-Port an und sucht `_openscr._tcp`.
  * Der TXT-Record kommt fertig aus JS. Dieses Modul setzt kein Token hinein.
  * Die Multicast-Sperre gilt nur, solange Ankündigung oder Suche läuft.
  */
@@ -31,7 +31,7 @@ class ExpoMdnsModule : Module() {
         unpublishNow(manager)
         val info = NsdServiceInfo()
         info.serviceName = name.take(50)
-        info.serviceType = "_everyapp._tcp."
+        info.serviceType = "_openscr._tcp."
         info.port = port
         txt.forEach { (key, value) ->
           if (key.length <= 9) info.setAttribute(key, value)
@@ -92,7 +92,7 @@ class ExpoMdnsModule : Module() {
         }
         discovery = listener
         holdLock(true)
-        manager.discoverServices("_everyapp._tcp.", NsdManager.PROTOCOL_DNS_SD, listener)
+        manager.discoverServices("_openscr._tcp.", NsdManager.PROTOCOL_DNS_SD, listener)
       }
     }
 

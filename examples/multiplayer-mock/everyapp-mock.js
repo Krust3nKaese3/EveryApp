@@ -1,16 +1,18 @@
 /**
- * Browser-Attrappe für window.EveryAppBridge.multiplayer.
+ * Browser-Attrappe für window.OpenScrBridge.multiplayer.
+ * window.EveryAppBridge bleibt als Alias auf dasselbe Objekt.
  * Ein Tab ist ein Gerät. Die Tabs sprechen über BroadcastChannel, der Host-Tab verteilt.
- * Am PC: zwei Tabs auf dieselbe HTML-Datei, jeder lädt dieses Skript vor der Mini-App.
+ * Am PC: zwei Tabs auf dieselbe HTML-Datei, jeder lädt dieses Skript vor der OpenScrapp.
  * join({ scan: true }) gibt es hier nicht. Stattdessen den Raumcode oder die qrPayload übergben.
- * In Node: const { installEveryAppMock } = require('./everyapp-mock.js')
+ * In Node: const { installOpenScrMock } = require('./everyapp-mock.js')
  */
 (function (root, factory) {
   const api = factory();
   if (typeof module === 'object' && module.exports) module.exports = api;
   else {
+    root.installOpenScrMock = api.installOpenScrMock;
     root.installEveryAppMock = api.installEveryAppMock;
-    api.installEveryAppMock();
+    api.installOpenScrMock();
   }
 })(typeof globalThis !== 'undefined' ? globalThis : this, function () {
   const MAX_BYTES = 32 * 1024;
@@ -47,7 +49,7 @@
   function installEveryAppMock(options) {
     const opts = options || {};
     const appId = opts.appId || 'multiplayer-lobby';
-    const channel = new BroadcastChannel(opts.channel || 'everyapp-mp-mock-v1');
+    const channel = new BroadcastChannel(opts.channel || 'openscr-mp-mock-v1');
     if (typeof channel.unref === 'function') channel.unref();
     const tabId = hex(8);
     const messageListeners = new Set();
@@ -84,7 +86,7 @@
       const query = new URLSearchParams({
         v: '1', host: '192.168.1.20', port: '4040', room: room.roomCode, token: room.token, app: appId,
       });
-      return 'everyapp-mp://join?' + query.toString();
+      return 'openscr-mp://join?' + query.toString();
     }
 
     function load() {
@@ -384,7 +386,7 @@
       },
       async join(input) {
         if (input && typeof input === 'object' && input.scan) {
-          throw new Error('Im Browser den Raumcode übergeben. Die Kamera gibt es nur in EveryApp.');
+          throw new Error('Im Browser den Raumcode übergeben. Die Kamera gibt es nur in OpenScr.');
         }
         const name = input && typeof input === 'object' ? input.name : '';
         if (input && typeof input === 'object' && input.room) {
@@ -569,8 +571,10 @@
     };
 
     const target = opts.global || (typeof window !== 'undefined' ? window : root);
-    target.EveryAppBridge = target.EveryAppBridge || {};
-    target.EveryAppBridge.multiplayer = multiplayer;
+    const bridge = target.OpenScrBridge || target.EveryAppBridge || {};
+    bridge.multiplayer = multiplayer;
+    target.OpenScrBridge = bridge;
+    target.EveryAppBridge = bridge;
     return {
       multiplayer: multiplayer,
       debug: {
@@ -585,5 +589,5 @@
     };
   }
 
-  return { installEveryAppMock: installEveryAppMock };
+  return { installOpenScrMock: installEveryAppMock, installEveryAppMock: installEveryAppMock };
 });

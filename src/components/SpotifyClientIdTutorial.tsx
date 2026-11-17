@@ -55,22 +55,22 @@ export const SpotifyClientIdTutorial: React.FC<Props> = ({ visible, onClose }) =
             nestedScrollEnabled
           >
             <Text style={styles.lead}>
-              So legst du die Spotify-App an und trägst die Client ID hier in EveryApp ein.
-              EveryApp ist kein offizielles Spotify-Produkt.
+              So legst du die Spotify-App an und trägst die Client ID hier in OpenScr ein.
+              OpenScr ist kein offizielles Spotify-Produkt.
             </Text>
 
-            <Step n={1} title="Die ID gehört in EveryApp">
+            <Step n={1} title="Die ID gehört in OpenScr">
               <Text style={styles.body}>
-                Die Client ID speicherst du in EveryApp selbst, in diesen Container-Einstellungen.
-                Nicht in einem Mini-App-Repo. Nach Speichern gilt sie sofort, ohne neuen Build.
-                Dieser Wert hat Vorrang vor setClientId einer Mini-App und vor einem optionalen Build-Prefill.
+                Die Client ID speicherst du in OpenScr selbst, in diesen Container-Einstellungen.
+                Nicht in einem OpenScrapp-Repo. Nach Speichern gilt sie sofort, ohne neuen Build.
+                Dieser Wert hat Vorrang vor setClientId einer OpenScrapp und vor einem optionalen Build-Prefill.
               </Text>
             </Step>
 
             <Step n={2} title="Dashboard am Rechner, Einfügen hier">
               <Text style={styles.body}>
                 Die Spotify-App legst du leichter am Computer an. Die Client ID kopierst du dort
-                und fügst sie auf diesem EveryApp-Bildschirm am Handy ein.
+                und fügst sie auf diesem OpenScr-Bildschirm am Handy ein.
               </Text>
               <CopyValue label="Spotify Developer Dashboard" value={SPOTIFY_DASHBOARD_URL} />
             </Step>
@@ -78,7 +78,7 @@ export const SpotifyClientIdTutorial: React.FC<Props> = ({ visible, onClose }) =
             <Step n={3} title="Web API und Android SDK">
               <Text style={styles.body}>
                 Beim Anlegen Web API und Android SDK auswählen. Nicht das Web Playback SDK.
-                EveryApp steuert die installierte Spotify-App, es spielt nicht im Browser.
+                OpenScr steuert die installierte Spotify-App, es spielt nicht im Browser.
               </Text>
             </Step>
 
@@ -89,7 +89,7 @@ export const SpotifyClientIdTutorial: React.FC<Props> = ({ visible, onClose }) =
 
             <Step n={5} title="Bundle IDs leer lassen">
               <Text style={styles.body}>
-                Das Feld Bundle IDs bleibt leer. Es gilt nur für iOS, und EveryApp ist vorerst nur Android.
+                Das Feld Bundle IDs bleibt leer. Es gilt nur für iOS, und OpenScr ist vorerst nur Android.
               </Text>
             </Step>
 
@@ -107,7 +107,7 @@ export const SpotifyClientIdTutorial: React.FC<Props> = ({ visible, onClose }) =
                 />
               </ScrollView>
               <Text style={styles.caption}>
-                Abbildung: Spotify Developer Dashboard, nicht die EveryApp-Oberfläche.
+                Abbildung: Spotify Developer Dashboard, nicht die OpenScr-Oberfläche.
                 Seitlich schieben, wenn das Bild breiter als der Bildschirm ist.
               </Text>
             </Step>
@@ -116,6 +116,7 @@ export const SpotifyClientIdTutorial: React.FC<Props> = ({ visible, onClose }) =
               <Text style={styles.body}>
                 Paketname und SHA-1 müssen zu der App passen, die gerade läuft.
                 Eine Produktions-SHA-1 steht hier nicht — die bitte nicht raten und nicht vom Debug-Keystore abschreiben.
+                Im Spotify-Dashboard die alte Zeile com.everyapp.container entfernen und com.openscr.app plus den SHA-1 dieser Signatur neu eintragen. Die Development-Zeile ist com.openscr.app.dev.
               </Text>
               <VariantBlock target={target} dev={dev} prod={prod} />
             </Step>
@@ -153,8 +154,8 @@ function VariantBlock({
     return (
       <View>
         <Text style={styles.body}>
-          Du nutzt gerade SrvEveryApp (Development, APP_VARIANT=development).
-          Der SHA-1 ist der öffentliche Fingerabdruck des Debug-Keystores, mit dem diese SrvEveryApp-APK signiert ist.
+          Du nutzt gerade SrvOpenScr (Development, APP_VARIANT=development).
+          Der SHA-1 ist der öffentliche Fingerabdruck des Debug-Keystores, mit dem diese SrvOpenScr-APK signiert ist.
           Ohne Doppelpunkte gilt derselbe Wert auch. Zum Kopieren ist die Form mit Doppelpunkten, so wie das Dashboard-Feld sie zeigt.
         </Text>
         <CopyValue label="Package name" value={target.packageName} />
@@ -167,9 +168,9 @@ function VariantBlock({
     return (
       <View>
         <Text style={styles.body}>
-          Du nutzt gerade EveryApp. Den SHA-1 dieser Signatur gibt es in diesem Projekt nicht.
+          Du nutzt gerade OpenScr. Den SHA-1 dieser Signatur gibt es in diesem Projekt nicht.
           Lies ihn am Signaturzertifikat ab oder in den EAS-Android-Credentials dieses Builds.
-          Den Debug-SHA-1 von SrvEveryApp hier nicht eintragen.
+          Den Debug-SHA-1 von SrvOpenScr hier nicht eintragen.
         </Text>
         <CopyValue label="Package name" value={target.packageName} />
       </View>
@@ -183,13 +184,13 @@ function VariantBlock({
         {target.packageName ? ` (gelesener Paketname: ${target.packageName})` : ''}.
         Trag nur die Werte der App ein, die auf diesem Handy installiert ist. Für einen unbekannten Paketnamen liegt hier kein SHA-1.
       </Text>
-      <Text style={styles.subhead}>SrvEveryApp, Development</Text>
+      <Text style={styles.subhead}>SrvOpenScr, Development</Text>
       <CopyValue label="Package name" value={dev.packageName || DEVELOPMENT_ANDROID_PACKAGE} />
       {dev.sha1 ? <CopyValue label="Package SHA1 fingerprint" value={dev.sha1} /> : null}
-      <Text style={styles.subhead}>EveryApp, Production</Text>
+      <Text style={styles.subhead}>OpenScr, Production</Text>
       <CopyValue label="Package name" value={prod.packageName || PRODUCTION_ANDROID_PACKAGE} />
       <Text style={styles.body}>
-        SHA-1 für EveryApp steht nicht im Repo. Vom Signaturzertifikat oder aus den EAS-Android-Credentials lesen, nicht den Debug-SHA-1 kopieren.
+        SHA-1 für OpenScr steht nicht im Repo. Vom Signaturzertifikat oder aus den EAS-Android-Credentials lesen, nicht den Debug-SHA-1 kopieren.
       </Text>
     </View>
   );

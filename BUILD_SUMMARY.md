@@ -1,14 +1,14 @@
-# EveryApp v1 - Build & Test Summary
+# OpenScr v1 - Build & Test Summary
 
 ## ✅ Implementierungsstatus
 
-Die erste Version von EveryApp wurde vollständig implementiert und ist bereit für den Einsatz.
+Die erste Version von OpenScr wurde vollständig implementiert und ist bereit für den Einsatz.
 
 ### Was wurde gebaut?
 
 **Kern-Architektur:**
 - React Native + Expo SDK 58 + TypeScript
-- WebView-basierter Container für Mini-Apps
+- WebView-basierter Container für OpenScrapps
 - Git-Repository-Loader (GitHub public repos)
 - Permission-System mit User-Consent
 - Native Bridge API mit 7 Capabilities
@@ -64,7 +64,7 @@ everyapp/
 Total: 31 files, ~2000 LoC
 ```
 
-### Beispiel-Mini-Apps
+### Beispiel-OpenScrapps
 
 **1. Dice Game** (`examples/dice-game/`)
 - Würfelspiel mit persistenten Statistiken
@@ -144,7 +144,7 @@ adb install app-release.apk
 
 ## 🧪 Testing
 
-### Mini-App hinzufügen
+### OpenScrapp hinzufügen
 
 Nach Installation der APK:
 
@@ -153,9 +153,9 @@ Nach Installation der APK:
    ```
    https://github.com/Krust3nKaese3/EveryApp
    ```
-   (Anmerkung: Der Service lädt aus dem `main` Branch und sucht nach `examples/dice-game/everyapp.json`)
+   (Anmerkung: Der Service lädt aus dem `main` Branch und sucht nach `examples/dice-game/openscr.json`)
 
-3. Alternativ: Eigenes Repo mit `everyapp.json` Manifest erstellen
+3. Alternativ: Eigenes Repo mit `openscr.json` Manifest erstellen
 
 ### Was funktioniert
 
@@ -208,7 +208,7 @@ npx tsc --noEmit
 1. APK via EAS Build generieren
 2. Auf Android-Device testen
 3. Beispiel-Apps laden und ausführen
-4. Eigene Mini-Apps entwickeln
+4. Eigene OpenScrapps entwickeln
 
 ### Verbesserungen für v1.1:
 - Error Messages verbessern
@@ -230,7 +230,7 @@ npx tsc --noEmit
 
 - [x] Projekt initialisiert (React Native + Expo + TypeScript)
 - [x] Dependencies installiert und kompatibel
-- [x] Manifest-Format definiert (`everyapp.json`)
+- [x] Manifest-Format definiert (`openscr.json`)
 - [x] Git-Repo-Service implementiert
 - [x] WebView-Container funktionsfähig
 - [x] Bridge-API vollständig (7 Capabilities)
@@ -253,11 +253,11 @@ npx tsc --noEmit
 
 ## 🎯 Fazit
 
-**EveryApp v1 ist feature-complete und produktionsbereit.**
+**OpenScr v1 ist feature-complete und produktionsbereit.**
 
 Die App erfüllt alle geforderten Anforderungen:
 - ✅ Android Container-App
-- ✅ Mini-Apps aus öffentlichen Git-Repos laden
+- ✅ OpenScrapps aus öffentlichen Git-Repos laden
 - ✅ Sandboxed WebView-Ausführung
 - ✅ Permission-System mit User-Consent
 - ✅ 7 Native Capabilities über Bridge

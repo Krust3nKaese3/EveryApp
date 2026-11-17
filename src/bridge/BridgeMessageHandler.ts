@@ -69,7 +69,7 @@ export class BridgeMessageHandler {
     const decision = permissionDecision(category, this.grantedPermissions, this.deniedPermissions);
     if (decision === 'allow') return;
     if (decision === 'deny') {
-      throw new Error(`„${category}“ ist für diese Mini-App nicht erlaubt. Du kannst das in den App-Infos ändern.`);
+      throw new Error(`„${category}“ ist für diese OpenScrapp nicht erlaubt. Du kannst das in den App-Infos ändern.`);
     }
     if (!this.ask) {
       checkBridgePermission(category, this.grantedPermissions);
@@ -134,8 +134,8 @@ export class BridgeMessageHandler {
         };
         const eventListeners = {};
 
-        window.EveryAppBridge = {
-          buildInfo: { isDev: ${__DEV__ ? 'true' : 'false'}, devClient: ${__DEV__ ? 'true' : 'false'}, environment: '${__DEV__ ? 'development' : 'production'}', buildType: '${__DEV__ ? 'SrvEveryApp' : 'EveryApp'}' },
+        window.OpenScrBridge = {
+          buildInfo: { isDev: ${__DEV__ ? 'true' : 'false'}, devClient: ${__DEV__ ? 'true' : 'false'}, environment: '${__DEV__ ? 'development' : 'production'}', buildType: '${__DEV__ ? 'SrvOpenScr' : 'OpenScr'}' },
           storage: {
             get: (key) => sendMessage('storage.get', [key]),
             set: (key, value) => sendMessage('storage.set', [key, value]),
@@ -291,7 +291,7 @@ export class BridgeMessageHandler {
             leave: () => sendMessage('multiplayer.leave', []),
             showQr: () => sendMessage('multiplayer.showQr', []),
             discover: (opts) => {
-              if (opts && opts.onRooms) window.EveryAppBridge.events.on('multiplayer.rooms', (payload) => opts.onRooms(payload.rooms || []));
+              if (opts && opts.onRooms) window.OpenScrBridge.events.on('multiplayer.rooms', (payload) => opts.onRooms(payload.rooms || []));
               return sendMessage('multiplayer.discover', []);
             },
             stopDiscovery: () => sendMessage('multiplayer.stopDiscovery', []),
@@ -301,24 +301,24 @@ export class BridgeMessageHandler {
             endRoom: () => sendMessage('multiplayer.endRoom', []),
             resume: () => sendMessage('multiplayer.resume', []),
             onMessage: (callback) => {
-              window.EveryAppBridge.events.on('multiplayer.message', callback);
-              return () => window.EveryAppBridge.events.off('multiplayer.message', callback);
+              window.OpenScrBridge.events.on('multiplayer.message', callback);
+              return () => window.OpenScrBridge.events.off('multiplayer.message', callback);
             },
             onPlayersChanged: (callback) => {
-              window.EveryAppBridge.events.on('multiplayer.players', callback);
-              return () => window.EveryAppBridge.events.off('multiplayer.players', callback);
+              window.OpenScrBridge.events.on('multiplayer.players', callback);
+              return () => window.OpenScrBridge.events.off('multiplayer.players', callback);
             },
             onJoinRequest: (callback) => {
-              window.EveryAppBridge.events.on('multiplayer.joinRequest', callback);
-              return () => window.EveryAppBridge.events.off('multiplayer.joinRequest', callback);
+              window.OpenScrBridge.events.on('multiplayer.joinRequest', callback);
+              return () => window.OpenScrBridge.events.off('multiplayer.joinRequest', callback);
             },
             onResumed: (callback) => {
-              window.EveryAppBridge.events.on('multiplayer.resumed', callback);
-              return () => window.EveryAppBridge.events.off('multiplayer.resumed', callback);
+              window.OpenScrBridge.events.on('multiplayer.resumed', callback);
+              return () => window.OpenScrBridge.events.off('multiplayer.resumed', callback);
             },
             onHostAway: (callback) => {
-              window.EveryAppBridge.events.on('multiplayer.hostAway', callback);
-              return () => window.EveryAppBridge.events.off('multiplayer.hostAway', callback);
+              window.OpenScrBridge.events.on('multiplayer.hostAway', callback);
+              return () => window.OpenScrBridge.events.off('multiplayer.hostAway', callback);
             },
           },
           events: {
@@ -345,6 +345,7 @@ export class BridgeMessageHandler {
             },
           },
         };
+        window.EveryAppBridge = window.OpenScrBridge;
 
         window.dispatchBridgeEvent = function(event, data) {
           const listeners = eventListeners[event];

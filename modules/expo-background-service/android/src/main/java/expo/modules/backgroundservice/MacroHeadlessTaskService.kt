@@ -43,7 +43,7 @@ class MacroHeadlessTaskService : HeadlessJsTaskService() {
       else -> 0
     }
     val n = NotificationCompat.Builder(this, EveryAppBackgroundService.CHANNEL_ID)
-      .setContentTitle("EveryApp")
+      .setContentTitle("OpenScr")
       .setContentText("Kurze Hintergrundaktion")
       .setSmallIcon(android.R.drawable.ic_menu_compass)
       .setPriority(NotificationCompat.PRIORITY_MIN)

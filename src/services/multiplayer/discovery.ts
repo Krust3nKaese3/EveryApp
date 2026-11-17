@@ -5,7 +5,7 @@
  */
 import { playerName } from './protocol';
 
-export const MDNS_TYPE = '_everyapp._tcp';
+export const MDNS_TYPE = '_openscr._tcp';
 
 export interface ServiceTxt {
   v: '1';

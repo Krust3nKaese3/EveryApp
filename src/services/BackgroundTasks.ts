@@ -500,7 +500,7 @@ function guardBle(appId: string, api: any) {
   const check = async () => {
     const granted = await StorageService.getAppPermissions(appId).catch(() => [] as string[]);
     if (!(granted as string[]).includes('ble'))
-      throw new Error(`BLE nicht erlaubt für "${appId}": "ble" muss in den permissions des Manifests (everyapp.json) stehen und erlaubt sein`);
+      throw new Error(`BLE nicht erlaubt für "${appId}": "ble" muss in den permissions des Manifests (openscr.json) stehen und erlaubt sein`);
   };
   const out: any = {};
   for (const [k, f] of Object.entries(api)) {
@@ -515,7 +515,7 @@ function guardPerm(appId: string, perm: string, api: Record<string, any>) {
   const out: any = {};
   for (const [k, f] of Object.entries(api)) out[k] = async (...a: any[]) => {
     const granted = (await StorageService.getAppPermissions(appId).catch(() => [])) as string[];
-    if (!granted.includes(perm)) throw new Error(`"${perm}" nicht erlaubt für "${appId}": "${perm}" muss in den permissions des Manifests (everyapp.json) stehen und erlaubt sein`);
+    if (!granted.includes(perm)) throw new Error(`"${perm}" nicht erlaubt für "${appId}": "${perm}" muss in den permissions des Manifests (openscr.json) stehen und erlaubt sein`);
     return f(...a);
   };
   return out;
@@ -532,7 +532,7 @@ async function appRawBase(appId: string): Promise<string | null> {
 /** Converts an icon spec into something the native side renders (builtin name | data: | https URL | letter). */
 export function iconForNative(spec: string, rawBase: string | null): string {
   const k = classifyIcon(spec, rawBase);
-  if (k.kind === 'svg') throw new Error(`Icon "${String(spec).slice(0, 60)}": SVG muss im Vordergrund (Mini-App-WebView) gesetzt werden – dort wird es automatisch in PNG umgewandelt. Im Hintergrund PNG oder Icon-Namen nutzen`);
+  if (k.kind === 'svg') throw new Error(`Icon "${String(spec).slice(0, 60)}": SVG muss im Vordergrund (OpenScrapp-WebView) gesetzt werden – dort wird es automatisch in PNG umgewandelt. Im Hintergrund PNG oder Icon-Namen nutzen`);
   return k.value;
 }
 export async function setTileFor(appId: string, slot: number, patch: any) {
@@ -576,10 +576,10 @@ export async function ensureLockGrant(appId: string) {
   if (n.lockGrantGet(appId)) return;
   const asked = JSON.parse((await AsyncStorage.getItem(LOCK_ASKED_KEY)) || '{}');
   if (asked[appId]) { await bgLog(appId, 'allowLocked: Sperrbildschirm-Freigabe wurde abgelehnt – Kachel verlangt Entsperren'); return; }
-  if (AppState.currentState !== 'active') { await bgLog(appId, 'allowLocked: Freigabe-Dialog erscheint beim nächsten Öffnen von EveryApp'); return; }
+  if (AppState.currentState !== 'active') { await bgLog(appId, 'allowLocked: Freigabe-Dialog erscheint beim nächsten Öffnen von OpenScr'); return; }
   asked[appId] = true; await AsyncStorage.setItem(LOCK_ASKED_KEY, JSON.stringify(asked));
   Alert.alert('Auf dem Sperrbildschirm erlauben?',
-    `Die Mini-App "${appId}" möchte Kacheln/Popups bedienen lassen, ohne dass das Handy entsperrt ist. Jeder mit Zugriff auf dein gesperrtes Handy kann diese Aktionen dann auslösen.`,
+    `Die OpenScrapp "${appId}" möchte Kacheln/Popups bedienen lassen, ohne dass das Handy entsperrt ist. Jeder mit Zugriff auf dein gesperrtes Handy kann diese Aktionen dann auslösen.`,
     [{ text: 'Ablehnen', style: 'cancel', onPress: () => { bgLog(appId, 'allowLocked: Freigabe abgelehnt'); } },
      { text: 'Erlauben', onPress: () => { try { n.lockGrantSet(appId, true); bgLog(appId, 'allowLocked: Freigabe erteilt'); } catch (e: any) { bgLog(appId, `FEHLER allowLocked lockGrantSet: ${e?.message}`, 'error'); } } }],
     { cancelable: false });

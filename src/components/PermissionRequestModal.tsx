@@ -22,7 +22,7 @@ export const PermissionRequestModal: React.FC<PermissionRequestModalProps> = ({
   onGrant,
   onDeny,
   title = 'Berechtigungen',
-  intro = 'Diese Mini-App möchte folgende Gerätefunktionen nutzen. Ohne Zustimmung bleibt der Zugriff aus. Du kannst jede Berechtigung später in den App-Infos widerrufen.',
+  intro = 'Diese OpenScrapp möchte folgende Gerätefunktionen nutzen. Ohne Zustimmung bleibt der Zugriff aus. Du kannst jede Berechtigung später in den App-Infos widerrufen.',
   grantLabel = 'Erlauben',
   denyLabel = 'Ablehnen',
 }) => {

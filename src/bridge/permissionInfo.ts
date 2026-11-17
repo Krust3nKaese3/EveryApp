@@ -3,7 +3,7 @@ import { Permission } from '../types';
 export const PERMISSION_INFO: Record<Permission, { title: string; description: string }> = {
   storage: {
     title: 'Speicher',
-    description: 'Text nur für diese Mini-App auf diesem Gerät speichern',
+    description: 'Text nur für diese OpenScrapp auf diesem Gerät speichern',
   },
   http: {
     title: 'Internet',
@@ -31,7 +31,7 @@ export const PERMISSION_INFO: Record<Permission, { title: string; description: s
   },
   background: {
     title: 'Hintergrund',
-    description: 'Weiterarbeiten, wenn EveryApp nicht geöffnet ist',
+    description: 'Weiterarbeiten, wenn OpenScr nicht geöffnet ist',
   },
   ble: {
     title: 'Bluetooth LE',
@@ -67,7 +67,7 @@ export const PERMISSION_INFO: Record<Permission, { title: string; description: s
   },
   secrets: {
     title: 'Geheimnisse',
-    description: 'Zugangsdaten nur für diese Mini-App auf diesem Gerät speichern',
+    description: 'Zugangsdaten nur für diese OpenScrapp auf diesem Gerät speichern',
   },
   crypto: {
     title: 'Kryptografie',
@@ -75,7 +75,7 @@ export const PERMISSION_INFO: Record<Permission, { title: string; description: s
   },
   multiplayer: {
     title: 'Mehrspieler',
-    description: 'Einen Spielraum im selben WLAN oder Hotspot öffnen und Nachrichten nur an Mitspieler dieser Mini-App senden',
+    description: 'Einen Spielraum im selben WLAN oder Hotspot öffnen und Nachrichten nur an Mitspieler dieser OpenScrapp senden',
   },
 };
 

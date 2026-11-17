@@ -135,7 +135,7 @@
     
     async function loadStats() {
       try {
-        const stored = await window.EveryAppBridge.storage.get('dice_stats');
+        const stored = await window.OpenScrBridge.storage.get('dice_stats');
         if (stored) {
           stats = JSON.parse(stored);
           updateStatsDisplay();
@@ -147,7 +147,7 @@
     
     async function saveStats() {
       try {
-        await window.EveryAppBridge.storage.set('dice_stats', JSON.stringify(stats));
+        await window.OpenScrBridge.storage.set('dice_stats', JSON.stringify(stats));
       } catch (error) {
         console.error('Failed to save stats:', error);
       }
@@ -164,7 +164,7 @@
       diceEl.classList.add('rolling');
       
       try {
-        await window.EveryAppBridge.vibration.vibrate([50]);
+        await window.OpenScrBridge.vibration.vibrate([50]);
       } catch (error) {
         console.error('Vibration failed:', error);
       }
@@ -180,7 +180,7 @@
           stats.highestRoll = result;
           
           try {
-            await window.EveryAppBridge.notifications.schedule(
+            await window.OpenScrBridge.notifications.schedule(
               'New Record!',
               `You rolled a ${result}! 🎉`,
               1

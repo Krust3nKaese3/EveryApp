@@ -418,7 +418,7 @@ export const MiniAppRunner: React.FC<MiniAppRunnerProps> = ({ app, onClose }) =>
         appName={app.manifest.name}
         requestedPermissions={runtimeConsent || []}
         title="Zugriff erlauben?"
-        intro="Die Mini-App möchte diese Funktion jetzt zum ersten Mal nutzen."
+        intro="Die OpenScrapp möchte diese Funktion jetzt zum ersten Mal nutzen."
         grantLabel="Einmal erlauben"
         denyLabel="Nicht erlauben"
         onGrant={() => { void finishConsent(true); }}

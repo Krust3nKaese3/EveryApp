@@ -15,7 +15,7 @@ const {
   MINIAPP_LIMITS,
 } = require('../src/services/miniAppFiles.ts');
 
-const HOST = 'abcdef01.app.abcdef02.everyapp.invalid';
+const HOST = 'abcdef01.app.abcdef02.openscr.invalid';
 
 function filesFrom(map) {
   return async (rel) => {
@@ -46,7 +46,7 @@ test('raw url encodes path segments', () => {
 test('virtual host is stable and isolated per app', () => {
   assert.strictEqual(virtualHost('github_com_a'), virtualHost('github_com_a'));
   assert.notStrictEqual(virtualHost('github_com_a'), virtualHost('github_com_b'));
-  assert.match(virtualHost('github_com_a'), /^[a-z0-9]+\.[a-z0-9]+\.[a-z0-9]+\.everyapp\.invalid$/);
+  assert.match(virtualHost('github_com_a'), /^[a-z0-9]+\.[a-z0-9]+\.[a-z0-9]+\.openscr\.invalid$/);
 });
 
 test('resolveAssetPath stays inside the mini-app', () => {
@@ -63,16 +63,20 @@ test('resolveAssetPath stays inside the mini-app', () => {
   assert.strictEqual(resolveAssetPath('content://settings/secure', '', HOST), null);
   assert.strictEqual(resolveAssetPath('https://cdn.example/app.js', '', HOST), null);
   assert.strictEqual(resolveAssetPath('//cdn.example/app.js', '', HOST), null);
-  assert.strictEqual(resolveAssetPath(`http://other.everyapp.invalid/app.js`, '', HOST), null);
+  assert.strictEqual(resolveAssetPath(`http://other.openscr.invalid/app.js`, '', HOST), null);
   assert.strictEqual(resolveAssetPath('assets\\buzz.mp3', '', HOST), null);
   assert.strictEqual(assetUri('file:///mini/', 'assets/buzz.mp3'), 'file:///mini/assets/buzz.mp3');
   assert.strictEqual(assetUri('file:///mini/', '../secret'), null);
 });
 
-test('subtree is the folder that contains everyapp.json', () => {
+test('subtree prefers openscr.json and still accepts everyapp.json', () => {
+  assert.deepStrictEqual(selectMiniAppPrefix(['openscr.json', 'examples/dice/everyapp.json']), { prefix: '' });
+  assert.deepStrictEqual(selectMiniAppPrefix(['games/song/openscr.json', 'games/song/index.html']), { prefix: 'games/song/' });
   assert.deepStrictEqual(selectMiniAppPrefix(['everyapp.json', 'examples/dice/everyapp.json']), { prefix: '' });
   assert.deepStrictEqual(selectMiniAppPrefix(['games/song/everyapp.json', 'games/song/index.html']), { prefix: 'games/song/' });
-  assert.strictEqual(selectMiniAppPrefix(['README.md']).error, 'everyapp.json not found in repository');
+  assert.deepStrictEqual(selectMiniAppPrefix(['everyapp.json', 'games/song/openscr.json']), { prefix: 'games/song/' });
+  assert.strictEqual(selectMiniAppPrefix(['README.md']).error, 'openscr.json not found in repository');
+  assert.ok(selectMiniAppPrefix(['a/openscr.json', 'b/openscr.json']).error);
   assert.ok(selectMiniAppPrefix(['a/everyapp.json', 'b/everyapp.json']).error);
 
   const listed = listMiniAppFiles([
