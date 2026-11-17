@@ -14,9 +14,32 @@ export const DEVELOPMENT_ANDROID_PACKAGE = 'com.openscr.app.dev';
  * Public SHA-1 of the debug keystore used to sign the current SrvOpenScr APK.
  * Colon form, as the Dashboard field "Package SHA1 fingerprint" shows it.
  * The same fingerprint without colons is also accepted. Not a secret.
- * The production signing SHA-1 is not in this repo.
  */
 export const DEVELOPMENT_DEBUG_SHA1 = '5E:8F:16:06:2E:A3:CD:2C:4A:0D:54:78:76:BA:A6:F3:8C:AB:F6:25';
+
+/**
+ * Google Play app signing key for com.openscr.app.
+ * Builds installed from Play. Public certificate fingerprint, not a secret.
+ */
+export const PRODUCTION_PLAY_SIGNING_SHA1 = 'AD:B7:BB:56:B8:CE:4F:E1:08:19:19:B0:56:FF:B1:A6:07:8D:01:3F';
+
+/**
+ * Second Play key ("classic") from the hybrid signing scheme.
+ * Register it too: which of the two Play keys the installed APK reports is not verified yet.
+ */
+export const PRODUCTION_PLAY_CLASSIC_SHA1 = 'A2:77:96:AB:2B:9E:B9:45:A3:DB:CF:8A:A6:0B:20:FB:6B:A5:85:FE';
+
+/**
+ * Upload key. Production AAB/APK built with EAS and installed directly, not via Play.
+ */
+export const PRODUCTION_UPLOAD_SHA1 = 'DA:30:B6:B4:FA:8D:D1:C1:EA:85:6B:3D:E3:4D:33:67:AE:F5:6C:B2';
+
+/** All production SHA-1s. One Dashboard row per value, each with com.openscr.app. */
+export const PRODUCTION_ANDROID_SHA1S = [
+  PRODUCTION_PLAY_SIGNING_SHA1,
+  PRODUCTION_PLAY_CLASSIC_SHA1,
+  PRODUCTION_UPLOAD_SHA1,
+] as const;
 
 export type SpotifyAndroidVariant = 'development' | 'production' | 'unknown';
 
@@ -26,26 +49,43 @@ export interface SpotifyAndroidDashboardTarget {
   /** null when the running package could not be read. */
   packageName: string | null;
   /**
-   * Colon-form SHA-1 to paste, or null when this build's signing fingerprint
-   * is not stored in the repo (production, or an unrecognized package).
+   * Single colon-form SHA-1 when this variant has one key (development).
+   * Null for production (use sha1s) and for an unrecognized package.
    */
   sha1: string | null;
+  /**
+   * Every SHA-1 to register for this package. One entry for development,
+   * three for production. Empty when the package is unrecognized.
+   */
+  sha1s: readonly string[];
 }
 
 /**
  * Package name + SHA-1 for the Spotify Dashboard "Android packages" row.
- * Matches the running variant: development gets the known debug fingerprint,
- * production never receives that debug value.
+ * Development gets the debug fingerprint. Production gets the Play and upload keys,
+ * never the debug value.
  */
 export function spotifyAndroidDashboardTarget(packageName: unknown): SpotifyAndroidDashboardTarget {
   const pkg = String(packageName ?? '').trim();
   if (pkg === DEVELOPMENT_ANDROID_PACKAGE) {
-    return { variant: 'development', appName: 'SrvOpenScr', packageName: pkg, sha1: DEVELOPMENT_DEBUG_SHA1 };
+    return {
+      variant: 'development',
+      appName: 'SrvOpenScr',
+      packageName: pkg,
+      sha1: DEVELOPMENT_DEBUG_SHA1,
+      sha1s: [DEVELOPMENT_DEBUG_SHA1],
+    };
   }
   if (pkg === PRODUCTION_ANDROID_PACKAGE) {
-    return { variant: 'production', appName: 'OpenScr', packageName: pkg, sha1: null };
+    return {
+      variant: 'production',
+      appName: 'OpenScr',
+      packageName: pkg,
+      sha1: null,
+      sha1s: PRODUCTION_ANDROID_SHA1S,
+    };
   }
-  return { variant: 'unknown', appName: 'OpenScr', packageName: pkg || null, sha1: null };
+  return { variant: 'unknown', appName: 'OpenScr', packageName: pkg || null, sha1: null, sha1s: [] };
 }
 
 type ExpoPackageConstants = {
