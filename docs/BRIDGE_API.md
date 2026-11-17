@@ -67,6 +67,14 @@ Mehrspieler (Berechtigung `multiplayer`, Details in [MULTIPLAYER.md](MULTIPLAYER
 
 Events (nur diese Namen): `app.start`, `bluetooth.connected`, `bluetooth.disconnected`, `spotify.connected`, `spotify.disconnected`, `spotify.player`, `spotify.error`, `multiplayer.message`, `multiplayer.players`, `multiplayer.rooms`, `multiplayer.joinRequest`, `multiplayer.resumed`, `multiplayer.hostAway`. Bluetooth-, Spotify- und Mehrspieler-Events brauchen die passende Berechtigung. Die OpenScrapp speichert ihren Spielstand selbst. Token und Spielergeheimnis gibt die Bridge nicht heraus.
 
+## iOS
+
+Auf iOS ist die Bridge kürzer. Die Auswahl steht in `src/services/iosPolicy.ts` und hängt an der Plattform des Builds. Eine ferne Datei kann sie nicht erweitern.
+
+Erlaubt: `storage.get`, `storage.set`, `storage.remove`, `http.request`, `http.fetch`, `sensors.getAccelerometer`, `sensors.getGyroscope`, `ble.isAvailable`, `ble.scan`, `ble.connect`, `ble.disconnect`, `ble.write`, `ble.read`, `ble.notify`, `vibration.vibrate`, dazu das Event `app.start`.
+
+Nicht verfügbar, mit der Meldung „Diese Funktion ist auf iOS nicht verfügbar…“: Roh-Sockets und Tuya (`net.*`), Hintergrundaufgaben und Makros (`background.*`), Kacheln (`tiles.*`), Popups (`popup.*`), klassisches Bluetooth, Benachrichtigungen, Kamera, Spotify, Medientasten, WLAN-Info, Zwischenablage, Geheimnisse, Kryptografie und Mehrspieler. Android behält die volle Liste oben.
+
 ## Melden
 
 „Melden“ öffnet eine E-Mail an `krust3nkaese3@gmail.com` (Betreff und Text sind vorausgefüllt). Es wird kein Ticket-Server aufgerufen.

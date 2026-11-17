@@ -5,7 +5,8 @@
  */
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { maskSecrets, secretsProxy } from './SecretStore';
-import { Vibration, Alert, AppState } from 'react-native';
+import { Vibration, Alert, AppState, Platform } from 'react-native';
+import { isIosLearningPlatform } from './iosPolicy';
 import * as Notifications from 'expo-notifications';
 import * as Clipboard from 'expo-clipboard';
 import { sendMediaKey } from '../../modules/expo-media-control';
@@ -317,6 +318,7 @@ export function restartTimers() {
 
 /** Headless entry point (native extras: event, name, address, time). */
 export async function headlessEntry(data: any) {
+  if (isIosLearningPlatform(Platform.OS)) return;
   if (data?.event === 'keepalive') {
     await debugLog('headless keepalive: Intervall-Timer starten');
     restartTimers();
@@ -366,6 +368,7 @@ let initialized = false;
 let appStarted = false;
 /** Called per JS runtime: from the headless task (false) and from App mount (true -> fires appStart once). */
 export function initBackgroundTasks(isAppStart: boolean) {
+  if (isIosLearningPlatform(Platform.OS)) return;
   if (!initialized) { initialized = true; restartTimers(); }
   if (isAppStart && !appStarted) {
     appStarted = true;

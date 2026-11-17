@@ -21,7 +21,7 @@
   </header>
   <main>
 <h1 id="datenschutzerklärung-für-openscr">Datenschutzerklärung für OpenScr</h1>
-<p>Stand: 16. November 2026</p>
+<p>Stand: 17. November 2026</p>
 <p><strong>Entwurf, keine Rechtsberatung.</strong> Den Text vor der Veröffentlichung rechtlich prüfen lassen. Altersangaben im Katalog sind Empfehlungen des Anbieters, keine behördliche Kennzeichnung.</p>
 <h2 id="verantwortliche-stelle">Verantwortliche Stelle</h2>
 <p>Manuel Di Liberto</p>
@@ -62,8 +62,8 @@
 <p>OpenScr fordert keine Standortberechtigung an. <code>ACCESS_FINE_LOCATION</code> und <code>ACCESS_BACKGROUND_LOCATION</code> sind nicht Teil dieses Release. GPS-Koordinaten werden nicht gelesen. Den WLAN-Namen gibt Android auf aktuellen Versionen ohne diese Berechtigung nicht heraus; dann bleibt er verborgen. Bluetooth-Suche ist nicht dazu da, einen Standort abzuleiten (<code>neverForLocation</code>).</p>
 <p>Ein Vordergrunddienst mit sichtbarer Benachrichtigung („OpenScr aktiv“) läuft nur, solange eine OpenScrapp ein Intervall, eine fällige oder verbundene Bluetooth-LE-Benachrichtigung oder einen gehosteten Spielraum braucht. Die Benachrichtigung verlässt das Gerät nicht.</p>
 <h2 id="katalog-und-sperrliste">Katalog und Sperrliste</h2>
-<p>„Empfohlen“ zeigt OpenScrapps aus dem Katalog (Name, Repository, Beschreibung, Altersangabe). Eine Sperrliste kann eine OpenScrapp für alle Installationen deaktivieren; die App zeigt dann den Grund und startet sie nicht. Es gibt keine zusätzliche Nutzerdatenbank dafür.</p>
-<p>Eine Build-Einstellung <code>EXPO_PUBLIC_CATALOG_ONLY</code> schaltet freie GitHub-Links ab. In dem Build gibt es den Katalog und, wenn du ihn einschaltest, den Entwicklermodus: Anmeldung mit dem eigenen GitHub-Konto, danach nur Repositories, deren Besitzer dieses Konto ist. Abmelden löscht das Token und schaltet diese OpenScrapps aus. Builds ohne diese Einstellung behalten die freie Installation mit Warnung. Der Play-Build lässt die Einstellung aus.</p>
+<p>Auf Android zeigt „Empfohlen“ OpenScrapps aus dem Katalog (Name, Repository, Beschreibung, Altersangabe). Eine Sperrliste kann eine OpenScrapp für alle Installationen deaktivieren; die App zeigt dann den Grund und startet sie nicht. Es gibt keine zusätzliche Nutzerdatenbank dafür. Die iOS-Version hat diese Liste nicht. Dort meldest du dich mit deinem GitHub-Konto an und lädst nur Repositories, deren Besitzer dieses Konto ist. Abmelden löscht das Token und schaltet diese OpenScrapps aus. Eine ferne Katalogdatei schaltet den Katalog auf iOS nicht ein.</p>
+<p>Auf iOS kann eine OpenScrapp nur Speicher, Sensoren, HTTP, Bluetooth LE und Vibration nutzen. Eine Android-Build-Einstellung <code>EXPO_PUBLIC_CATALOG_ONLY</code> schaltet freie GitHub-Links ab und behält den Katalog plus den Entwicklermodus. Builds ohne diese Einstellung behalten die freie Installation mit Warnung. Der Play-Build lässt die Einstellung aus.</p>
 <h2 id="rechtsgrundlagen">Rechtsgrundlagen</h2>
 <ul>
 <li>Art. 6 Abs. 1 lit. b DSGVO, soweit die Verarbeitung nötig ist, um die Funktion auszuführen, die du startest: OpenScrapp laden und speichern, aktualisieren, lokal spielen, Spotify steuern, im Entwicklermodus das eigene Repository laden.</li>

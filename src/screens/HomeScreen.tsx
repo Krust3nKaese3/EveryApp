@@ -9,6 +9,7 @@ import {
   Alert,
   Modal,
   ScrollView,
+  Platform,
 } from 'react-native';
 import { readDebugLog, clearDebugLog } from '../services/DebugLog';
 import { MiniApp, Folder, MiniAppOrigin } from '../types';
@@ -29,7 +30,7 @@ import {
   catalogEntryFor,
   catalogRepoNames,
   decideAdd,
-  isCatalogOnlyBuild,
+  installMode,
   reportMailto,
   mergeUpdatedApp,
   type BlocklistFile,
@@ -39,6 +40,9 @@ import { updateStatus, versionLine } from '../services/githubPin';
 import { installedAppAccess } from '../services/developerMode';
 import { GithubSession } from '../services/GithubSession';
 import { DeveloperModeModal } from '../components/DeveloperModeModal';
+import { FirstOpenScrappModal } from '../components/FirstOpenScrappModal';
+import { SourceCodeModal } from '../components/SourceCodeModal';
+import { showsCuratedCatalog } from '../services/iosPolicy';
 
 function confirmForeign(message: string): Promise<boolean> {
   return new Promise((resolve) => {
@@ -59,10 +63,15 @@ export const HomeScreen: React.FC = () => {
   const [latestSha, setLatestSha] = useState<Record<string, string>>({});
   const [infoApp, setInfoApp] = useState<MiniApp | null>(null);
   const [legalDoc, setLegalDoc] = useState<'privacy' | 'terms' | null>(null);
-  const catalogOnly = isCatalogOnlyBuild();
+  const mode = installMode(Platform.OS);
+  const ownReposOnly = mode === 'own-repos-only';
+  const catalogOnly = mode === 'catalog-only';
+  const showCatalog = showsCuratedCatalog(Platform.OS);
   const [devMode, setDevMode] = useState(false);
   const [githubLogin, setGithubLogin] = useState<string | null>(null);
   const [showDeveloper, setShowDeveloper] = useState(false);
+  const [showGuide, setShowGuide] = useState(false);
+  const [sourceApp, setSourceApp] = useState<MiniApp | null>(null);
   const dismissedUpdates = useRef<Set<string>>(new Set());
   const [repoUrl, setRepoUrl] = useState('');
   const [loading, setLoading] = useState(false);
@@ -96,6 +105,7 @@ export const HomeScreen: React.FC = () => {
       catalog,
       blocklist,
       catalogOnly,
+      ownReposOnly,
       developerMode: devMode,
       signedInLogin: githubLogin,
     });
@@ -203,7 +213,7 @@ export const HomeScreen: React.FC = () => {
   }, []);
 
   const refreshSession = async () => {
-    if (!catalogOnly) {
+    if (!ownReposOnly && !catalogOnly) {
       setDevMode(false);
       setGithubLogin(null);
       return;
@@ -218,6 +228,7 @@ export const HomeScreen: React.FC = () => {
     session?: { developerMode: boolean; signedInLogin: string | null },
   ) => installedAppAccess(app, {
     catalogOnly,
+    ownReposOnly,
     developerMode: session ? session.developerMode : devMode,
     signedInLogin: session ? session.signedInLogin : githubLogin,
     inCatalog: !!catalogEntryFor(app.repoUrl, catalog),
@@ -232,7 +243,7 @@ export const HomeScreen: React.FC = () => {
   };
 
   const checkUpdates = async (installed: MiniApp[]) => {
-    const session = catalogOnly ? await GithubSession.load() : { developerMode: false, login: null as string | null };
+    const session = (ownReposOnly || catalogOnly) ? await GithubSession.load() : { developerMode: false, login: null as string | null };
     const found: Record<string, string> = {};
     for (const app of installed) {
       const access = accessFor(app, { developerMode: session.developerMode, signedInLogin: session.login });
@@ -360,7 +371,7 @@ export const HomeScreen: React.FC = () => {
   const handleRefreshApp = async (app: MiniApp) => {
     const access = accessFor(app);
     if (!access.allowed) {
-      Alert.alert('Entwicklermodus', access.reason);
+      Alert.alert(ownReposOnly ? 'Nur eigene Repositories' : 'Entwicklermodus', access.reason);
       return null;
     }
     setRefreshingId(app.id);
@@ -393,7 +404,7 @@ export const HomeScreen: React.FC = () => {
     }
     const access = accessFor(app);
     if (!access.allowed) {
-      Alert.alert('Entwicklermodus', access.reason);
+      Alert.alert(ownReposOnly ? 'Nur eigene Repositories' : 'Entwicklermodus', access.reason);
       return;
     }
     let authToken: string | undefined;
@@ -403,7 +414,7 @@ export const HomeScreen: React.FC = () => {
         authToken = confirmed.token;
       } catch (error: any) {
         await refreshSession();
-        Alert.alert('Entwicklermodus', error.message || 'Die Zugehörigkeit konnte nicht geprüft werden.');
+        Alert.alert(ownReposOnly ? 'Nur eigene Repositories' : 'Entwicklermodus', error.message || 'Die Zugehörigkeit konnte nicht geprüft werden.');
         return;
       }
     }
@@ -518,7 +529,48 @@ export const HomeScreen: React.FC = () => {
             </View>
           </View>
 
-          {catalogOnly ? (
+          {ownReposOnly ? (
+            <View>
+              <View style={styles.catalogOnlyNote}>
+                <Text style={styles.catalogOnlyText}>
+                  OpenScr ist ein Werkzeug, mit dem du eigene OpenScrapps aus HTML und JavaScript baust und auf diesem Gerät ausführst. Geladen wird nur ein Repository, das dem angemeldeten GitHub-Konto gehört.
+                </Text>
+                <TouchableOpacity onPress={() => setShowGuide(true)}>
+                  <Text style={styles.devLink}>Dein erstes OpenScrapp</Text>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => setShowDeveloper(true)}>
+                  <Text style={styles.devLink}>{githubLogin ? `Angemeldet als ${githubLogin}` : 'Mit GitHub anmelden'}</Text>
+                </TouchableOpacity>
+              </View>
+              {githubLogin ? (
+                <View style={styles.inputContainer}>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Eigenes Repository, z. B. https://github.com/mein-name/repo"
+                    value={repoUrl}
+                    onChangeText={setRepoUrl}
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                  />
+                  <TouchableOpacity
+                    style={[styles.addButton, loading && styles.buttonDisabled]}
+                    onPress={handleAddRepo}
+                    disabled={loading}
+                  >
+                    <Text style={styles.buttonText}>{loading ? 'Lädt…' : 'Hinzufügen'}</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.qrButton, loading && styles.buttonDisabled]}
+                    onPress={openScanner}
+                    disabled={loading}
+                    accessibilityLabel="QR-Code scannen"
+                  >
+                    <Text style={styles.buttonText}>QR</Text>
+                  </TouchableOpacity>
+                </View>
+              ) : null}
+            </View>
+          ) : catalogOnly ? (
             devMode && githubLogin ? (
               <View>
                 <View style={styles.catalogOnlyNote}>
@@ -614,6 +666,7 @@ export const HomeScreen: React.FC = () => {
               item.type === 'root' ? 'root' : item.folder.id
             }
             ListHeaderComponent={
+              showCatalog ? (
               <View>
                 <Text style={styles.sectionTitle}>Empfohlen</Text>
                 {catalog.apps.map((entry) => {
@@ -640,6 +693,7 @@ export const HomeScreen: React.FC = () => {
                   );
                 })}
               </View>
+              ) : undefined
             }
             renderItem={({ item }: any) => {
               if (item.type === 'root') {
@@ -717,7 +771,9 @@ export const HomeScreen: React.FC = () => {
               ) : null}
               <View style={styles.scannerHint}>
                 <Text style={styles.scannerHintText}>
-                  QR-Code mit GitHub-Link oder OpenScr-Add-Link scannen
+                  {ownReposOnly
+                    ? 'QR-Code mit der Adresse deines eigenen GitHub-Repositories scannen'
+                    : 'QR-Code mit GitHub-Link oder OpenScr-Add-Link scannen'}
                 </Text>
                 <TouchableOpacity style={styles.scannerCancel} onPress={() => setScanning(false)}>
                   <Text style={styles.scannerCancelText}>Abbrechen</Text>
@@ -768,13 +824,17 @@ export const HomeScreen: React.FC = () => {
         onUpdate={(app) => { void handleRefreshApp(app); }}
         onReport={reportApp}
         onDelete={handleDeleteApp}
+        onShowSource={ownReposOnly ? (app) => { setInfoApp(null); setSourceApp(app); } : undefined}
       />
       <LegalModal document={legalDoc} onClose={() => setLegalDoc(null)} />
       <DeveloperModeModal
         visible={showDeveloper}
+        ownReposOnly={ownReposOnly}
         onClose={() => setShowDeveloper(false)}
         onChanged={() => { void refreshSession(); }}
       />
+      <FirstOpenScrappModal visible={showGuide} onClose={() => setShowGuide(false)} />
+      <SourceCodeModal app={sourceApp} visible={!!sourceApp} onClose={() => setSourceApp(null)} />
 
       <Modal visible={!!actionApp} transparent animationType="fade" onRequestClose={() => setActionApp(null)}>
         <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setActionApp(null)}>
@@ -783,6 +843,7 @@ export const HomeScreen: React.FC = () => {
             <Text selectable style={{ fontSize: 13, color: '#333', backgroundColor: '#f2f2f2', padding: 8, borderRadius: 6, marginBottom: 8 }}>{actionApp?.repoUrl}</Text>
             {[
               { label: 'Info und Berechtigungen', fn: (a: MiniApp) => setInfoApp(a) },
+              ...(ownReposOnly ? [{ label: 'Quelltext', fn: (a: MiniApp) => setSourceApp(a) }] : []),
               { label: 'Melden', fn: (a: MiniApp) => reportApp(a) },
               { label: 'GitHub-Link kopieren', fn: async (a: MiniApp) => { await Clipboard.setStringAsync(a.repoUrl); } },
               { label: 'In die Übersicht', fn: (a: MiniApp) => handleMoveApp(a, null) },

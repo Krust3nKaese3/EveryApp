@@ -1,6 +1,6 @@
 # Privacy policy for OpenScr
 
-As of 16 November 2026
+As of 17 November 2026
 
 **Draft, not legal advice.** Have the text reviewed before publication. Age labels in the catalog are the publisher's recommendations, not an official rating.
 
@@ -60,9 +60,9 @@ A foreground service with a visible notification (“OpenScr aktiv”) runs only
 
 ## Catalog and blocklist
 
-“Empfohlen” shows OpenScrapps from the catalog (name, repository, description, age label). A blocklist can disable an OpenScrapp for every install; the app then shows the reason and does not start it. There is no separate user database for that.
+On Android, “Empfohlen” shows OpenScrapps from the catalog (name, repository, description, age label). A blocklist can disable an OpenScrapp for every install; the app then shows the reason and does not start it. There is no separate user database for that. The iOS version does not have this list. There you sign in with your GitHub account and load only repositories owned by that account. Signing out deletes the token and disables those OpenScrapps. A remote catalog file cannot turn the catalog on for iOS.
 
-The build flag `EXPO_PUBLIC_CATALOG_ONLY` turns free GitHub links off. That build has the catalog and, if you turn it on, developer mode: sign in with your own GitHub account, then only repositories owned by that account. Signing out deletes the token and disables those OpenScrapps. Builds without the flag keep free installation with a warning. The Play build leaves the flag off.
+On iOS an OpenScrapp can use only storage, sensors, HTTP, Bluetooth LE and vibration. An Android build flag `EXPO_PUBLIC_CATALOG_ONLY` turns free GitHub links off and keeps the catalog plus developer mode. Builds without the flag keep free installation with a warning. The Play build leaves the flag off.
 
 ## Legal bases
 

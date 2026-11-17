@@ -1,6 +1,6 @@
 # Terms of use and legal notice for OpenScr
 
-As of 16 November 2026
+As of 17 November 2026
 
 **Draft, not legal advice.** Have the text reviewed before publication.
 
@@ -26,15 +26,19 @@ There is no OpenScr server, no user account and no tracking by OpenScr.
 
 ## Catalog and your own repositories
 
-Under “Empfohlen” you can install listed OpenScrapps with one tap. The catalog is the provider's selection. It is not a promise that an OpenScrapp is correct, lawful or suitable for a given age. The age label is a recommendation, not an official rating.
+On Android, under “Empfohlen”, you can install listed OpenScrapps with one tap. The catalog is the provider's selection. It is not a promise that an OpenScrapp is correct, lawful or suitable for a given age. The age label is a recommendation, not an official rating.
 
-If you install an address that is not in the catalog (typed URL, QR code or link), OpenScr warns you first to add only sources you trust, and it names what the OpenScrapp can use after you consent. Installation then needs an explicit confirmation.
+If you install an address on Android that is not in the catalog (typed URL, QR code or link), OpenScr warns you first to add only sources you trust, and it names what the OpenScrapp can use after you consent. Installation then needs an explicit confirmation.
 
-Builds with `EXPO_PUBLIC_CATALOG_ONLY=1` (profile `production-catalog`) do not allow free GitHub links. That build has the catalog and an optional developer mode. In developer mode you sign in with your GitHub account (device flow or a personal token stored only on this device). After that, only repositories owned by that account can be loaded. Other links, QR codes and add-links are rejected. Ownership is checked again on add, on update and on open. Signing out disables those OpenScrapps. That build is intended for a later iOS release. The Android build for Google Play keeps free installation with a warning.
+The iOS version has no catalog. You sign in with your GitHub account (device flow or a personal token stored only on this device). After that, only repositories owned by that account can be loaded. Other links, QR codes and add-links are rejected. Ownership is checked again on add, on update and on open. Signing out disables those OpenScrapps. A remote catalog file cannot change that.
+
+On iOS, OpenScr gives an OpenScrapp only storage, sensors, HTTP, Bluetooth LE and vibration. Background tasks, tiles, popups, raw sockets and other features outside the visible development environment are not available there.
+
+An Android build with `EXPO_PUBLIC_CATALOG_ONLY=1` (profile `production-catalog`) does not allow free GitHub links and keeps the catalog. The Android build for Google Play keeps free installation with a warning.
 
 ## Permissions
 
-An OpenScrapp receives Spotify, storage, multiplayer and other device features only after one-time consent for that OpenScrapp. You can revoke consent in the app info. Without consent the feature stays off.
+An OpenScrapp receives device features only after one-time consent for that OpenScrapp. On Android that includes Spotify, storage and multiplayer. On iOS the bridge is limited to storage, sensors, HTTP, Bluetooth LE and vibration. You can revoke consent in the app info. Without consent the feature stays off.
 
 OpenScr does not give OpenScrapps the file system, contacts or GPS coordinates. The camera reads QR codes. The microphone is not used. This release does not include a location permission.
 

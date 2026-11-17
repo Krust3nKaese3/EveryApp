@@ -126,7 +126,7 @@ Diese Funktion steckt nicht in Expo Go und nicht in einem älteren OpenScr-Build
 - das native Modul `react-native-tcp-socket` (Config-Plugin `with-react-native-tcp-socket`)
 - das lokale Modul `modules/expo-mdns` (Android `NsdManager`, iOS `NetService`)
 - Android: `INTERNET`, `ACCESS_NETWORK_STATE`, `ACCESS_WIFI_STATE`. `CHANGE_WIFI_MULTICAST_STATE` nur im Modul und nur, solange gesucht oder angekündigt wird. Standort ist dafür nicht nötig.
-- iOS: `NSLocalNetworkUsageDescription` erklärt, dass OpenScr Spiele in der Nähe sucht und verbindet. `NSBonjourServices` enthält `_openscr._tcp`.
+- iOS: Die Bridge bietet `multiplayer` nicht an. `NSLocalNetworkUsageDescription` und `NSBonjourServices` werden nicht gesetzt. Mehrspieler bleibt die Android-Funktion.
 
 Ohne das mDNS-Modul bleibt der QR-Code nutzbar. `discover()` antwortet dann auf Deutsch, dass ein neuer Entwicklungs-Build fehlt.
 

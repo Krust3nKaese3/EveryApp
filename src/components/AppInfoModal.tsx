@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, Modal, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
+import { View, Text, Modal, StyleSheet, TouchableOpacity, ScrollView, Platform } from 'react-native';
 import { MiniApp, Permission } from '../types';
 import { ALL_PERMISSIONS, PERMISSION_INFO } from '../bridge/permissionInfo';
+import { permissionsOfferedOnPlatform, showsLearningChrome } from '../services/iosPolicy';
 import { StorageService } from '../services/StorageService';
 import { versionLine } from '../services/githubPin';
 
@@ -14,6 +15,7 @@ interface AppInfoModalProps {
   onUpdate: (app: MiniApp) => void;
   onReport: (app: MiniApp) => void;
   onDelete: (app: MiniApp) => void;
+  onShowSource?: (app: MiniApp) => void;
 }
 
 export const AppInfoModal: React.FC<AppInfoModalProps> = ({
@@ -25,6 +27,7 @@ export const AppInfoModal: React.FC<AppInfoModalProps> = ({
   onUpdate,
   onReport,
   onDelete,
+  onShowSource,
 }) => {
   const [granted, setGranted] = useState<Permission[]>([]);
   const [denied, setDenied] = useState<Permission[]>([]);
@@ -66,7 +69,7 @@ export const AppInfoModal: React.FC<AppInfoModalProps> = ({
             {blocked ? <Text style={styles.blocked}>Gesperrt: {blocked}</Text> : null}
             <Text style={styles.section}>Berechtigungen</Text>
             <Text style={styles.hint}>Jede Funktion gilt nur für diese OpenScrapp. Widerrufene Funktionen fragen nicht erneut, bis du sie hier wieder erlaubst.</Text>
-            {ALL_PERMISSIONS.map((permission) => {
+            {permissionsOfferedOnPlatform(Platform.OS, ALL_PERMISSIONS).map((permission) => {
               const allowed = granted.includes(permission);
               const rejected = denied.includes(permission);
               const state = allowed ? 'erlaubt' : rejected ? 'abgelehnt' : 'nicht entschieden';
@@ -94,6 +97,11 @@ export const AppInfoModal: React.FC<AppInfoModalProps> = ({
             {!blocked && app ? (
               <TouchableOpacity style={styles.primary} disabled={refreshing} onPress={() => onUpdate(app)}>
                 <Text style={styles.primaryText}>{refreshing ? 'Aktualisiere…' : 'Aktualisieren'}</Text>
+              </TouchableOpacity>
+            ) : null}
+            {app && onShowSource && showsLearningChrome(Platform.OS) ? (
+              <TouchableOpacity style={styles.secondary} onPress={() => onShowSource(app)}>
+                <Text style={styles.secondaryText}>Quelltext</Text>
               </TouchableOpacity>
             ) : null}
             {app ? (
