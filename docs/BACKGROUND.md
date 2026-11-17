@@ -1,7 +1,7 @@
 # OpenScr Background Tasks API
 
-Any OpenScrapp with the `background` permission can register **background tasks**: a list of triggers plus a JS handler.
-OpenScr runs the handler in its own (headless) JS engine – also when the OpenScrapp is closed, OpenScr is in the
+Any Scrapp with the `background` permission can register **background tasks**: a list of triggers plus a JS handler.
+OpenScr runs the handler in its own (headless) JS engine – also when the Scrapp is closed, OpenScr is in the
 background, or OpenScr was swiped away from recents. Tasks are stored per `appId`; one app can never see or remove another app's tasks.
 
 Tasks only run while **background mode is enabled for that app** (`OpenScrBridge.background.enable()` / `disable()` / `isEnabled()`).
@@ -121,7 +121,7 @@ Host API (bridge `background.*`; guarded, saved but not shown on the current APK
 - JS: `modules/expo-ble-gatt/index.ts`:
   - `scan / connect / disconnect / write / read / notify`; data is passed as a hex string.
   - Headless ctx: `ctx.ble = makeApi(false)`. It only checks permissions; it never prompts.
-  - Bridge category `ble.*` (no OpenScrapp permission gate; Android's "Nearby devices" permission applies).
+  - Bridge category `ble.*` (no Scrapp permission gate; Android's "Nearby devices" permission applies).
 - Trigger `bleNotify {address?, charUuid?}`:
   - Native `onCharacteristicChanged` starts `MacroHeadlessTaskService` with event=bleNotify, address, serviceUuid, charUuid and hex.
   - `ctx.trigger` gets `{address, serviceUuid, charUuid, hex, bytes, value}`.
@@ -131,7 +131,7 @@ Host API (bridge `background.*`; guarded, saved but not shown on the current APK
   - `onCharacteristicChanged` starts `MacroHeadlessTaskService` with `startForegroundService`. The task promotes itself to a short foreground service, so it can run without the long service.
 
 ### BLE permission and auto re-subscribe
-- OpenScrapps must declare `"ble"` in `permissions` in their `openscr.json`, and the user must grant it. `everyapp.json` is still accepted.
+- Scrapps must declare `"ble"` in `permissions` in their `openscr.json`, and the user must grant it. `everyapp.json` is still accepted.
   - It is enforced in the WebView bridge (`ble.*`) and in background tasks (`ctx.ble.*`).
   - The error is `BLE nicht erlaubt: … "ble" muss in den permissions des Manifests stehen`.
   - When a manifest adds new permissions, OpenScr shows the permission dialog again.
@@ -151,7 +151,7 @@ Host API (bridge `background.*`; guarded, saved but not shown on the current APK
 
 ## Secrets (`OpenScrBridge.secrets`, `ctx.secrets`)
 
-- Bridge (frei, pro OpenScrapp getrennt): `secrets.get(key)`, `secrets.set(key, value)` (leer = löschen), `secrets.delete(key)`, `secrets.list()` (nur Keys), `secrets.info()` → `{ encrypted, backend }`.
+- Bridge (frei, pro Scrapp getrennt): `secrets.get(key)`, `secrets.set(key, value)` (leer = löschen), `secrets.delete(key)`, `secrets.list()` (nur Keys), `secrets.info()` → `{ encrypted, backend }`.
 - Hintergrund-Tasks: `ctx.secrets.KEY` (vorab geladen, schreibgeschützt; fehlt der Key → `Secret KEY fehlt …`).
 - Hintergrund-Log: alle bekannten Secret-Werte der App werden durch `•••` ersetzt.
 - Speicher (`src/services/SecretStore.ts`): **LITE** = AsyncStorage `@secret_<appId>_<KEY>` (unverschlüsselt, app-intern). Ist das native Modul `ExpoSecureStore` vorhanden (nächster Build, `expo-secure-store` ist bereits in package.json), wird SecureStore (Android Keystore) genutzt und Lite-Einträge werden beim ersten Zugriff automatisch migriert und gelöscht.
@@ -168,16 +168,16 @@ Host API (bridge `background.*`; guarded, saved but not shown on the current APK
 
 ## Deep-Links `openscr://<name>/<path>?query`
 Scheme `openscr` in app.json (nativer Build nötig); Dev-Client-Builds haben zusätzlich `exp+openscr`.
-HomeScreen öffnet die passende OpenScrapp (Manifest-Name/Repo-Name, Groß/Klein, Leerzeichen egal) und liefert den Link als
+HomeScreen öffnet die passende Scrapp (Manifest-Name/Repo-Name, Groß/Klein, Leerzeichen egal) und liefert den Link als
 `window.addEventListener('openscr:deeplink', e => e.detail)` → `{miniapp, path, params, url}`; zusätzlich `window.OpenScrLaunch`.
 `everyapp:deeplink` und `window.EveryAppLaunch` bleiben als Alias.
 
-Host `add` ist reserviert (kein OpenScrapp-Name) und wird vor diesem Flow installiert:
+Host `add` ist reserviert (kein Scrapp-Name) und wird vor diesem Flow installiert:
 `openscr://add?url=<urlencoded https://github.com/owner/repo>` (Produktion) bzw.
 `exp+openscr://add?url=…` (SrvOpenScr / Dev-Client). Der In-App-QR-Scanner akzeptiert dieselben Links und zusätzlich eine nackte GitHub-URL.
 
 ## Popup-Host (Permission `popup`, nativer Build nötig)
-Transparente Overlay-Activity (`PopupActivity`) mit WebView, Inhalt (HTML/JS) kommt von der OpenScrapp.
+Transparente Overlay-Activity (`PopupActivity`) mit WebView, Inhalt (HTML/JS) kommt von der Scrapp.
 
 **Spec** `{ id, html | url (nur https), title?, state?: {}, throttleMs?: 300, style?: {...} }`
 `style`: `width`/`height`: dp-Zahl | `"NN%"` | `"auto"` (Höhe = Inhalt; Breite auto = 92 %), `position`: `center|bottom|top`, `margin` (dp, 16),
@@ -190,7 +190,7 @@ Transparente Overlay-Activity (`PopupActivity`) mit WebView, Inhalt (HTML/JS) ko
 (merged in den gespeicherten State, live an `onMessage`), `close(id?)`, `state(id)`.
 **Seite:** `window.OpenScrPopup = { id, state, title, send(event, value), close(), onMessage(cb), resize(hDp?) }`, Event `openscr:popupready`. `window.EveryAppPopup` und `everyapp:popupready` bleiben Aliase.
 **Trigger:** `{type:'popup', popupId?, event?}` → `ctx.trigger = {type:'popup', popupId, event, value, slot?, widgetId?}`; je Event-Name
-gedrosselt (vorne+hinten, `throttleMs`), beim Schließen `event:'close'`. Events gehen nur an Tasks der besitzenden OpenScrapp.
+gedrosselt (vorne+hinten, `throttleMs`), beim Schließen `event:'close'`. Events gehen nur an Tasks der besitzenden Scrapp.
 
 ## Kacheln zur Laufzeit (Permission `tiles`)
 `OpenScrBridge.tile(n)` / `ctx.tile(n)` (n = 1..5): `set({icon?, label?, subtitle?, state?, popup?})`, `get()`, `release()`.
@@ -198,5 +198,5 @@ gedrosselt (vorne+hinten, `throttleMs`), beim Schließen `event:'close'`. Events
 - `icon`: eingebauter Name (`lightbulb, power, bolt, tv, wifi, …`, Material-Aliase wie `power_settings_new`), Repo-Pfad (`icons/lamp.png`, lädt aus raw.githubusercontent …/main),
   `https://…png`, `data:image/png;base64,…`, SVG (`<svg…>`, `.svg`-Pfad/URL, `data:image/svg+xml`) – SVG nur im Vordergrund (WebView rendert zu PNG).
   Native: Bild → weiße Alpha-Maske (`Icon.createWithBitmap`), System tönt es.
-- Besitz: Eine Kachel gehört der OpenScrapp, die sie zuerst belegt; andere bekommen `Kachel n gehört der OpenScrapp "…"`. Persistiert (SharedPreferences), `requestListeningState` aktualisiert sofort, überlebt Neustart.
+- Besitz: Eine Kachel gehört der Scrapp, die sie zuerst belegt; andere bekommen `Kachel n gehört der Scrapp "…"`. Persistiert (SharedPreferences), `requestListeningState` aktualisiert sofort, überlebt Neustart.
 - `ctx.tile.setState/setLabel/…` (alt) funktioniert weiter.

@@ -47,7 +47,7 @@
       [
         "expo-camera",
         {
-          "cameraPermission": "OpenScr uses the camera to scan QR codes for installing an OpenScrapp or joining a local game.",
+          "cameraPermission": "OpenScr uses the camera to scan QR codes for installing a Scrapp or joining a local game.",
           "recordAudioAndroid": false
         }
       ],

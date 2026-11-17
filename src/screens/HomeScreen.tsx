@@ -119,7 +119,7 @@ export const HomeScreen: React.FC = () => {
       }
       const blockedNow = blockReasonFor('', trimmed, blocklist);
       if (blockedNow) {
-        Alert.alert('OpenScrapp gesperrt', blockedNow);
+        Alert.alert('Scrapp gesperrt', blockedNow);
         return;
       }
       let downloadToken: string | undefined;
@@ -139,7 +139,7 @@ export const HomeScreen: React.FC = () => {
       const blockedId = blockReasonFor(app.id, app.repoUrl, blocklist);
       if (blockedId) {
         await GitRepoService.deleteApp(app);
-        Alert.alert('OpenScrapp gesperrt', blockedId);
+        Alert.alert('Scrapp gesperrt', blockedId);
         return;
       }
       await StorageService.saveApp(app);
@@ -177,7 +177,7 @@ export const HomeScreen: React.FC = () => {
         const link = classified.link;
         const all = await StorageService.getApps();
         const target = all.find((a) => matchesMiniApp(link, a));
-        if (!target) { Alert.alert('Deep-Link', `OpenScrapp "${link.miniapp}" ist nicht installiert.\n\n${url}`); return; }
+        if (!target) { Alert.alert('Deep-Link', `Scrapp "${link.miniapp}" ist nicht installiert.\n\n${url}`); return; }
         queueDeepLink(target.id, link);
         await openAppRef.current(target);
       });
@@ -382,7 +382,7 @@ export const HomeScreen: React.FC = () => {
   const openApp = async (app: MiniApp) => {
     const reason = blockReasonFor(app.id, app.repoUrl, blocklist);
     if (reason) {
-      Alert.alert('OpenScrapp gesperrt', reason);
+      Alert.alert('Scrapp gesperrt', reason);
       return;
     }
     const access = accessFor(app);
@@ -416,7 +416,7 @@ export const HomeScreen: React.FC = () => {
       const newest = latest;
       Alert.alert(
         'Update verfügbar',
-        `${versionLine(installed.manifest.version, installed.commitSha, newest)}\n\nDer Speicher dieser OpenScrapp bleibt beim Aktualisieren erhalten.`,
+        `${versionLine(installed.manifest.version, installed.commitSha, newest)}\n\nDer Speicher dieser Scrapp bleibt beim Aktualisieren erhalten.`,
         [
           { text: 'Später', onPress: () => { dismissedUpdates.current.add(installed.id); setSelectedApp(installed); } },
           { text: 'Aktualisieren', onPress: () => { void refreshAndOpen(installed); } },
@@ -552,7 +552,7 @@ export const HomeScreen: React.FC = () => {
             ) : (
               <View style={styles.catalogOnlyNote}>
                 <Text style={styles.catalogOnlyText}>
-                  In dieser Version kannst du OpenScrapps aus dem Katalog installieren. Eigene Repositories nur im Entwicklermodus.
+                  In dieser Version kannst du Scrapps aus dem Katalog installieren. Eigene Repositories nur im Entwicklermodus.
                 </Text>
                 <TouchableOpacity onPress={() => setShowDeveloper(true)}>
                   <Text style={styles.devLink}>Entwicklermodus</Text>

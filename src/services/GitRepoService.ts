@@ -34,7 +34,7 @@ export class GitRepoService {
     const commitSha = await this.fetchCommitSha(owner, repo, token);
     const tree = await this.fetchTree(owner, repo, commitSha, token);
     if (tree.truncated) {
-      throw new Error('Repository tree is too large to install. Keep the OpenScrapp in a smaller repository.');
+      throw new Error('Repository tree is too large to install. Keep the Scrapp in a smaller repository.');
     }
     const { files } = listMiniAppFiles(tree.tree || []);
 
@@ -71,7 +71,7 @@ export class GitRepoService {
         total += size;
       }
       if (total > MINIAPP_LIMITS.maxTotalBytes) {
-        throw new Error(`OpenScrapp exceeds the ${MINIAPP_LIMITS.maxTotalBytes} byte download limit.`);
+        throw new Error(`Scrapp exceeds the ${MINIAPP_LIMITS.maxTotalBytes} byte download limit.`);
       }
 
       const manifestName = await firstExistingManifest(staging);

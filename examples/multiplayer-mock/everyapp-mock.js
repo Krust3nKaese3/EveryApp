@@ -2,7 +2,7 @@
  * Browser-Attrappe für window.OpenScrBridge.multiplayer.
  * window.EveryAppBridge bleibt als Alias auf dasselbe Objekt.
  * Ein Tab ist ein Gerät. Die Tabs sprechen über BroadcastChannel, der Host-Tab verteilt.
- * Am PC: zwei Tabs auf dieselbe HTML-Datei, jeder lädt dieses Skript vor der OpenScrapp.
+ * Am PC: zwei Tabs auf dieselbe HTML-Datei, jeder lädt dieses Skript vor der Scrapp.
  * join({ scan: true }) gibt es hier nicht. Stattdessen den Raumcode oder die qrPayload übergben.
  * In Node: const { installOpenScrMock } = require('./everyapp-mock.js')
  */

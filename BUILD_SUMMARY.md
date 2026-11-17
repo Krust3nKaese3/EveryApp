@@ -8,7 +8,7 @@ Die erste Version von OpenScr wurde vollständig implementiert und ist bereit f�
 
 **Kern-Architektur:**
 - React Native + Expo SDK 58 + TypeScript
-- WebView-basierter Container für OpenScrapps
+- WebView-basierter Container für Scrapps
 - Git-Repository-Loader (GitHub public repos)
 - Permission-System mit User-Consent
 - Native Bridge API mit 7 Capabilities
@@ -64,7 +64,7 @@ everyapp/
 Total: 31 files, ~2000 LoC
 ```
 
-### Beispiel-OpenScrapps
+### Beispiel-Scrapps
 
 **1. Dice Game** (`examples/dice-game/`)
 - Würfelspiel mit persistenten Statistiken
@@ -144,7 +144,7 @@ adb install app-release.apk
 
 ## 🧪 Testing
 
-### OpenScrapp hinzufügen
+### Scrapp hinzufügen
 
 Nach Installation der APK:
 
@@ -208,7 +208,7 @@ npx tsc --noEmit
 1. APK via EAS Build generieren
 2. Auf Android-Device testen
 3. Beispiel-Apps laden und ausführen
-4. Eigene OpenScrapps entwickeln
+4. Eigene Scrapps entwickeln
 
 ### Verbesserungen für v1.1:
 - Error Messages verbessern
@@ -257,7 +257,7 @@ npx tsc --noEmit
 
 Die App erfüllt alle geforderten Anforderungen:
 - ✅ Android Container-App
-- ✅ OpenScrapps aus öffentlichen Git-Repos laden
+- ✅ Scrapps aus öffentlichen Git-Repos laden
 - ✅ Sandboxed WebView-Ausführung
 - ✅ Permission-System mit User-Consent
 - ✅ 7 Native Capabilities über Bridge

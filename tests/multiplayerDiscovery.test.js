@@ -17,7 +17,7 @@ test('Ankündigung nennt den Raum, nicht das Token', () => {
   assert.throws(() => encodeServiceTxt({ appId: '', roomCode: 'K7QP', roomId: 'aabbccddeeff0011', hostName: 'Ada', players: 1, maxPlayers: 4 }), /unvollständig/);
 });
 
-test('Suche zeigt nur dieselbe Mini-App und keine Adresse', () => {
+test('Suche zeigt nur dieselbe Scrapp und keine Adresse', () => {
   const services = [
     { key: 'a', host: '192.168.1.20', port: 4040, txt: { v: '1', app: 'wolf', room: 'K7QP', id: 'aabbccddeeff0011', name: 'Ada', n: '2', max: '8' } },
     { key: 'b', host: '192.168.1.21', port: 4041, txt: { v: '1', app: 'song', room: 'MMMM', id: 'bbbbbbbbbbbbbbbb', name: 'Bea', n: '1', max: '4' } },

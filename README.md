@@ -1,23 +1,27 @@
 # OpenScr
 
-**OpenScr** (Open Smartphone Code Runner) is an Android container app that runs OpenScrapps loaded on demand from public Git repositories, without requiring app store deployments. Built with React Native, Expo, and TypeScript.
+**OpenScr** stands for **Open Smartphone Code Runner**. **Scr** is Smartphone Code Runner.
 
-Empfehlung: Das Repository einer eigenen OpenScrapp heißt `<Name>Scrapps`, zum Beispiel `KrustenScrapps`. Der Name ist keine technische Voraussetzung.
+The small apps are **Scrapps** (singular **Scrapp**). The word is OpenScr plus “apps”.
 
-## OpenScrapp bauen
+OpenScr is an Android container app that runs Scrapps loaded on demand from public Git repositories, without requiring app store deployments. Built with React Native, Expo, and TypeScript.
 
-Wer eine OpenScrapp in einem eigenen Repository schreibt, gibt der KI diesen Einstieg: [llms.txt](llms.txt). Der Guide [docs/MINIAPP_AI_GUIDE.md](docs/MINIAPP_AI_GUIDE.md) erklärt Manifest, Bridge und Mehrspieler. Die Vorlage ist [examples/multiplayer-lobby/](examples/multiplayer-lobby/). Am PC testen zwei Browser-Tabs mit [examples/multiplayer-mock/everyapp-mock.js](examples/multiplayer-mock/everyapp-mock.js).
+Empfehlung: Das Repository eigener Scrapps heißt `<Name>Scrapps`, zum Beispiel `KrustenScrapps`. Der Name ist keine technische Voraussetzung.
+
+## Scrapp bauen
+
+Wer eine Scrapp in einem eigenen Repository schreibt, gibt der KI diesen Einstieg: [llms.txt](llms.txt). Der Guide [docs/MINIAPP_AI_GUIDE.md](docs/MINIAPP_AI_GUIDE.md) erklärt Manifest, Bridge und Mehrspieler. Die Vorlage ist [examples/multiplayer-lobby/](examples/multiplayer-lobby/). Am PC testen zwei Browser-Tabs mit [examples/multiplayer-mock/everyapp-mock.js](examples/multiplayer-mock/everyapp-mock.js).
 
 ## Features
 
 ### v1.0 Capabilities
 
-- **Load OpenScrapps from GitHub**: Add public GitHub repository URLs to fetch and run OpenScrapps (typed URL, in-app QR scan, or an OpenScr add-link)
+- **Load Scrapps from GitHub**: Add public GitHub repository URLs to fetch and run Scrapps (typed URL, in-app QR scan, or an OpenScr add-link)
 - **QR install**: Scan a QR code in the app, or open an add-link with the system camera (see below)
-- **Sandboxed WebView Execution**: Each OpenScrapp runs in its own isolated WebView with controlled access to native capabilities
+- **Sandboxed WebView Execution**: Each Scrapp runs in its own isolated WebView with controlled access to native capabilities
 - **Permission System**: User consent prompts for requested permissions with fine-grained control
 - **Folder Organization**: Create, rename, delete folders and organize apps between them
-- **Native Bridge API**: Typed JavaScript bridge exposing native capabilities to OpenScrapps
+- **Native Bridge API**: Typed JavaScript bridge exposing native capabilities to Scrapps
 - **Full-Screen Support**: Orientation unlocking for games and immersive experiences
 - **Performance Optimized**: WebView configured for 60 FPS rendering suitable for Canvas/WebGL games
 
@@ -31,13 +35,13 @@ Wer eine OpenScrapp in einem eigenen Repository schreibt, gibt der KI diesen Ein
 - **Melden** opens a prefilled email to `manueldiliberto1@gmail.com`. There is no report server.
 - `catalog/blocklist.json` disables listed `appId`s or repos for everyone and shows `reason`.
 - Privacy and terms: [docs/site/](docs/site/index.html) (German and English), linked in the app as „Datenschutz“ and „Nutzung“. After editing those pages, run `node scripts/sync-legal.js`. Play listing, data safety and the closed-test checklist: [docs/PLAY_STORE.md](docs/PLAY_STORE.md). Catalog age ratings are recommendations and need a check too.
-- Delete removes that OpenScrapp’s files, `@miniapp_<appId>_` keys, secrets, permissions, and caches. Update keeps storage.
-- Bridge allowlist: [docs/BRIDGE_API.md](docs/BRIDGE_API.md). Local multiplayer for OpenScrapps: [docs/MULTIPLAYER.md](docs/MULTIPLAYER.md).
+- Delete removes that Scrapp’s files, `@miniapp_<appId>_` keys, secrets, permissions, and caches. Update keeps storage.
+- Bridge allowlist: [docs/BRIDGE_API.md](docs/BRIDGE_API.md). Local multiplayer for Scrapps: [docs/MULTIPLAYER.md](docs/MULTIPLAYER.md).
 - **Mehrspieler**: Ein Handy ist Host im selben WLAN oder Hotspot, die anderen treten per QR bei. Nur mit der Berechtigung `multiplayer`. Braucht einen neuen nativen Build.
 
 ### Supported Native Capabilities
 
-OpenScrapps can request access to the following through the permission system:
+Scrapps can request access to the following through the permission system:
 
 - **Storage**: Persistent key-value storage (scoped per app)
 - **HTTP**: Network requests to external APIs
@@ -47,20 +51,20 @@ OpenScrapps can request access to the following through the permission system:
 - **Sensors**: Accelerometer and gyroscope data
 - **Vibration**: Haptic feedback
 
-## Adding an OpenScrapp with a QR code
+## Adding a Scrapp with a QR code
 
 On the home screen, next to **Add**, tap **QR**. The in-app camera accepts:
 
 - an OpenScr add-link (either scheme below)
 - a plain GitHub repository URL (`https://github.com/owner/repo` or the same URL ending in `.git`)
 
-Anything else shows an error and does not install an OpenScrapp. A multiplayer invite (`openscr-mp://…`) is not an install link; the game scanner reads it. After a successful scan the camera closes so the same code is not added twice. If that repository is already installed, OpenScr says so and can open it.
+Anything else shows an error and does not install a Scrapp. A multiplayer invite (`openscr-mp://…`) is not an install link; the game scanner reads it. After a successful scan the camera closes so the same code is not added twice. If that repository is already installed, OpenScr says so and can open it.
 
 A plain `https://github.com/...` QR works **only in the in-app scanner**. The system camera treats that as a web link and opens the browser.
 
 ### Add-links (system camera and in-app scanner)
 
-The host `add` is reserved (it is not an OpenScrapp name). The GitHub URL is the `url` query parameter, percent-encoded. The same path and query work on both schemes; pick the scheme that opens the app you have installed.
+The host `add` is reserved (it is not a Scrapp name). The GitHub URL is the `url` query parameter, percent-encoded. The same path and query work on both schemes; pick the scheme that opens the app you have installed.
 
 | App | Package | Link |
 | --- | --- | --- |
@@ -72,13 +76,13 @@ Example for `https://github.com/Krust3nKaese3/evryGuessTheSong`:
 - Dev client (SrvOpenScr): `exp+openscr://add?url=https%3A%2F%2Fgithub.com%2FKrust3nKaese3%2FevryGuessTheSong`
 - Production OpenScr: `openscr://add?url=https%3A%2F%2Fgithub.com%2FKrust3nKaese3%2FevryGuessTheSong`
 
-Opening one of those links (app already running, or cold start) runs the same fetch and save as **Add**, including the success and error alerts. Existing OpenScrapp links such as `openscr://EveryMacro/...` are unchanged. `openscr://spotify-callback` and the dev-launcher URL `exp+openscr://expo-development-client/...` are not install links.
+Opening one of those links (app already running, or cold start) runs the same fetch and save as **Add**, including the success and error alerts. Existing Scrapp links such as `openscr://EveryMacro/...` are unchanged. `openscr://spotify-callback` and the dev-launcher URL `exp+openscr://expo-development-client/...` are not install links.
 
-## OpenScrapp Repository Format
+## Scrapp Repository Format
 
 ### Directory Structure
 
-An OpenScrapp is started from `openscr.json` and its `entrypoint`. `everyapp.json` is still accepted when the repository has no `openscr.json` (evryWerwolf, evryGuessTheSong, EveryMacro, and EveryRollDice). Everything else is up to you: one HTML file, or HTML plus scripts, styles, and assets in any folders you want. Paths are relative to the file that contains them (`app.js` next to `index.html`, `assets/buzz.mp3` from that HTML, `url(../img/a.png)` from a stylesheet).
+A Scrapp is started from `openscr.json` and its `entrypoint`. `everyapp.json` is still accepted when the repository has no `openscr.json` (evryWerwolf, evryGuessTheSong, EveryMacro, and EveryRollDice). Everything else is up to you: one HTML file, or HTML plus scripts, styles, and assets in any folders you want. Paths are relative to the file that contains them (`app.js` next to `index.html`, `assets/buzz.mp3` from that HTML, `url(../img/a.png)` from a stylesheet).
 
 ```
 KrustenScrapps/
@@ -105,20 +109,20 @@ const levels = await fetch('assets/levels.json').then((res) => res.json());
 new Audio('assets/buzz.mp3');
 ```
 
-A classic single-file OpenScrapp keeps working. Repositories that still ship only `everyapp.json` do not need a rename. New ones use `openscr.json`.
+A classic single-file Scrapp keeps working. Repositories that still ship only `everyapp.json` do not need a rename. New ones use `openscr.json`.
 
-The entrypoint can live in a subfolder (`"entrypoint": "src/index.html"`). Relative URLs in that file are resolved from `src/`, and `../assets/a.png` is allowed as long as it stays inside the OpenScrapp. `file://` URLs are not used and cannot read the rest of the phone. A link to another page (`<a href="page.html">`) opens that HTML file in the same WebView.
+The entrypoint can live in a subfolder (`"entrypoint": "src/index.html"`). Relative URLs in that file are resolved from `src/`, and `../assets/a.png` is allowed as long as it stays inside the Scrapp. `file://` URLs are not used and cannot read the rest of the phone. A link to another page (`<a href="page.html">`) opens that HTML file in the same WebView.
 
-OpenScr downloads the folder that contains `openscr.json` (the repo root when the manifest is there, otherwise the only folder in the repo that has one). Install and update read the public `main` branch. Limits: 500 files, 40 MB total, 15 MB per file. `node_modules` and git symlinks are not installed. Put the OpenScrapp in its own repository, or keep a single `openscr.json` at the root of a larger one.
+OpenScr downloads the folder that contains `openscr.json` (the repo root when the manifest is there, otherwise the only folder in the repo that has one). Install and update read the public `main` branch. Limits: 500 files, 40 MB total, 15 MB per file. `node_modules` and git symlinks are not installed. Put the Scrapp in its own repository, or keep a single `openscr.json` at the root of a larger one.
 
-After you push new files, refresh the OpenScrapp in OpenScr (⟳). Refresh resolves the latest commit of `main` via the GitHub API and downloads `raw.githubusercontent.com/<owner>/<repo>/<commit-sha>/…`. The previous URL under `/main/` stays on GitHub’s CDN for several minutes and ignores a `?t=` cache buster, which is why a refresh used to keep the old files while delete-and-install could see a newer copy. The OpenScrapp’s storage (for example a saved game) is kept. The row shows the installed commit and, when a newer one exists, that an update is available. Opening the container checks for that in the background.
+After you push new files, refresh the Scrapp in OpenScr (⟳). Refresh resolves the latest commit of `main` via the GitHub API and downloads `raw.githubusercontent.com/<owner>/<repo>/<commit-sha>/…`. The previous URL under `/main/` stays on GitHub’s CDN for several minutes and ignores a `?t=` cache buster, which is why a refresh used to keep the old files while delete-and-install could see a newer copy. The Scrapp’s storage (for example a saved game) is kept. The row shows the installed commit and, when a newer one exists, that an update is available. Opening the container checks for that in the background.
 
 ### Dateien und Ordner (Deutsch)
 
-Eine OpenScrapp startet weiter über `openscr.json` und das Feld `entrypoint`. Alles andere darf frei verteilt sein: eine einzelne HTML-Datei, oder HTML plus JavaScript, CSS und Medien in beliebigen Ordnern. Relative Pfade gelten ab der Datei, in der sie stehen.
+Eine Scrapp startet weiter über `openscr.json` und das Feld `entrypoint`. Alles andere darf frei verteilt sein: eine einzelne HTML-Datei, oder HTML plus JavaScript, CSS und Medien in beliebigen Ordnern. Relative Pfade gelten ab der Datei, in der sie stehen.
 
 ```
-deine-OpenScrapp/
+deine-Scrapp/
 ├── openscr.json
 ├── index.html
 ├── styles.css
@@ -128,11 +132,11 @@ deine-OpenScrapp/
     └── icon.png
 ```
 
-Im HTML zum Beispiel `href="styles.css"`, `src="app.js"`, `src="assets/buzz.mp3"`. Im Script funktionieren `fetch('assets/levels.json')`, `img.src = 'assets/icon.png'` und `new Audio('assets/buzz.mp3')`. CSS `url(...)` ist relativ zur CSS-Datei. `../` darf den Ordner der OpenScrapp nicht verlassen. Die App liest keine anderen Dateien auf dem Gerät.
+Im HTML zum Beispiel `href="styles.css"`, `src="app.js"`, `src="assets/buzz.mp3"`. Im Script funktionieren `fetch('assets/levels.json')`, `img.src = 'assets/icon.png'` und `new Audio('assets/buzz.mp3')`. CSS `url(...)` ist relativ zur CSS-Datei. `../` darf den Ordner der Scrapp nicht verlassen. Die App liest keine anderen Dateien auf dem Gerät.
 
 Bestehende Ein-Datei-Repos müssen nicht geändert werden. Der Einstieg darf in einem Unterordner liegen (`"entrypoint": "src/index.html"`). Ein Link `<a href="seite.html">` öffnet diese HTML-Datei.
 
-OpenScr lädt den Ordner, der `openscr.json` enthält, vom öffentlichen Branch `main`. Grenzen: 500 Dateien, 40 MB insgesamt, 15 MB pro Datei. `node_modules` und Git-Symlinks werden nicht installiert. Nach dem Push neuer Dateien die OpenScrapp in OpenScr mit ⟳ aktualisieren. Die App ermittelt dafür den aktuellen Commit von `main` und lädt die Dateien über diese Commit-SHA, nicht über die gecachte Adresse `/main/`. Der Speicher der OpenScrapp (Spielstand) bleibt erhalten.
+OpenScr lädt den Ordner, der `openscr.json` enthält, vom öffentlichen Branch `main`. Grenzen: 500 Dateien, 40 MB insgesamt, 15 MB pro Datei. `node_modules` und Git-Symlinks werden nicht installiert. Nach dem Push neuer Dateien die Scrapp in OpenScr mit ⟳ aktualisieren. Die App ermittelt dafür den aktuellen Commit von `main` und lädt die Dateien über diese Commit-SHA, nicht über die gecachte Adresse `/main/`. Der Speicher der Scrapp (Spielstand) bleibt erhalten.
 
 ### Manifest Format (`openscr.json`)
 
@@ -148,7 +152,7 @@ OpenScr lädt den Ordner, der `openscr.json` enthält, vom öffentlichen Branch 
 ```
 
 **Fields:**
-- `name` (string, required): Display name of the OpenScrapp
+- `name` (string, required): Display name of the Scrapp
 - `version` (string, required): Semantic version
 - `description` (string, required): Brief description
 - `icon` (string, optional): Relative path to icon image
@@ -168,7 +172,7 @@ OpenScr lädt den Ordner, der `openscr.json` enthält, vom öffentlichen Branch 
 
 ## Bridge API Reference
 
-The OpenScr bridge is available globally as `window.OpenScrBridge` in your OpenScrapp's WebView context. `window.EveryAppBridge` is the same object and remains as a compatibility alias.
+The OpenScr bridge is available globally as `window.OpenScrBridge` in your Scrapp's WebView context. `window.EveryAppBridge` is the same object and remains as a compatibility alias.
 
 ### Storage API
 
@@ -183,7 +187,7 @@ await window.OpenScrBridge.storage.set('key', 'value');
 await window.OpenScrBridge.storage.remove('key');
 ```
 
-**Note:** Storage is scoped per OpenScrapp. Keys are prefixed with `@miniapp_<appId>_`. Values are text, at most 256 KiB. The allowed method list, rate limits, and the explicit absence of file system, contacts, and location are documented in [docs/BRIDGE_API.md](docs/BRIDGE_API.md).
+**Note:** Storage is scoped per Scrapp. Keys are prefixed with `@miniapp_<appId>_`. Values are text, at most 256 KiB. The allowed method list, rate limits, and the explicit absence of file system, contacts, and location are documented in [docs/BRIDGE_API.md](docs/BRIDGE_API.md).
 
 ### HTTP API
 
@@ -301,7 +305,7 @@ window.OpenScrBridge.vibration.vibrate([100, 50, 100, 50, 200]);
 ### Background Execution API
 
 ```javascript
-// Enable background execution for this OpenScrapp
+// Enable background execution for this Scrapp
 await window.OpenScrBridge.background.enable();
 // Arms background mode. The foreground service stays up only for interval
 // triggers or a connected/due BLE notify. Other triggers use a short headless task.
@@ -314,9 +318,9 @@ const isEnabled = await window.OpenScrBridge.background.isEnabled();
 ```
 
 **Background Behavior:**
-- OpenScrapps with the `background` permission can keep running when OpenScr is in the background or the screen is off
+- Scrapps with the `background` permission can keep running when OpenScr is in the background or the screen is off
 - A persistent notification is shown only while an interval or a connected/due BLE notify needs the process
-- The OpenScrapp can continue to:
+- The Scrapp can continue to:
   - Receive Bluetooth connection events
   - Make HTTP requests
   - Execute scheduled logic
@@ -334,10 +338,10 @@ const isEnabled = await window.OpenScrBridge.background.isEnabled();
 
 Permission: `"spotify"` in `openscr.json`, granted by the user. Playback uses the **Spotify Android app** (App Remote). The WebView does not stream audio. Search uses the Web API with a PKCE token kept inside OpenScr. There is no client secret in this repo, and new Spotify apps must not rely on `preview_url`.
 
-The Client ID is **not** baked into the build. Enter it in OpenScr under **Spotify** on the home screen (stored in the container settings, not in an OpenScrapp repo). It applies immediately. A granted OpenScrapp can read or set the same value. Precedence when several values exist:
+The Client ID is **not** baked into the build. Enter it in OpenScr under **Spotify** on the home screen (stored in the container settings, not in a Scrapp repo). It applies immediately. A granted Scrapp can read or set the same value. Precedence when several values exist:
 
 1. OpenScr settings (source of truth)
-2. `spotify.setClientId()` from an OpenScrapp
+2. `spotify.setClientId()` from a Scrapp
 3. Optional build prefill `expo.extra.spotifyClientId` / `SPOTIFY_CLIENT_ID` (empty is normal)
 
 Changing the Client ID does not require a new native build. The redirect URI, package names and Spotify SDK do.
@@ -383,7 +387,7 @@ OpenScrBridge.events.on('spotify.error', (err) => console.log(err.message));
 
 `OpenScrBridge.media.*` still sends generic media keys and is unchanged. It cannot start a specific Spotify URI.
 
-If no Client ID is saved, `login`, `connect`, `play` and `search` reject with: `Keine Spotify Client ID hinterlegt. Bitte in den OpenScr-Einstellungen eintragen.` Other readable German errors cover: Spotify not installed, auth cancelled, not Premium, connection dropped, and Web API rate limits. The access token is not given to the OpenScrapp.
+If no Client ID is saved, `login`, `connect`, `play` and `search` reject with: `Keine Spotify Client ID hinterlegt. Bitte in den OpenScr-Einstellungen eintragen.` Other readable German errors cover: Spotify not installed, auth cancelled, not Premium, connection dropped, and Web API rate limits. The access token is not given to the Scrapp.
 
 ### Events API
 
@@ -391,7 +395,7 @@ If no Client ID is saved, `login`, `connect`, `play` and `search` reject with: `
 // Listen for app lifecycle events
 window.OpenScrBridge.events.on('app.start', (data) => {
   console.log('Mini-app runtime started at:', data.timestamp);
-  // This event fires when the OpenScrapp is loaded (foreground or background)
+  // This event fires when the Scrapp is loaded (foreground or background)
 });
 
 // Listen for Bluetooth events (requires 'bluetooth' permission)
@@ -408,14 +412,14 @@ window.OpenScrBridge.events.off('app.start', callback);
 ```
 
 **Available Events:**
-- `app.start` - Fired when the OpenScrapp runtime starts (no permission required)
+- `app.start` - Fired when the Scrapp runtime starts (no permission required)
 - `bluetooth.connected` - Classic Bluetooth device connected (requires `bluetooth` permission)
 - `bluetooth.disconnected` - Classic Bluetooth device disconnected (requires `bluetooth` permission)
 - `spotify.connected` / `spotify.disconnected` / `spotify.player` / `spotify.error` - Spotify App Remote (requires `spotify` permission to call the API; events arrive on the same event bus)
 
 ## EveryMacro Use Case
 
-The **EveryMacro** OpenScrapp is a prime example of the new capabilities:
+The **EveryMacro** Scrapp is a prime example of the new capabilities:
 
 **Scenario:** A macro automation app that monitors classic Bluetooth device connections (e.g., car, headphones, smart home devices) and triggers HTTP requests to control LAN devices.
 
@@ -462,9 +466,9 @@ window.OpenScrBridge.events.on('app.start', async () => {
 3. **LAN HTTP Requests** - Cleartext HTTP to local smart home devices
 4. **Event System** - `app.start` ensures initialization on background wake
 
-## Example OpenScrapps
+## Example Scrapps
 
-Two example OpenScrapps are included in the `examples/` directory:
+Two example Scrapps are included in the `examples/` directory:
 
 ### 1. Dice Game (`examples/dice-game/`)
 
@@ -591,8 +595,8 @@ everyapp/
 │   └── types/
 │       └── index.ts                   # TypeScript definitions
 ├── examples/
-│   ├── dice-game/                     # Example OpenScrapp
-│   └── http-demo/                     # Example OpenScrapp
+│   ├── dice-game/                     # Example Scrapp
+│   └── http-demo/                     # Example Scrapp
 ├── App.tsx                            # Entry point
 ├── app.json                           # Expo configuration
 └── package.json
@@ -601,7 +605,7 @@ everyapp/
 ### Data Flow
 
 1. User adds GitHub repository URL
-2. `GitRepoService` downloads the OpenScrapp folder that contains `openscr.json` (manifest, entrypoint, scripts, styles, and assets)
+2. `GitRepoService` downloads the Scrapp folder that contains `openscr.json` (manifest, entrypoint, scripts, styles, and assets)
 3. Files are cached locally using Expo FileSystem
 4. App metadata saved to AsyncStorage
 5. When launched, `MiniAppRunner` loads HTML into WebView
@@ -643,7 +647,7 @@ everyapp/
 
 - WebView sandboxing provides basic isolation. Mini-app files are loaded without `file://` access, so a page cannot read arbitrary files outside its own directory
 - Permissions must be explicitly granted by users
-- OpenScrapps cannot access other apps' data
+- Scrapps cannot access other apps' data
 - HTTP requests are not proxied or filtered
 - Consider implementing content security policies for production use
 
@@ -693,8 +697,8 @@ See LICENSE file for details.
 - [ ] Run `npm install`
 - [ ] Connect Android device or start emulator
 - [ ] Run `npm run android`
-- [ ] In the app, add example OpenScrapp repository URL
+- [ ] In the app, add example Scrapp repository URL
 - [ ] Grant requested permissions
-- [ ] Test OpenScrapp functionality
+- [ ] Test Scrapp functionality
 
 For questions or issues, please open a GitHub issue.

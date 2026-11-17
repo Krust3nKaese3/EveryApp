@@ -91,7 +91,7 @@ export interface LanService {
   txt: Record<string, unknown>;
 }
 
-/** Nur Räume derselben Mini-App. Die IP steht nicht in der Liste für die Mini-App. */
+/** Nur Räume derselben Scrapp. Die IP steht nicht in der Liste für die Scrapp. */
 export function visibleRooms(services: LanService[], appId: string): VisibleRoom[] {
   const out: VisibleRoom[] = [];
   const seen = new Set<string>();

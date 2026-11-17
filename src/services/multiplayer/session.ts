@@ -1,5 +1,5 @@
 /**
- * Eine Sitzung pro Gerät. Der Host verteilt JSON-Nachrichten nur innerhalb derselben OpenScrapp.
+ * Eine Sitzung pro Gerät. Der Host verteilt JSON-Nachrichten nur innerhalb derselben Scrapp.
  */
 import { MP_LIMITS, PlayerView, assertPayload, decodeFrames, encodeFrame, playerName, type WireFrame } from './protocol';
 import { decodeJoinUrl, encodeJoinUrl, isPrivateIPv4, type JoinTarget } from './qr';
@@ -270,7 +270,7 @@ export async function endRoom(appId: string): Promise<{ ended: boolean }> {
 }
 
 function requireSession(appId: string): LiveSession {
-  if (!live || live.appId !== appId) throw new Error('Es gibt keinen Raum für diese OpenScrapp.');
+  if (!live || live.appId !== appId) throw new Error('Es gibt keinen Raum für diese Scrapp.');
   return live;
 }
 
@@ -813,7 +813,7 @@ export async function joinMultiplayer(
     } else if (!discovered) payload = input.payload || input.qrPayload || '';
   }
   const target = discovered ? targetFromRoom(appId, discovered) : decodeJoinUrl(payload);
-  if (target.appId !== appId) throw new Error('Dieser QR-Code gehört zu einer anderen OpenScrapp.');
+  if (target.appId !== appId) throw new Error('Dieser QR-Code gehört zu einer anderen Scrapp.');
   const session = blankSession({
     appId,
     role: 'guest',

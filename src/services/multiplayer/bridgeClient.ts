@@ -1,5 +1,5 @@
 /**
- * Typen für Mini-App-Autoren. Zur Laufzeit hängt dasselbe Objekt an window.EveryAppBridge.multiplayer.
+ * Typen für Scrapp-Autoren. Zur Laufzeit hängt dasselbe Objekt an window.EveryAppBridge.multiplayer.
  * Siehe docs/MULTIPLAYER.md.
  */
 export interface MultiplayerPlayer {

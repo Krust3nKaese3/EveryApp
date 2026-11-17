@@ -532,7 +532,7 @@ async function appRawBase(appId: string): Promise<string | null> {
 /** Converts an icon spec into something the native side renders (builtin name | data: | https URL | letter). */
 export function iconForNative(spec: string, rawBase: string | null): string {
   const k = classifyIcon(spec, rawBase);
-  if (k.kind === 'svg') throw new Error(`Icon "${String(spec).slice(0, 60)}": SVG muss im Vordergrund (OpenScrapp-WebView) gesetzt werden – dort wird es automatisch in PNG umgewandelt. Im Hintergrund PNG oder Icon-Namen nutzen`);
+  if (k.kind === 'svg') throw new Error(`Icon "${String(spec).slice(0, 60)}": SVG muss im Vordergrund (Scrapp-WebView) gesetzt werden – dort wird es automatisch in PNG umgewandelt. Im Hintergrund PNG oder Icon-Namen nutzen`);
   return k.value;
 }
 export async function setTileFor(appId: string, slot: number, patch: any) {
@@ -579,7 +579,7 @@ export async function ensureLockGrant(appId: string) {
   if (AppState.currentState !== 'active') { await bgLog(appId, 'allowLocked: Freigabe-Dialog erscheint beim nächsten Öffnen von OpenScr'); return; }
   asked[appId] = true; await AsyncStorage.setItem(LOCK_ASKED_KEY, JSON.stringify(asked));
   Alert.alert('Auf dem Sperrbildschirm erlauben?',
-    `Die OpenScrapp "${appId}" möchte Kacheln/Popups bedienen lassen, ohne dass das Handy entsperrt ist. Jeder mit Zugriff auf dein gesperrtes Handy kann diese Aktionen dann auslösen.`,
+    `Die Scrapp "${appId}" möchte Kacheln/Popups bedienen lassen, ohne dass das Handy entsperrt ist. Jeder mit Zugriff auf dein gesperrtes Handy kann diese Aktionen dann auslösen.`,
     [{ text: 'Ablehnen', style: 'cancel', onPress: () => { bgLog(appId, 'allowLocked: Freigabe abgelehnt'); } },
      { text: 'Erlauben', onPress: () => { try { n.lockGrantSet(appId, true); bgLog(appId, 'allowLocked: Freigabe erteilt'); } catch (e: any) { bgLog(appId, `FEHLER allowLocked lockGrantSet: ${e?.message}`, 'error'); } } }],
     { cancelable: false });

@@ -1,4 +1,4 @@
-// Die OpenScrapp speichert den Spielstand selbst. OpenScr merkt sich nur den Raum.
+// Die Scrapp speichert den Spielstand selbst. OpenScr merkt sich nur den Raum.
 const mp = window.OpenScrBridge.multiplayer;
 const storage = window.OpenScrBridge.storage;
 const statusNode = document.getElementById('status');
