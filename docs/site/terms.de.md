@@ -12,7 +12,7 @@ Manuel Di Liberto
 
 Am Hasensprung 49, 60437 Frankfurt am Main, Deutschland
 
-E-Mail: krust3nkaese@gmail.com
+E-Mail: krust3nkaese3@gmail.com
 
 Verantwortlich für den Inhalt: Manuel Di Liberto, Anschrift wie oben.
 

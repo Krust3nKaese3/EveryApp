@@ -171,7 +171,7 @@ test('legal documents in the app match the markdown files', () => {
     const text = fs.readFileSync(path.join(root, 'docs/site', file), 'utf8');
     assert.ok(text.includes('Manuel Di Liberto'), file);
     assert.ok(text.includes('Am Hasensprung 49, 60437 Frankfurt am Main, Deutschland'), file);
-    assert.ok(text.includes('krust3nkaese@gmail.com'), file);
+    assert.ok(text.includes('krust3nkaese3@gmail.com'), file);
     assert.ok(!text.includes('{{' + 'BETREIBER_'), file);
     assert.ok(!text.includes('{{' + 'SUPPORT_EMAIL}}'), file);
   }
