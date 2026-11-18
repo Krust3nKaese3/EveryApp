@@ -57,6 +57,10 @@
       "android": {
         "track": "internal",
         "serviceAccountKeyPath": "{{PLAY_SERVICE_ACCOUNT_JSON}}"
+      },
+      "ios": {
+        "ascAppId": "6836140309",
+        "appleTeamId": "MB2367GNTX"
       }
     },
     "production-play": {
