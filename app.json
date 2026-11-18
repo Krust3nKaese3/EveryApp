@@ -8,7 +8,12 @@
     "userInterfaceStyle": "automatic",
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.openscr.app"
+      "bundleIdentifier": "com.openscr.app",
+      "buildNumber": "1",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSBluetoothAlwaysUsageDescription": "OpenScr uses Bluetooth LE only when an OpenScrapp you opened asks to talk to a Bluetooth device nearby."
+      }
     },
     "android": {
       "versionCode": 1,
@@ -59,7 +64,8 @@
         "expo-camera",
         {
           "cameraPermission": "OpenScr uses the camera to scan QR codes for installing an OpenScrapp or joining a local game.",
-          "recordAudioAndroid": false
+          "recordAudioAndroid": false,
+          "microphonePermission": false
         }
       ],
       [
@@ -70,6 +76,7 @@
           }
         }
       ],
+      "./plugins/withoutIosPush.js",
       [
         "expo-notifications",
         {
