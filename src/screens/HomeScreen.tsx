@@ -655,9 +655,11 @@ export const HomeScreen: React.FC = () => {
             <TouchableOpacity style={[styles.toolbarButton, { marginLeft: 8 }]} onPress={openDebugLog}>
               <Text style={styles.toolbarButtonText}>Debug-Log</Text>
             </TouchableOpacity>
+            {Platform.OS !== 'ios' ? (
             <TouchableOpacity style={[styles.toolbarButton, { marginLeft: 8 }]} onPress={() => setShowSpotifySettings(true)}>
               <Text style={styles.toolbarButtonText}>Spotify</Text>
             </TouchableOpacity>
+            ) : null}
           </View>
 
           <FlatList
@@ -726,7 +728,9 @@ export const HomeScreen: React.FC = () => {
             }}
           />
 
+          {Platform.OS !== 'ios' ? (
           <SpotifySettingsModal visible={showSpotifySettings} onClose={() => setShowSpotifySettings(false)} />
+          ) : null}
 
           <Modal visible={debugLines !== null} transparent animationType="slide" onRequestClose={() => setDebugLines(null)}>
             <View style={styles.modalOverlay}>

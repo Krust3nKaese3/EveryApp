@@ -153,6 +153,11 @@ test('source view keeps entry HTML and JS and the code pane stays at most 80 per
   const home = fs.readFileSync(path.join(root, 'src/screens/HomeScreen.tsx'), 'utf8');
   assert.match(home, /showCatalog \?/);
   assert.match(home, /Dein erstes OpenScrapp/);
+  assert.match(home, /Debug-Log/);
+  assert.match(home, /Platform\.OS !== 'ios'[\s\S]{0,400}toolbarButtonText\}>Spotify/);
+  assert.match(home, /Platform\.OS !== 'ios'[\s\S]{0,250}<SpotifySettingsModal/);
+  const appJson = JSON.parse(fs.readFileSync(path.join(root, 'app.json'), 'utf8'));
+  assert.strictEqual(appJson.expo.ios.buildNumber, '3');
   const handler = fs.readFileSync(path.join(root, 'src/bridge/BridgeMessageHandler.ts'), 'utf8');
   assert.match(handler, /iosBlockedCapability\(Platform\.OS/);
   const tasks = fs.readFileSync(path.join(root, 'src/services/BackgroundTasks.ts'), 'utf8');
